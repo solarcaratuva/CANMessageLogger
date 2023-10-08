@@ -1,0 +1,6 @@
+00:39:38 DEBUG /workspaces/Rivanna2S/Common/include/ECUCANStructs.h:23: ECUMotorCommands: throttle 0, regen 0, cruise_control_speed 0, cruise_control_en 0, forward_en 0, reverse_en 0, motor_on 0
+00:39:38 DEBUG /workspaces/Rivanna2S/Common/src/MainCANInterface.cpp:145: Sending test message to PI
+00:39:38 DEBUG /workspaces/Rivanna2S/Common/include/ECUCANStructs.h:48: ECUPowerAuxCommands: hazards 0, brake_lights 0, headlights 0, left_turn_signal 0, right_turn_signal 0
+00:39:38 DEBUG /workspaces/Rivanna2S/Common/include/ECUCANStructs.h:23: ECUMotorCommands: throttle 0, regen 0, cruise_control_speed 0, cruise_control_en 0, forward_en 0, reverse_en 0, motor_on 0
+00:39:38 DEBUG /workspaces/Rivanna2S/Common/src/MainCANInterface.cpp:145: Sending test message to PI
+00:39:38 DEBUG /workspaces/Rivanna2S/Common/include/ECUCANStructs.h:48: ECUPowerAuxCommands: hazards 0, brake_lights 0, headlights 0, left_turn_signal 0, right_turn_signal 0
