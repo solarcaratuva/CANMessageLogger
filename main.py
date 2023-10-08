@@ -38,38 +38,12 @@ def dataUpdater():
             messageHandler(item)
         #print("UPDATED")
 
-        for graph in currentGraphs:
-            graph.update()
+        #for graph in currentGraphs:
+            #graph.update()
         time.sleep(1)
 
 
 
-def userInput():
-    global tractedValues, currentGraphs, running
-    while running == True:
-        command = input("Enter a command: ")
-        command = command.split()   # split by spaces; [0] = command, [1] = item name, [2...] = other arguments
-
-        if command[0] == "quit":
-            running = False
-            continue
-        if len(command) <= 1:
-            print("COMMAND MISSING ARGUMENTS")
-            continue
-        if command[1] not in tractedValues:
-            print(f"THE VALUE \"{command[1]}\" IS NOT A TRACKED VALUE")
-            continue
-        match command[0]:
-            case "add":
-                thisDict = tractedValues[command[1]]
-                thisGraph = graphs.Graph(thisDict)
-                currentGraphs[command[1]] = thisGraph
-            case "rm":
-                thisGraph = currentGraphs[command[1]]
-                thisGraph.delete()
-                del currentGraphs[command[1]]
-            case _:
-                print("UNKNOWN COMMAND ENTERED")
 
 
 if __name__ == "__main__": #Main Method

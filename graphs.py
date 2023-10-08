@@ -18,7 +18,7 @@ class Graph:
             df = pd.DataFrame(values, timeStamps, columns=['Time (seconds)'])
         df.plot(color = 'red', title = name + ' Over Time')
 
-        plt.show()
+        plt.show(block=False)
 
 
     def update(this, dict, name, start=-1, end=-1):
