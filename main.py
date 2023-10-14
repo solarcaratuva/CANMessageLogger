@@ -1,3 +1,4 @@
+import os
 import time
 import graphs
 import test
@@ -42,13 +43,28 @@ def dataUpdater():
             #graph.update()
         time.sleep(1)
 
+def readInFileData(filePath):
+    logData = open(logFilePath, "r").readlines()
+    for item in logData:
+        messageHandler(item)
+    print("Import Successful!")
+
+def serialInputReader():
+    print()
+
 
 
 
 
 if __name__ == "__main__": #Main Method
-    dataUpdaterThread = threading.Thread(target=dataUpdater)
-    dataUpdaterThread.start()
+    input = input("Enter \"serial\" to read from serial in real time OR enter the path of a log file")
+    if input == "serial":
+        serialInputReaderThread = threading.Thread(target=serialInputReader)
+        serialInputReaderThread.start()
+    elif not os.path.exists(input):
+        print("The path is invalid!")
+    else:
+        readInFileData(input)
 
     while running == True:
         command = input("Enter a command: ")
@@ -66,7 +82,7 @@ if __name__ == "__main__": #Main Method
         match command[0]:
             case "add":
                 thisDict = tractedValues[command[1]]
-                thisGraph = graphs.Graph(thisDict)
+                thisGraph = graphs.Graph(thisDict, command[1])
                 currentGraphs[command[1]] = thisGraph
             case "rm":
                 thisGraph = currentGraphs[command[1]]
