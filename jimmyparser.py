@@ -1,7 +1,7 @@
 import time
-def messageParser(message):
+
+def messageParser(message, timer):
     messageDict = {}
-    validMessage: False
     messageToFind = ['ECUMotorCommands: ', 'ECUPowerAuxCommands: ']
     split_list = []
     for msg in messageToFind:
@@ -10,7 +10,7 @@ def messageParser(message):
             length = len(msg)
             break
     if index == -1:
-        return None, time.time()
+        return None, time.perf_counter() - timer
     msgSubstring = message[(index+length):]
     pair = msgSubstring.split(", ")
     for string in pair:
@@ -18,4 +18,4 @@ def messageParser(message):
         split_list.extend(split_result)
     for i in range(0, len(split_list), 2):
         messageDict[split_list[i]] = split_list[i+1]
-    return messageDict, time.time()
+    return messageDict, time.perf_counter() - timer
