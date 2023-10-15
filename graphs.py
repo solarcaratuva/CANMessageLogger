@@ -5,15 +5,24 @@ class Graph:
     
     startIndex = 0
     endIndex = 0
+    start = -1
+    end = -1
+    name = ""
+    logDict = {}
     df = pd.DataFrame()
 
-    def __init__(self, dict, name="", start=-1, end=-1):
-        self.update(dict, name, start, end)
+    def __init__(self, inputDict, inputName="", inputStart=-1, inputEnd=-1):
+        name = inputName
+        logDict = inputDict
+        start = inputStart
+        end = inputEnd
+        self.update()
         
 
-    def update(this, dict, name, start=-1, end=-1):
-        timeStamps = list(dict.keys())
-        values = list(dict.values())
+    def update():
+        global startIndex, endIndex, logDict, name, start, end
+        timeStamps = list(logDict.keys())
+        values = list(logDict.values())
 
         if(start > -1 and end > -1):
             if(end > start):
