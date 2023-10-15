@@ -19,21 +19,20 @@ class Graph:
         self.update()
         
 
-    def update():
-        global startIndex, endIndex, logDict, name, start, end
-        timeStamps = list(logDict.keys())
-        values = list(logDict.values())
+    def update(self):
+        timeStamps = list(self.logDict.keys())
+        values = list(self.logDict.values())
 
-        if(start > -1 and end > -1):
-            if(end > start):
+        if(self.start > -1 and self.end > -1):
+            if(self.end > self.start):
                 print("INPUT ERROR: ", )
 
-            startIndex = timeStamps.index(start)
-            endIndex = timeStamps.index(end) + 1
+            startIndex = timeStamps.index(self.start)
+            endIndex = timeStamps.index(self.end) + 1
             df = pd.DataFrame(values[startIndex:endIndex], timeStamps[startIndex:endIndex], columns=['Time (seconds)'])
         else:
             df = pd.DataFrame(values, timeStamps, columns=['Time (seconds)'])
-        df.plot(color = 'red', title = name + ' Over Time')
+        df.plot(color = 'red', title = self.name + ' Over Time')
 
         plt.show(block=False)
 

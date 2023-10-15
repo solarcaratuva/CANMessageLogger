@@ -8,6 +8,7 @@ import serial.tools.list_ports
 
 
 running = True
+startTime = None
 
 tractedValues = {"throttle": dict()} # TODO
 currentGraphs = dict()
@@ -30,6 +31,9 @@ def checkForObviousErrors(key, value, message):
     
 
 def messageHandler(unparsedMessage):
+    global startTime
+    if startTime == None:
+        startTime = time.perf_counter()
     messageDict, timestamp = test.testing() # get from Jimmy's parser
     if messageDict == None:
         return
@@ -48,42 +52,41 @@ def readInFileData(filePath):
         messageHandler(item)
     print("Import Successful!")
 
-def serialInputReader():
-    deviceName = "USB\VID_0483&PID_374E&REV_0100&MI_02" # update
-    serialPort = None
-    # ser = None
-    # ports = list(serial.tools.list_ports.comports())
-    # for port in ports:
-    #     if deviceName in port.description or deviceName in port.hwid:
-    #         serialPort = port.device
-    #         break
-    # if serialPort == None:
-    #     print(deviceName + " not found")
-    #     return
-    # ser = serial.Serial(port.device, 921600)
-    # print(deviceName + " found on " +serialPort)
-    # ports = [port.device for port in serial.tools.list_ports.comports()]
+def findTheSerialPort():
+    ser = None
 
-    # for port in ports:
-    #     try:
-    #         with serial.Serial(port, 921600, timeout=0.1) as ser:
-    #             data = ser.readline()
-    #             if data:
-    #                 ports.append(port)
-    #     except (serial.SerialException, OSError):
-    #         pass
-
-    # while True:
-    #     try:
-    #         while True:
-    #             line = ser.readline().decode('utf-8').strip()
-    #             #print(line)
-    #             messageHandler(line)
-    #     except KeyboardInterrupt:
-    #         ser.close()
-    #     global currentGraphs
-    #     for graph in currentGraphs.values:
-    #         graph.update()
+    # checking which serial port has data currently streaming
+    availablePorts = [port.device for port in serial.tools.list_ports.comports()]
+    for port in availablePorts:
+        try:
+            with serial.Serial(port, 921600, timeout=0.1) as testSer:
+                data = testSer.readline()
+                if data:
+                    ser = testSer
+        except (serial.SerialException, OSError):
+            pass
+    if ser == None: # if no serial device was currently streaming
+        print("No serial devices found")
+        return
+    else:
+        print("Serial device connected on " + ser.port)
+        return ser
+    
+def serialInputReader(ser):
+    if ser == None:
+        return
+    while True:
+        try:
+            while True:
+                line = ser.readline().decode('utf-8').strip()
+                #print(line)
+                messageHandler(line)
+        except KeyboardInterrupt:
+            ser.close()
+        global currentGraphs
+        for graph in currentGraphs.values:
+            graph.update()
+        print(line)
 
 
 
@@ -92,7 +95,8 @@ def serialInputReader():
 if __name__ == "__main__": #Main Method
     inp = input("Enter \"serial\" to read from serial in real time OR enter the path of a log file\n")
     if inp == "serial":
-        serialInputReaderThread = threading.Thread(target=serialInputReader)
+        ser = findTheSerialPort()
+        serialInputReaderThread = threading.Thread(target=serialInputReader, args=(ser,))
         serialInputReaderThread.start()
     else:
         readInFileData(inp)
