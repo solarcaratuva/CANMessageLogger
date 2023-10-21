@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import time
 
 class Graph:
     
@@ -47,17 +48,25 @@ class Graph:
 
     def delete(self):
         global df, startIndex, endIndex
+        print("ACTIVATED DELETE METHOD")
         df = pd.DataFrame()
         startIndex = 0
         endIndex = 0
+        plt.close()
 
-if __name__ == "__main__": #testing
-     testDict = {1: 90, 2: 87, 3: 83, 4: 45, 5: 92, 6: 86, 7: 69, 8: 88, 9: 96, 10: 90, 11: 77}
-     print(testDict)
+# if __name__ == "__main__": #testing
+#      global df
+#      testDict = {1: 90, 2: 87, 3: 83, 4: 45, 5: 92, 6: 86, 7: 69, 8: 88, 9: 96, 10: 90, 11: 77}
+#      print(testDict)
 
-     testGraph = Graph(testDict, "value1")
-     testDict[12] = 200
-     print(testDict)
+#      testGraph = Graph(testDict, "value1")
+#      testDict[12] = 200
+#      print(testDict)
 
-     testGraph.update()
+#      testGraph.update()
+#      print("updated once, about to delete")
+#      print("test grpah before delete", df)
+#      time.sleep(5)
+#      testGraph.delete()
+#      print("deleted", df)
    
