@@ -40,7 +40,10 @@ class Graph:
             df = pd.DataFrame(values, timeStamps, columns=['Time (seconds)'])
         df.plot(color = 'red', title = self.name + ' Over Time')
 
-        plt.show(block=True)
+        plt.show(block=False)
+
+    def addNewRow(self):
+        pass
 
     def delete(self):
         global df, startIndex, endIndex
@@ -48,11 +51,13 @@ class Graph:
         startIndex = 0
         endIndex = 0
 
-# if __name__ == "__main__": #testing
-#      testDict = {1: 90, 2: 87, 3: 83, 4: 45, 5: 92, 6: 86, 7: 69, 8: 88, 9: 96, 10: 90, 11: 77}
-#      print(testDict)
+if __name__ == "__main__": #testing
+     testDict = {1: 90, 2: 87, 3: 83, 4: 45, 5: 92, 6: 86, 7: 69, 8: 88, 9: 96, 10: 90, 11: 77}
+     print(testDict)
 
-#      testGraph = Graph(testDict, "value1")
+     testGraph = Graph(testDict, "value1")
+     testDict[12] = 200
+     print(testDict)
 
-#      testGraph.update()
+     testGraph.update()
    
