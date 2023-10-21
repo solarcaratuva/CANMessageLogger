@@ -25,7 +25,7 @@ class Graph:
         timeStamps = list(logDict.keys())
         values = list(logDict.values())
 
-        print(timeStamps, values)
+        
         if(len(timeStamps) < 1):
             print("NO DATA VALYES")
 
@@ -48,11 +48,11 @@ class Graph:
         startIndex = 0
         endIndex = 0
 
-if __name__ == "__main__": #testing
-     testDict = {1: 90, 2: 87, 3: 83, 4: 45, 5: 92, 6: 86, 7: 69, 8: 88, 9: 96, 10: 90, 11: 77}
-     print(testDict)
+# if __name__ == "__main__": #testing
+#      testDict = {1: 90, 2: 87, 3: 83, 4: 45, 5: 92, 6: 86, 7: 69, 8: 88, 9: 96, 10: 90, 11: 77}
+#      print(testDict)
 
-     testGraph = Graph(testDict, "value1")
+#      testGraph = Graph(testDict, "value1")
 
-     testGraph.update()
+#      testGraph.update()
    
