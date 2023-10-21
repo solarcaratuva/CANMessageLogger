@@ -53,24 +53,19 @@ def readInFileData(filePath):
     print("Import Successful!")
 
 def findTheSerialPort():
-    ser = None
-
-    # checking which serial port has data currently streaming
-    availablePorts = [port.device for port in serial.tools.list_ports.comports()]
-    for port in availablePorts:
-        try:
-            with serial.Serial(port, 921600, timeout=0.1) as testSer:
-                data = testSer.readline()
-                if data:
-                    ser = testSer
-        except (serial.SerialException, OSError):
-            pass
-    if ser == None: # if no serial device was currently streaming
-        print("No serial devices found")
-        return
-    else:
-        print("Serial device connected on " + ser.port)
+    ports = list(serial.tools.list_ports.comports())
+    if len(ports) == 0:
+        print("No ports were found")
+        return None
+    if len(ports) > 1:
+        print("Multiple ports were found, could not determine which is the right one")
+    try:
+        ser = serial.Serial(ports[0].device, baudrate=921600)
         return ser
+    except Exception as e:
+        print("Failed to open port")
+        print(e)
+        return None
     
 def serialInputReader(ser):
     if ser == None:
@@ -79,7 +74,7 @@ def serialInputReader(ser):
         try:
             while True:
                 line = ser.readline().decode('utf-8').strip()
-                #print(line)
+                print(line)
                 messageHandler(line)
         except KeyboardInterrupt:
             ser.close()
