@@ -1,11 +1,14 @@
 import time
-
+'''
+Cannot find: MG0InputCurrent, MG0InputVoltage, MG1InputCurrent, MG1InputVoltage, MG0OutputVoltage, MG0InputPower
+MG1OutputVoltage, MG1InputPower, MG0PCBTemperature, MG0MOSFETTemperature, MG1PCBTemperature, MG1MOSFETTemperature
+'''
 def messageParser(message, timer):
     messageDict = {}
     messageToFind = ['ECUMotorCommands: ', 'ECUPowerAuxCommands: ', 'BPSPackInformation: ', 'BPSError: ', 'BPSCellVoltage: ', 
                      'BPSCellTemperature: ', 'MotorControllerFrameRequest: ', 'MotorControllerPowerStatus: ', 
                      'MotorControllerDriveStatus: ', 'MotorControllerError: ', 'PowerAuxError: ', 'SolarCurrent: ', 
-                     'SolarVoltage: ', 'SolarTemp: ', 'SolarPhoto: ']
+                     'SolarVoltage: ', 'SolarTemp: ']
     split_list = []
     for msg in messageToFind:
         index = message.find(msg)
