@@ -127,6 +127,9 @@ if __name__ == "__main__": #Main Method
                 thisGraph.delete()
                 del currentGraphs[command[1]]
             case "chg":
+                if len(command) < 4:
+                    print("There must be 2 arguments")
+                    continue
                 thisGraph = currentGraphs[command[1]]
                 thisGraph.changeGraphRange(int(command[2]), int(command[3]))
             case _:
