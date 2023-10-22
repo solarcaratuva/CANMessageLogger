@@ -8,7 +8,7 @@ import serial.tools.list_ports
 from messageParser import messageParser
 
 
-
+running = True
 tractedValues = {"pack_voltage":dict(), "pack_current":dict(), "pack_soc":dict(), "low_cell_voltage":dict(), "high_cell_voltage":dict(), "low_temperature":dict(), "high_temperature":dict(),
                  "battery_voltage":dict(), "battery_current":dict(), "battery_current_direction":dict(), "motor_current":dict(), "fet_temp":dict(), "motor_rpm":dict(), "pwm_duty":dict(), "lead_angle":dict(), "power_mode":dict(), "control_mode":dict(), "accelerator_vr_position":dict(), "regen_vr_position":dict(), "digital_sw_position":dict(), "output_target_value":dict(), "motor_status":dict(), "regen_status":dict(),
                  "throttle":dict(), "regen":dict(), "cruise_control_speed":dict(), "cruise_control_en":dict(), "forward_en":dict(), "reverse_en":dict(), "motor_on":dict(), "hazards":dict(), "brake_lights":dict(), "headlights":dict(), "left_turn_signal":dict(), "right_turn_signal":dict(), "total_current":dict(), "panel1_voltage":dict(), "panel2_voltage":dict(), "panel3_voltage":dict(), "panel4_voltage":dict(), "panel1_temp":dict(), "panel2_temp":dict(), "panel3_temp":dict(), "panel4_temp":dict()}
@@ -67,7 +67,7 @@ def findTheSerialPort() -> serial.Serial:
     
 def serialInputReader(ser: serial.Serial) -> None:
         try:
-            while True:
+            while running:
                 line = ser.readline().decode('utf-8').strip()
                 messageHandler(line)
         except KeyboardInterrupt:
@@ -108,6 +108,7 @@ if __name__ == "__main__": #Main Method
         command = command.split()   # split by spaces; [0] = command, [1] = item name, [2...] = other arguments
 
         if command[0] == "quit":
+            running = False
             break
         if len(command) <= 1:
             print("COMMAND MISSING ARGUMENTS")
