@@ -1,9 +1,8 @@
 import os
 import time
 import graphs
-import test
 import threading
-import serial
+from serial import Serial
 import serial.tools.list_ports
 from messageParser import messageParser
 
@@ -50,11 +49,11 @@ def readInFileData(filePath: str) -> bool:
     print("Import Successful!")
     return True
 
-def findTheSerialPort() -> serial.Serial:
+def findTheSerialPort() -> Serial:
     ports = list(serial.tools.list_ports.comports())
     if len(ports) == 1:
         try:
-            ser = serial.Serial(ports[0].device, baudrate=921600)
+            ser = Serial(ports[0].device, baudrate=921600)
             return ser
         except Exception as e:
             print("Failed to open port")
@@ -65,7 +64,7 @@ def findTheSerialPort() -> serial.Serial:
         print("Multiple ports were found, could not determine which is the right one")
     return None
     
-def serialInputReader(ser: serial.Serial) -> None:
+def serialInputReader(ser: Serial) -> None:
         try:
             while running:
                 line = ser.readline().decode('utf-8').strip()
