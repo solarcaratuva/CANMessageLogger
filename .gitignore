@@ -1,4 +1,5 @@
 __pycache__
 Resources\__pycache__
 .venv
+.idea
 TODO
