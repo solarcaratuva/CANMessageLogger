@@ -19,23 +19,36 @@ class Graph:
         start = inputStart
         end = inputEnd
         self.update()
+
+    def changeGraphRange(self, newStarting, newEnding):
+        global start, end
+        
+        start = newStarting
+        end = newEnding
+        self.update()
         
 
     def update(self):
+        
         global start, end, startIndex, endIndex, name, logDict, df
+        if(len(logDict) > 1):
+            plt.close()
+
         timeStamps = list(logDict.keys())
         values = list(logDict.values())
 
-        
         if(len(timeStamps) < 1):
-            print("NO DATA VALYES")
+            print("NO REAL DATA VALUES")
+            timeStamps = [0]
+            values = [0]
 
-        if(self.start > -1 and self.end > -1):
+        if(start > -1 and end > -1):
             if(self.end > self.start):
-                print("INPUT ERROR: ")
+                print("INPUT ERROR: ending index is smaller than starting index: ")
 
-            startIndex = timeStamps.index(self.start)
-            endIndex = timeStamps.index(self.end) + 1
+            startIndex = timeStamps.index(start)
+            endIndex = timeStamps.index(end) + 1
+
             df = pd.DataFrame(values[startIndex:endIndex], timeStamps[startIndex:endIndex], columns=['Time (seconds)'])
         else:
             df = pd.DataFrame(values, timeStamps, columns=['Time (seconds)'])
@@ -48,7 +61,6 @@ class Graph:
 
     def delete(self):
         global df, startIndex, endIndex
-        print("ACTIVATED DELETE METHOD")
         df = pd.DataFrame()
         startIndex = 0
         endIndex = 0
@@ -66,6 +78,7 @@ class Graph:
 #      testGraph.update()
 #      print("updated once, about to delete")
 #      print("test grpah before delete", df)
+#      testGraph.changeGraphRange(5, 8)
 #      time.sleep(5)
 #      testGraph.delete()
 #      print("deleted", df)
