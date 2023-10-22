@@ -5,11 +5,14 @@ MG1OutputVoltage, MG1InputPower, MG0PCBTemperature, MG0MOSFETTemperature, MG1PCB
 '''
 timer = None
 
+#only parses msg in the format "messageToFind: key value, ___ _, ___ _, ..."
 def messageParser(message):
     global timer
+    #sets timer to get timestamps
     if timer == None:
         timer = time.perf_counter()
     messageDict = {}
+    #keywords to look for in the printed log statement
     messageToFind = ['ECUMotorCommands: ', 'ECUPowerAuxCommands: ', 'BPSPackInformation: ', 'BPSError: ', 'BPSCellVoltage: ', 
                      'BPSCellTemperature: ', 'MotorControllerFrameRequest: ', 'MotorControllerPowerStatus: ', 
                      'MotorControllerDriveStatus: ', 'MotorControllerError: ', 'PowerAuxError: ', 'SolarCurrent: ', 
@@ -20,6 +23,7 @@ def messageParser(message):
         if msg in message:
             length = len(msg)
             break
+    #the key word we are trying to track is not found, returns none
     if index == -1:
         return None, time.perf_counter() - timer
     msgSubstring = message[(index+length):]
