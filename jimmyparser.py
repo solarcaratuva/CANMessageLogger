@@ -2,7 +2,10 @@ import time
 
 def messageParser(message, timer):
     messageDict = {}
-    messageToFind = ['ECUMotorCommands: ', 'ECUPowerAuxCommands: ']
+    messageToFind = ['ECUMotorCommands: ', 'ECUPowerAuxCommands: ', 'BPSPackInformation: ', 'BPSError: ', 'BPSCellVoltage: ', 
+                     'BPSCellTemperature: ', 'MotorControllerFrameRequest: ', 'MotorControllerPowerStatus: ', 
+                     'MotorControllerDriveStatus: ', 'MotorControllerError: ', 'PowerAuxError: ', 'SolarCurrent: ', 
+                     'SolarVoltage: ', 'SolarTemp: ', 'SolarPhoto: ']
     split_list = []
     for msg in messageToFind:
         index = message.find(msg)
