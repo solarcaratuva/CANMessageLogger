@@ -23,5 +23,5 @@ def messageParser(message, timer):
         split_result = string.split()
         split_list.extend(split_result)
     for i in range(0, len(split_list), 2):
-        messageDict[split_list[i]] = split_list[i+1]
+        messageDict[split_list[i]] = int(split_list[i+1])
     return messageDict, time.perf_counter() - timer
