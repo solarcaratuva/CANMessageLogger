@@ -17,6 +17,10 @@ def messageParser(message):
                      'BPSCellTemperature: ', 'MotorControllerFrameRequest: ', 'MotorControllerPowerStatus: ', 
                      'MotorControllerDriveStatus: ', 'MotorControllerError: ', 'PowerAuxError: ', 'SolarCurrent: ', 
                      'SolarVoltage: ', 'SolarTemp: ']
+    errorsList = ['BPSError', 'MotorControllerError', 'PowerAuxError']
+    for msg in errorsList:
+        if msg in message:
+            return {"ERROR": "ERROR"}, None
     split_list = []
     for msg in messageToFind:
         index = message.find(msg)

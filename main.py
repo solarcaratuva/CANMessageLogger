@@ -34,6 +34,8 @@ def messageHandler(unparsedMessage: str) -> None:
     messageDict, timestamp = messageParser(unparsedMessage)
     if messageDict == None:
         return
+    if messageDict == {"ERROR": "ERROR"}:
+        print("ERROR THROWN!\n" + unparsedMessage)
     for key in messageDict:
         if key in tractedValues:
             tractedValues[key][timestamp] = messageDict[key]
@@ -69,6 +71,7 @@ def serialInputReader(ser: Serial) -> None:
             while running:
                 line = ser.readline().decode('utf-8').strip()
                 messageHandler(line)
+            ser.close()
         except KeyboardInterrupt:
             ser.close()
 
