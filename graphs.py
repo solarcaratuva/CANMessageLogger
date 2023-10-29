@@ -64,7 +64,7 @@ class Graph:
             df = pd.DataFrame(values, timeStamps, columns=['Time (seconds)'])
         df.plot(color = 'red', title = self.name + ' Over Time')
 
-        self.ani = FuncAnimation(plt.gcf(), self.update_graph, interval=40, cache_frame_data=False)
+        self.ani = FuncAnimation(plt.gcf(), self.update_graph, interval=3000, cache_frame_data=False)
         plt.show(block=False)
 
             
@@ -98,7 +98,7 @@ class Graph:
         newDF = pd.DataFrame(values[lastIndex:], timeStamps[lastIndex:], columns=['Time (seconds)'])
         #print(lastIndex, newDF, logDict)
         lastIndex+=1
-        time.sleep(1)
+
 
         data = pd.concat([df, newDF], ignore_index=True)
 
