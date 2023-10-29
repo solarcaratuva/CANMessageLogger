@@ -33,7 +33,7 @@ class Graph:
         global start, end
         
         start = math.ceil(newStarting)
-        end = math.floow(newEnding)
+        end = math.floor(newEnding)
         self.update()
         
 
@@ -64,8 +64,9 @@ class Graph:
             df = pd.DataFrame(values, timeStamps, columns=['Time (seconds)'])
         df.plot(color = 'red', title = self.name + ' Over Time')
 
-        
+        self.ani = FuncAnimation(plt.gcf(), self.update_graph, interval=100)
         plt.show(block=False)
+
             
     def update_animated():
         global df, logDict, lastIndex
@@ -129,7 +130,7 @@ if __name__ == "__main__": #testing
     addingValuesThread.start()
 
 
-    ani = FuncAnimation(plt.gcf(), testGraph.update_graph, interval=100)  # Update every 1 second (1000 milliseconds)
+    #ani = FuncAnimation(plt.gcf(), testGraph.update_graph, interval=100)  # Update every 1 second (1000 milliseconds)
     plt.show()
 
 
