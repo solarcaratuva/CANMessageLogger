@@ -30,10 +30,12 @@ class Graph:
         self.update()
 
     def changeGraphRange(self, newStarting, newEnding):
-        global start, end
+        global start, end, startIndex, endIndex
         
         start = math.ceil(newStarting)
+        startIndex = start
         end = math.floor(newEnding)
+        endIndex = end
         self.update()
         
 
@@ -54,6 +56,7 @@ class Graph:
             if(end > start):
                 print("INPUT ERROR: ending index is smaller than starting index: ")
 
+            print(startIndex, endIndex)
             startIndex = timeStamps[start]
             endIndex = timeStamps[end + 1]
 
@@ -124,11 +127,15 @@ if __name__ == "__main__": #testing
     x = 12
     num = 70
 
-    addingValuesThread = threading.Thread(target=testGraph.addNewRow, args=(20,))
-    addingValuesThread.start()
+    # addingValuesThread = threading.Thread(target=testGraph.addNewRow, args=(20,))
+    # addingValuesThread.start()
+
 
 
     #ani = FuncAnimation(plt.gcf(), testGraph.update_graph, interval=100)  # Update every 1 second (1000 milliseconds)
+    plt.show()
+
+    testGraph.changeGraphRange(4, 9)
     plt.show()
 
 
