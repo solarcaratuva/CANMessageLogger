@@ -1,3 +1,5 @@
+import threading
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import time
@@ -63,7 +65,7 @@ class Graph:
         df.plot(color = 'red', title = self.name + ' Over Time')
 
         
-        plt.show(block=True)
+        plt.show(block=False)
             
     def update_animated():
         global df, logDict, lastIndex
@@ -76,8 +78,8 @@ class Graph:
         df = pd.concat(df, newDF)
         lastIndex = len(logDict)
 
-    def addNewRow(self):
-        pass
+
+
 
     def delete(self):
         global df, startIndex, endIndex
@@ -93,6 +95,9 @@ class Graph:
         values = list(logDict.values())
 
         newDF = pd.DataFrame(values[lastIndex:], timeStamps[lastIndex:], columns=['Time (seconds)'])
+        #print(lastIndex, newDF, logDict)
+        lastIndex+=1
+        time.sleep(1)
 
         data = pd.concat([df, newDF], ignore_index=True)
 
@@ -103,6 +108,14 @@ class Graph:
         plt.title("Live Data Plot")
         plt.plot(timeStamps, values)
 
+    def addNewRow(self, num):
+        global logDict
+        while num > 0:
+            logDict[len(logDict)+1] = np.random.randint(0, 100)
+            num -= 1
+            time.sleep(1)
+            print(logDict)
+
 if __name__ == "__main__": #testing
 
     data = pd.DataFrame(columns=["Time", "Value"])
@@ -111,16 +124,19 @@ if __name__ == "__main__": #testing
 
     x = 12
     num = 70
-    
+
+    addingValuesThread = threading.Thread(target=testGraph.addNewRow, args=(10,))
+    addingValuesThread.start()
+
 
     ani = FuncAnimation(plt.gcf(), testGraph.update_graph, interval=100)  # Update every 1 second (1000 milliseconds)
     plt.show()
-    for i in range(7):
-        testDict[x] = num
-        print("Added a new value to the dictionary: ", testDict)
-        x += 1
-        num += 3
-        time.sleep(1)
+
+
+    testDict[12] = 90
+    time.sleep(2)
+    testDict[13] = 100
+
 
     
 
