@@ -40,8 +40,6 @@ class Graph:
     def update(self):
         
         global start, end, startIndex, endIndex, name, logDict, df, lastIndex
-        if(len(logDict) > 1):
-            plt.close()
 
         timeStamps = list(logDict.keys())
         values = list(logDict.values())
@@ -56,8 +54,8 @@ class Graph:
             if(end > start):
                 print("INPUT ERROR: ending index is smaller than starting index: ")
 
-            startIndex = timeStamps.index(start)
-            endIndex = timeStamps.index(end) + 1
+            startIndex = timeStamps[start]
+            endIndex = timeStamps[end + 1]
 
             df = pd.DataFrame(values[startIndex:endIndex], timeStamps[startIndex:endIndex], columns=['Time (seconds)'])
         else:
