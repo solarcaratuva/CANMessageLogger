@@ -90,7 +90,7 @@ class Graph:
         plt.close()
 
     def update_graph(self, i):
-        global data, df, logDict, lastIndex
+        global data, df, logDict, lastIndex, name
         
         timeStamps = list(logDict.keys())
         values = list(logDict.values())
@@ -106,7 +106,7 @@ class Graph:
         plt.cla()
         plt.xlabel("Time")
         plt.ylabel("Value")
-        plt.title("Live Data Plot")
+        plt.title(name)
         plt.plot(timeStamps, values)
 
     def addNewRow(self, num):
