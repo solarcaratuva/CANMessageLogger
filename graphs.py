@@ -64,7 +64,7 @@ class Graph:
             df = pd.DataFrame(values, timeStamps, columns=['Time (seconds)'])
         df.plot(color = 'red', title = self.name + ' Over Time')
 
-        self.ani = FuncAnimation(plt.gcf(), self.update_graph, interval=100)
+        self.ani = FuncAnimation(plt.gcf(), self.update_graph, interval=40, cache_frame_data=False)
         plt.show(block=False)
 
             
@@ -126,7 +126,7 @@ if __name__ == "__main__": #testing
     x = 12
     num = 70
 
-    addingValuesThread = threading.Thread(target=testGraph.addNewRow, args=(10,))
+    addingValuesThread = threading.Thread(target=testGraph.addNewRow, args=(20,))
     addingValuesThread.start()
 
 
