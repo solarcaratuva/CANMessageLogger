@@ -75,15 +75,6 @@ def serialInputReader(ser: Serial) -> None:
         except KeyboardInterrupt:
             ser.close()
 
-def graphUpdater() -> None:
-    global currentGraphs
-    while True:
-        for graph in currentGraphs.values():
-            graph.update()
-            print("here")
-            print (currentGraphs)
-        time.sleep(2)
-
 
 
 
@@ -97,8 +88,6 @@ if __name__ == "__main__": #Main Method
                 continue
             serialInputReaderThread = threading.Thread(target=serialInputReader, args=(ser,))
             serialInputReaderThread.start()
-            # graphUpdaterThread = threading.Thread(target=graphUpdater)
-            # graphUpdaterThread.start()
             break
         else:
             if readInFileData(inp):
@@ -109,6 +98,8 @@ if __name__ == "__main__": #Main Method
         command = input("Enter a command: ")
         command = command.split()   # split by spaces; [0] = command, [1] = item name, [2...] = other arguments
 
+        if len(command) == 0:
+            continue
         if command[0] == "quit":
             running = False
             break
@@ -136,5 +127,3 @@ if __name__ == "__main__": #Main Method
                 thisGraph.changeGraphRange(int(command[2]), int(command[3]))
             case _:
                 print("UNKNOWN COMMAND ENTERED")
-
-        
