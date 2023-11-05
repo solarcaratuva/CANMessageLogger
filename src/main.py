@@ -1,5 +1,5 @@
 import os
-import time
+import copy
 import graphs
 import threading
 from serial import Serial
@@ -75,6 +75,16 @@ def serialInputReader(ser: Serial) -> None:
         except KeyboardInterrupt:
             ser.close()
 
+def getStaticDict(trackedValue: str, start: float, end: float) -> dict:
+    copiedDict = copy.deepcopy(tractedValues[trackedValue])
+    timestampList = list(copiedDict.keys())
+    for timestamp in timestampList:
+        if not (timestamp > start and timestamp < end):
+            del copiedDict[timestamp]
+    return copiedDict
+    
+
+
 
 
 
@@ -112,18 +122,24 @@ if __name__ == "__main__": #Main Method
         
         match command[0]:   # normal cases
             case "add":
-                thisDict = tractedValues[command[1]]
-                thisGraph = graphs.Graph(thisDict, command[1])
+                if command[1] in currentGraphs:
+                    thisGraph = currentGraphs[command[1]]
+                    thisGraph.delete()
+                    del currentGraphs[command[1]]
+                thisGraph = None
+                if len(command) == 2:
+                    thisDict = tractedValues[command[1]]
+                    thisGraph = graphs.Graph(thisDict, command[1])
+                else:
+                    thisDict = getStaticDict(command[1], float(command[2]), float(command[3]))
+                    thisGraph = graphs.Graph(thisDict, command[1]+"-static")
                 currentGraphs[command[1]] = thisGraph
             case "rm":
+                if command[1] not in currentGraphs:
+                    print(f"\"{command[1]}\" is not an open graph")
+                    continue
                 thisGraph = currentGraphs[command[1]]
                 thisGraph.delete()
                 del currentGraphs[command[1]]
-            case "chg":
-                if len(command) < 4:
-                    print("There must be 2 arguments")
-                    continue
-                thisGraph = currentGraphs[command[1]]
-                thisGraph.changeGraphRange(int(command[2]), int(command[3]))
             case _:
                 print("UNKNOWN COMMAND ENTERED")
