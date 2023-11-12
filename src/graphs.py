@@ -11,83 +11,86 @@ import math
 
 class Graph:
     
-    def __init__(self, inputDict, inputName="", inputStart=-1, inputEnd=-1):
-        self.name = inputName
-        self.logDict = inputDict
-        self.start = math.ceil(inputStart)
-        self.end = math.floor(inputEnd)
-        self.lastIndex = 0
-        self.df = pd.DataFrame()
-        self.startIndex = 0
-        self.endIndex = 0
-
-    def changeGraphRange(self, newStarting, newEnding):
-        self.start = math.ceil(newStarting)
-        self.startIndex = start
-        self.end = math.floor(newEnding)
-        self.endIndex = end
+    def __init__(self, inputDict, name):
+        self.name = name
+        self.dict = inputDict
+        self.figure, self.ax = plt.subplots()
         self.update()
+        self.ani = FuncAnimation(self.figure, self.update, blit=False, interval=3000)
+        plt.show(block=False)
         
+    
+    def delete(self):
+        plt.close(self.figure)
+
 
     def update(self):
+        timestamps = list(self.dict.keys())
+        values = list(self.dict.values())
+        self.ax.clear()  # Clear the current axes
+        self.df = pd.DataFrame({'Values': values}, index=timestamps)
+        self.df.index.name = 'Time (seconds)'
+        self.plot, = self.ax.plot(self.df.index, self.df['Values'])
+        plt.title(self.name + " vs Time")
+        plt.xlabel('Time (seconds)')
+        plt.ylabel('Values')
+        plt.draw()
+        plt.pause(0.01)  # Give the event loop a chance to handle events
+        print("Updated "+self.name)
 
-        timeStamps = list(logDict.keys())
-        values = list(logDict.values())
-        self.lastIndex = len(logDict)
-        if(len(timeStamps) < 1):
-            print("NO REAL DATA VALUES")
-            timeStamps = [0]
-            values = [0]
 
-        if(self.start > -1 and self.end > -1):
-            if(self.end > self.start):
-                print("INPUT ERROR: ending index is smaller than starting index: ")
+    # def changeGraphRange(self, newStarting, newEnding):
+    #     self.start = math.ceil(newStarting)
+    #     self.startIndex = start
+    #     self.end = math.floor(newEnding)
+    #     self.endIndex = end
+    #     self.update()
+        
 
-            print(self.startIndex, self.endIndex)
-            self.startIndex = timeStamps[self.start]
-            self.endIndex = timeStamps[self.end + 1]
+    # def update(self):
 
-            self.df = pd.DataFrame(values[self.startIndex:self.endIndex], timeStamps[self.startIndex:self.endIndex], columns=['Time (seconds)'])
-        else:
-            self.df = pd.DataFrame(values, timeStamps, columns=['Time (seconds)'])
-        self.df.plot(color = 'red', title = self.name + ' Over Time')
+    #     timeStamps = list(self.logDict.keys())
+    #     values = list(self.logDict.values())
+    #     self.lastIndex = len(self.logDict)
+    #     if(len(timeStamps) < 1):
+    #         print("NO REAL DATA VALUES")
+    #         timeStamps = [0]
+    #         values = [0]
 
-        self.ani = FuncAnimation(plt.gcf(), self.update_graph, interval=3000, cache_frame_data=False)
-        plt.show(block=False)
+    #     if(self.start > -1 and self.end > -1):
+    #         if(self.end > self.start):
+    #             print("INPUT ERROR: ending index is smaller than starting index: ")
+
+    #         print(self.startIndex, self.endIndex)
+    #         self.startIndex = timeStamps[self.start]
+    #         self.endIndex = timeStamps[self.end + 1]
+
+    #         self.df = pd.DataFrame(values[self.startIndex:self.endIndex], timeStamps[self.startIndex:self.endIndex], columns=['Time (seconds)'])
+    #     else:
+    #         self.df = pd.DataFrame(values, timeStamps, columns=['Time (seconds)'])
+    #     self.df.plot(color = 'red', title = self.name + ' Over Time')
+
+    #     self.ani = FuncAnimation(plt.gcf(), self.update_graph, interval=3000, cache_frame_data=False)
+    #     plt.show(block=False)
 
             
-    def update_animated(self):
+    # def update_animated(self):
 
-        print("triggered update_animated()")
-        timeStamps = list(self.logDict.keys())
-        values = list(self.logDict.values())
+    #     print("triggered update_animated()")
+    #     timeStamps = list(self.logDict.keys())
+    #     values = list(self.logDict.values())
 
-        newDF = pd.DataFrame(values[self.lastIndex:], timeStamps[self.lastIndex:], columns=['Time (seconds)'])
-        self.df = pd.concat(self.df, newDF)
-        self.lastIndex = len(self.logDict)
+    #     newDF = pd.DataFrame(values[self.lastIndex:], timeStamps[self.lastIndex:], columns=['Time (seconds)'])
+    #     self.df = pd.concat(self.df, newDF)
+    #     self.lastIndex = len(self.logDict)
 
-    def delete(self):
-        self.df = pd.DataFrame()
-        self.startIndex = 0
-        self.endIndex = 0
-        plt.close()
+    # def delete(self):
+    #     self.df = pd.DataFrame()
+    #     self.startIndex = 0
+    #     self.endIndex = 0
+    #     plt.close()
 
-    def update_graph(self, i):
-
-        timeStamps = list(self.logDict.keys())
-        values = list(self.logDict.values())
-
-        newDF = pd.DataFrame(values[self.lastIndex:], timeStamps[self.lastIndex:], columns=['Time (seconds)'])
-        #print(lastIndex, newDF, logDict)
-        self.lastIndex+=1
-        data = pd.concat([self.df, newDF], ignore_index=True)
-
-        
-        plt.cla()
-        plt.xlabel("Time")
-        plt.ylabel("Value")
-        plt.title(self.name)
-        plt.plot(timeStamps, values)
+    
 
     def addNewRow(self, num):
         while num > 0:
@@ -96,30 +99,30 @@ class Graph:
             time.sleep(1)
             print(self.logDict)
 
-if __name__ == "__main__": #testing
+# if __name__ == "__main__": #testing
 
-    data = pd.DataFrame(columns=["Time", "Value"])
-    testDict = {1: 90, 2: 87, 3: 83, 4: 45, 5: 92, 6: 86, 7: 69, 8: 88, 9: 96, 10: 90, 11: 77}
-    testGraph = Graph(testDict, "value1")
+#     data = pd.DataFrame(columns=["Time", "Value"])
+#     testDict = {1: 90, 2: 87, 3: 83, 4: 45, 5: 92, 6: 86, 7: 69, 8: 88, 9: 96, 10: 90, 11: 77}
+#     testGraph = Graph(testDict, "value1")
 
-    x = 12
-    num = 70
+#     x = 12
+#     num = 70
 
-    # addingValuesThread = threading.Thread(target=testGraph.addNewRow, args=(20,))
-    # addingValuesThread.start()
-
-
-
-    #ani = FuncAnimation(plt.gcf(), testGraph.update_graph, interval=100)  # Update every 1 second (1000 milliseconds)
-    plt.show()
-
-    testGraph.changeGraphRange(4, 9)
-    plt.show()
+#     # addingValuesThread = threading.Thread(target=testGraph.addNewRow, args=(20,))
+#     # addingValuesThread.start()
 
 
-    testDict[12] = 90
-    time.sleep(2)
-    testDict[13] = 100
+
+#     #ani = FuncAnimation(plt.gcf(), testGraph.update_graph, interval=100)  # Update every 1 second (1000 milliseconds)
+#     plt.show()
+
+#     testGraph.changeGraphRange(4, 9)
+#     plt.show()
+
+
+#     testDict[12] = 90
+#     time.sleep(2)
+#     testDict[13] = 100
 
 
     
@@ -165,3 +168,25 @@ if __name__ == "__main__": #testing
     #  testGraph.delete()
     #  print("deleted", df)
    
+
+
+
+
+if __name__ == "__main__":
+    data1 = {1:1, 2:2, 3:3, 4:4}
+    graph = Graph(data1, "name")
+    graph2 = Graph(data1, "name2")
+    inp = input()
+    #time.sleep(5)
+    print("NEXT")
+    data1[5] = 6
+    data1[7] = 7
+    #graph.update()
+    inp = input()
+    #graph2.update()
+    inp = input()
+    graph.delete()
+    time.sleep(3)
+    graph2.delete()
+    print("DONE")
+
