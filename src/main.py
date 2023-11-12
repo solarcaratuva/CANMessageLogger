@@ -8,10 +8,10 @@ from messageParser import messageParser
 
 
 running = True
+logFilePath = None
 tractedValues = {"pack_voltage":dict(), "pack_current":dict(), "pack_soc":dict(), "low_cell_voltage":dict(), "high_cell_voltage":dict(), "low_temperature":dict(), "high_temperature":dict(),
                  "battery_voltage":dict(), "battery_current":dict(), "battery_current_direction":dict(), "motor_current":dict(), "fet_temp":dict(), "motor_rpm":dict(), "pwm_duty":dict(), "lead_angle":dict(), "power_mode":dict(), "control_mode":dict(), "accelerator_vr_position":dict(), "regen_vr_position":dict(), "digital_sw_position":dict(), "output_target_value":dict(), "motor_status":dict(), "regen_status":dict(),
                  "throttle":dict(), "regen":dict(), "cruise_control_speed":dict(), "cruise_control_en":dict(), "forward_en":dict(), "reverse_en":dict(), "motor_on":dict(), "hazards":dict(), "brake_lights":dict(), "headlights":dict(), "left_turn_signal":dict(), "right_turn_signal":dict(), "total_current":dict(), "panel1_voltage":dict(), "panel2_voltage":dict(), "panel3_voltage":dict(), "panel4_voltage":dict(), "panel1_temp":dict(), "panel2_temp":dict(), "panel3_temp":dict(), "panel4_temp":dict()}
-currentGraphs = dict()
 
 def checkForObviousErrors(key: str, value: int, message: str) -> None:
     maxValues = {"pack_voltage": 150, "pack_current": 110, "low_temperature": 200, "high_temperature": 200}
@@ -31,6 +31,9 @@ def checkForObviousErrors(key: str, value: int, message: str) -> None:
     
 
 def messageHandler(unparsedMessage: str) -> None:
+    if logFilePath != None:
+        with open(logFilePath, "a") as logFile:
+            logFile.write(unparsedMessage + "\n")
     messageDict, timestamp = messageParser(unparsedMessage)
     if messageDict == None:
         return
@@ -104,10 +107,14 @@ if __name__ == "__main__": #Main Method
                 break
         print("The entry is not valid, try again")
 
+    currentGraphs = dict()
     while True:  # running operation commands
         command = input("Enter a command: ")
-        command = command.split()   # split by spaces; [0] = command, [1] = item name, [2...] = other arguments
+        if command[:3] == "log":
+            logFilePath = command[4:]
+            continue
 
+        command = command.split()   # split by spaces; [0] = command, [1] = item name, [2...] = other arguments
         if len(command) == 0:
             continue
         if command[0] == "quit":
