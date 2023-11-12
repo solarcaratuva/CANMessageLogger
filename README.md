@@ -16,6 +16,7 @@ After starting the program, the user will be prompted to enter "serial" or enter
 - `add [name]` to create a graph for the named item
 - `add [name] [startTime] [endTime]` to create a static graph that starts and ends at a certain time
 - `rm [name]` to delete a shown graph for the named item
+- `log [filepath]` logs all CAN messages in a file at the path
 - `quit` exits the program
 Note that `[name]` **must** be a tracked value
 

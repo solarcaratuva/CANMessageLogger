@@ -133,14 +133,14 @@ if __name__ == "__main__": #Main Method
                     thisGraph = currentGraphs[command[1]]
                     thisGraph.delete()
                     del currentGraphs[command[1]]
-                thisGraph = None
                 if len(command) == 2:
                     thisDict = tractedValues[command[1]]
                     thisGraph = graphs.Graph(thisDict, command[1])
+                    currentGraphs[command[1]] = thisGraph
                 else:
                     thisDict = getStaticDict(command[1], float(command[2]), float(command[3]))
                     thisGraph = graphs.Graph(thisDict, command[1]+"-static")
-                currentGraphs[command[1]] = thisGraph
+                    currentGraphs[command[1]] = thisGraph
             case "rm":
                 if command[1] not in currentGraphs:
                     print(f"\"{command[1]}\" is not an open graph")
