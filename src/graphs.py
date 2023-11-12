@@ -17,6 +17,7 @@ class Graph:
         
     
     def delete(self):
+        self.ani.event_source.stop()
         plt.close(self.figure)
 
 
