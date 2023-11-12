@@ -16,7 +16,7 @@ class Graph:
         self.dict = inputDict
         self.figure, self.ax = plt.subplots()
         self.update()
-        self.ani = FuncAnimation(self.figure, self.update, blit=False, interval=3000)
+        self.ani = FuncAnimation(self.figure, self.update(), blit=False, interval=3000, cache_frame_data=False)
         plt.show(block=False)
         
     
