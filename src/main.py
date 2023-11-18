@@ -40,7 +40,7 @@ def messageHandler(unparsedMessage: str) -> None:
     if messageDict == None:
         return
     if messageDict == {"ERROR": "ERROR"}:
-        #print("ERROR THROWN!\n" + unparsedMessage)
+        print("ERROR THROWN!\n" + unparsedMessage)
         return
     for key in messageDict:
         if key in tractedValues:
