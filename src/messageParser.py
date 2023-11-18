@@ -17,8 +17,8 @@ def decode_dbc(message_id, message_data): #message_id -> frame_id, message_data 
     # message = message_data
 
     # message_id = make_hex_great_again(message_id)
-    print("Message Data: " + str(message_data))
-    print("Message: " + str(message) + "Message ID: " + str(message_id))
+    #print("Message Data: " + str(message_data))
+    #print("Message: " + str(message) + "Message ID: " + str(message_id))
     curr_path = os.path.dirname(os.path.abspath(__file__))
     can_dir = os.path.join(curr_path, "CAN-messages")
 
@@ -45,8 +45,7 @@ def decode_dbc(message_id, message_data): #message_id -> frame_id, message_data 
     elif message_id in rivanna2DB._frame_id_to_message:
         return rivanna2DB._frame_id_to_message[message_id].name, rivanna2DB.decode_message(message_id, message)
     else:
-        print(message_id)
-        return "ID does not exist", "Error"
+        return "Error", {"ERROR": "ERROR"}
         
 def make_hex_great_again(message_data):
     ints = []
@@ -60,6 +59,8 @@ def make_hex_great_again(message_data):
             new_message += hex(x-55)[2:]
         else:
             new_message += hex(0)[2:]
+    if len(new_message) % 2 == 1:
+        new_message = "0" + new_message
 
     return codecs.decode(new_message, 'hex_codec')
 #only parses msg in the format "messageToFind: key value, ___ _, ___ _, ..."
@@ -88,8 +89,9 @@ def messageParser(message):
         can_id = message[id_start:id_end]
         data_start = messageDataIndex + len(hexMessageToFind[1])
         can_data = message[data_start:]
-        binaryID = bin(int(can_id, 16))
-        binaryData = bin(int(can_data, 16))
+        binaryID = int(can_id, 16)
+        binaryData = bytearray()
+        binaryData.extend(map(ord, can_data))
         messageName, dataDict = decode_dbc(binaryID, binaryData)
         return dataDict, time.perf_counter() - timer
     else:

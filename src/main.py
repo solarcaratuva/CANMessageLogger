@@ -39,6 +39,7 @@ def messageHandler(unparsedMessage: str) -> None:
         return
     if messageDict == {"ERROR": "ERROR"}:
         print("ERROR THROWN!\n" + unparsedMessage)
+        return
     for key in messageDict:
         if key in tractedValues:
             tractedValues[key][timestamp] = messageDict[key]
