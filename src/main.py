@@ -6,6 +6,7 @@ import threading
 from serial import Serial
 import serial.tools.list_ports
 from messageParser import messageParser
+from tqdm import tqdm
 
 
 running = True
@@ -39,7 +40,7 @@ def messageHandler(unparsedMessage: str) -> None:
     if messageDict == None:
         return
     if messageDict == {"ERROR": "ERROR"}:
-        print("ERROR THROWN!\n" + unparsedMessage)
+        #print("ERROR THROWN!\n" + unparsedMessage)
         return
     for key in messageDict:
         if key in tractedValues:
@@ -51,8 +52,11 @@ def readInFileData(filePath: str) -> bool:
     if not os.path.exists(filePath):
         return False
     logData = open(filePath, "r").readlines()
+    progressBar = tqdm(total=len(logData), desc="Importing")
     for item in logData:
         messageHandler(item)
+        progressBar.update(1)
+    progressBar.close()
     print("Import Successful!")
     return True
 
