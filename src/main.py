@@ -1,4 +1,5 @@
 import os
+import sys
 import copy
 import graphs
 import threading
@@ -65,9 +66,9 @@ def findTheSerialPort() -> Serial:
             print("Failed to open port")
             print(e)
     elif len(ports) == 0:
-        print("No ports were found")
+        print("No serial ports were found")
     elif len(ports) > 1:
-        print("Multiple ports were found, could not determine which is the right one")
+        print("Multiple serial ports were found, could not determine which is the right one")
     return None
     
 def serialInputReader(ser: Serial) -> None:
@@ -94,19 +95,18 @@ def getStaticDict(trackedValue: str, start: float, end: float) -> dict:
 
 
 if __name__ == "__main__": #Main Method
-    while True: # getting user input
-        inp = input("Enter \"serial\" to read from serial in real time OR enter the path of a log file\n")
-        if inp == "serial":
-            ser = findTheSerialPort()
-            if ser == None:
-                continue
-            serialInputReaderThread = threading.Thread(target=serialInputReader, args=(ser,))
-            serialInputReaderThread.start()
-            break
-        else:
-            if readInFileData(inp):
-                break
-        print("The entry is not valid, try again")
+    if len(sys.argv) == 1: # Serial Input
+        ser = findTheSerialPort()
+        if ser == None:
+            exit()
+        serialInputReaderThread = threading.Thread(target=serialInputReader, args=(ser,))
+        serialInputReaderThread.start()
+    else: # File Input
+        validFile = readInFileData(sys.argv[1])
+        if not validFile:
+            print("File not found")
+            exit()
+
 
     currentGraphs = dict()
     while True:  # running operation commands
