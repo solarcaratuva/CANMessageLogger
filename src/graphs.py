@@ -10,6 +10,9 @@ class Graph:
     def __init__(self, inputDict, name):
         self.name = name
         self.dict = inputDict
+        if len(self.dict.keys()) == 0:
+            print(f"No data for \"{name}\"")
+            return
         self.figure, self.ax = plt.subplots()
         self.update()
         self.ani = FuncAnimation(self.figure, self.update, blit=False, interval=3000, cache_frame_data=False)
@@ -30,9 +33,6 @@ class Graph:
             self.df = pd.DataFrame({'Values': values}, index=timestamps)
             self.df.index.name = 'Time (seconds)'
             self.plot, = self.ax.plot(self.df.index, self.df['Values'])
-            plt.title(self.name + " vs Time")
-            plt.xlabel('Time (seconds)')
-            plt.ylabel('Values')
         else:
             # If the plot exists, update the data
             self.plot.set_data(self.df.index, self.df['Values'])
