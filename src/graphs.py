@@ -10,9 +10,6 @@ class Graph:
     def __init__(self, inputDict, name):
         self.name = name
         self.dict = inputDict
-        if len(self.dict.keys()) == 0:
-            print(f"No data for \"{name}\"")
-            return
         self.figure, self.ax = plt.subplots()
         self.update()
         self.ani = FuncAnimation(self.figure, self.update, blit=False, interval=3000, cache_frame_data=False)
@@ -27,18 +24,10 @@ class Graph:
     def update(self, *args):
         timestamps = list(self.dict.keys())
         values = list(self.dict.values())
-
-        if not hasattr(self, 'plot'):
-            # If the plot doesn't exist, create it
-            self.df = pd.DataFrame({'Values': values}, index=timestamps)
-            self.df.index.name = 'Time (seconds)'
-            self.plot, = self.ax.plot(self.df.index, self.df['Values'])
-        else:
-            # If the plot exists, update the data
-            self.plot.set_data(self.df.index, self.df['Values'])
-
-        # Optionally, you can set the title and labels outside the conditional block
-        # to ensure they are always present
-        plt.title(self.name + " vs Time")
-        plt.xlabel('Time (seconds)')
-        plt.ylabel('Values')
+        self.ax.clear()  # Clear the current axes
+        self.df = pd.DataFrame({'Values': values}, index=timestamps)
+        self.df.index.name = 'Time (seconds)'
+        self.plot, = self.ax.plot(self.df.index, self.df['Values'])
+        self.ax.set_title(self.name + " vs Time")
+        self.ax.set_xlabel('Time (seconds)')
+        self.ax.set_ylabel('Values')
