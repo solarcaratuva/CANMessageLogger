@@ -29,7 +29,8 @@ def handlePiData(lines: list) -> str: #TODO
     return "TODO"
 
 
-
+# arg1 is board data file, arg2 is Pi data file
+# use https://text-compare.com/
 if len(sys.argv) != 3:
     print("2 CLI args expected")
     quit()
