@@ -10,13 +10,12 @@ Option 1: install the `.exe` (in releases, Windows only)
 Option 2: clone this repo, create and activate a virtual environment, install dependencies from `requirements.txt`, run `main.py` 
 
 ## How to use
-After starting the program, the user will be prompted to enter "serial" or enter the path of a CAN message log file (`.txt`). If the serial connection can't be established, or the file doesn't exist, the user will be prompted to try again. When the serial connection is established, or the log file's data is imported, the user will be notified and will be able to enter commands.
+Run this program via the command line with no arguments to attempt to start a serial connection; this will also create a log file. Alternatively, run with a file as an argument to read-in the data as logged CAN messages. After either of these, the user will be able to run _commands_
 
 ## Commands
 - `add [name]` to create a graph for the named item
 - `add [name] [startTime] [endTime]` to create a static graph that starts and ends at a certain time
 - `rm [name]` to delete a shown graph for the named item
-- `log [filepath]` logs all CAN messages in a file at the path
 - `quit` exits the program
 Note that `[name]` **must** be a tracked value
 
