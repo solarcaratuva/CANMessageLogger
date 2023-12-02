@@ -7,6 +7,7 @@ from serial import Serial
 import serial.tools.list_ports
 from messageParser import messageParser
 from tqdm import tqdm
+import datetime
 
 
 running = True
@@ -33,9 +34,6 @@ def checkForObviousErrors(key: str, value: int, message: str) -> None:
     
 
 def messageHandler(unparsedMessage: str) -> None:
-    if logFilePath != None:
-        with open(logFilePath, "a") as logFile:
-            logFile.write(unparsedMessage + "\n")
     messageDict, timestamp = messageParser(unparsedMessage)
     if messageDict == None:
         return
@@ -65,9 +63,10 @@ def findTheSerialPort() -> Serial:
     if len(ports) == 1:
         try:
             ser = Serial(ports[0].device, baudrate=921600)
+            print("Opened serial port")
             return ser
         except Exception as e:
-            print("Failed to open port")
+            print("Failed to open serial port")
             print(e)
     elif len(ports) == 0:
         print("No serial ports were found")
@@ -79,6 +78,8 @@ def serialInputReader(ser: Serial) -> None:
         try:
             while running:
                 line = ser.readline().decode('utf-8').strip()
+                with open(logFilePath, "a") as logFile:
+                    logFile.write(line + "\n")
                 messageHandler(line)
             ser.close()
         except KeyboardInterrupt:
@@ -103,6 +104,8 @@ if __name__ == "__main__": #Main Method
         ser = findTheSerialPort()
         if ser == None:
             exit()
+        timestamp = datetime.datetime.now().strftime("%S%M%H")
+        logFilePath = f"log_{timestamp}.txt"
         serialInputReaderThread = threading.Thread(target=serialInputReader, args=(ser,))
         serialInputReaderThread.start()
     else: # File Input
@@ -115,10 +118,6 @@ if __name__ == "__main__": #Main Method
     currentGraphs = dict()
     while True:  # running operation commands
         command = input("Enter a command: ")
-        if command[:3] == "log":
-            logFilePath = command[4:]
-            continue
-
         command = command.split()   # split by spaces; [0] = command, [1] = item name, [2...] = other arguments
         if len(command) == 0:
             continue
