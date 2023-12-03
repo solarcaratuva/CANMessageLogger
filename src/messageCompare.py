@@ -8,8 +8,10 @@ def getFileData(filepath: str) -> list:
     if not os.path.exists(filepath):
         print(f"File \"{filepath}\" does not exist")
         quit()
-    fileData = open(filepath, "r").readlines()
-    return fileData
+    file = open(filepath, "r")
+    data = file.readlines()
+    file.close()
+    return data
 
 def handleBoardData(lines: list) -> str:
     pattern = r'Sent CAN message with ID ([0-9A-Za-z]+) Length ([0-9]+) Data ([0-9A-Za-z]+)'
