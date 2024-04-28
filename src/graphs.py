@@ -11,9 +11,9 @@ class Graph:
         self.name = name
         self.dict = inputDict
         self.figure, self.ax = plt.subplots()
-        if len(self.dict) == 0:
-            print(f"No data to display for \"{name}\"")
-            return
+        # if len(self.dict) == 0:
+        #     print(f"No data to display for \"{name}\"")
+        #     return
         self.update()
         self.ani = FuncAnimation(self.figure, self.update, blit=False, interval=3000, cache_frame_data=False)
         plt.show(block=False)
