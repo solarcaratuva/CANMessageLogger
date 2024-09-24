@@ -15,6 +15,12 @@
     height: 700px; /* Adjust height as needed */
     border-radius: 15px;
 }
+.medium-container {
+    background-color: #c9c9c9;
+    height: 464.67px; /* Adjust height as needed */
+    margin-bottom: 10px;
+    border-radius: 15px;
+}
 .small-container {
     background-color: #c9c9c9;
     height: 226.67px; /* Adjust height as needed */
