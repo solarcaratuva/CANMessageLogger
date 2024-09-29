@@ -65,9 +65,6 @@ class CANLoggerDatabase:
             print(e)
             exit(1)
 
-    def add_message_to_db(self, message):
-
-
 
 if __name__ == "__main__":
     sql_file_name = os.path.join(os.path.dirname(__file__), "can_database.sqlite")
