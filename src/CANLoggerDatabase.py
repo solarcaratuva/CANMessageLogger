@@ -100,6 +100,20 @@ class CANLoggerDatabase:
             print(f"Error retrieving data: {e}")
             exit(1)
 
+    def get_all_from_table_keys(self, table_name: str, val_to_sel: list[str]):
+        try:
+            sql_select = f"SELECT {', '.join(val_to_sel)} FROM {table_name}"
+            cursor = self.conn.execute(sql_select)
+
+            rows = cursor.fetchall()
+
+            column_names = [description[0] for description in cursor.description]
+            return column_names, rows
+
+        except sqlite3.Error as e:
+            print(f"Error retrieving data: {e}")
+            exit(1)
+
     def get_latest_from_table(self, table_name: str, order_column: str = "id"):
         """
         Retrieve the latest message (row) from the specified table, ordered by a given column (default: 'id').
@@ -129,6 +143,34 @@ class CANLoggerDatabase:
             print(f"Error retrieving latest message: {e}")
             exit(1)
 
+    def get_latest_from_table_keys(self, table_name: str, val_to_sel: list[str], order_column: str = "id"):
+        """
+                Retrieve the latest message (row) from the specified table, ordered by a given column (default: 'id').
+
+                Args:
+                - table_name: The name of the table to query.
+                - order_column: The column to order by (e.g., 'id' or 'time').
+
+                Returns:
+                - column_names: List of column names.
+                - latest_row: The latest row in the table based on the order column.
+                """
+        try:
+            # Query to get the latest row based on the order_column
+            sql_select = f"SELECT {', '.join(val_to_sel)} FROM {table_name} ORDER BY {order_column} DESC LIMIT 1"
+            cursor = self.conn.execute(sql_select)
+
+            # Fetch the latest row
+            latest_row = cursor.fetchone()
+
+            # Get column names
+            column_names = [description[0] for description in cursor.description]
+
+            return column_names, latest_row
+
+        except sqlite3.Error as e:
+            print(f"Error retrieving latest message: {e}")
+            exit(1)
 
     def clear_table(self, table_name: str):
         try:
@@ -161,5 +203,7 @@ if __name__ == "__main__":
     }
 
     logger_db.add_message_to_db("AuxBatteryStatus", message)
-    aux_table = logger_db.get_latest_from_table("AuxBatteryStatus")
+    # aux_table = logger_db.get_latest_from_table("AuxBatteryStatus")
+    # aux_table = logger_db.get_latest_from_table_keys("AuxBatteryStatus", ["time", "aux_voltage"])
+    aux_table = logger_db.get_all_from_table_keys("AuxBatteryStatus", ["time", "aux_voltage"])
     print(aux_table)
