@@ -101,6 +101,12 @@ class CANLoggerDatabase:
             exit(1)
 
     def get_all_from_table_keys(self, table_name: str, val_to_sel: list[str]):
+        """
+        Selects all data for the given columns
+        @param table_name: Table to select
+        @param val_to_sel: Columns to select from
+        @return:
+        """
         try:
             sql_select = f"SELECT {', '.join(val_to_sel)} FROM {table_name}"
             cursor = self.conn.execute(sql_select)
@@ -114,18 +120,13 @@ class CANLoggerDatabase:
             print(f"Error retrieving data: {e}")
             exit(1)
 
-    def get_latest_from_table(self, table_name: str, order_column: str = "id"):
+    def get_latest_from_table(self, table_name: str):
         """
-        Retrieve the latest message (row) from the specified table, ordered by a given column (default: 'id').
-
-        Args:
-        - table_name: The name of the table to query.
-        - order_column: The column to order by (e.g., 'id' or 'time').
-
-        Returns:
-        - column_names: List of column names.
-        - latest_row: The latest row in the table based on the order column.
+        Selects latest data from table for all columns
+        @param table_name: Table to select from
+        @return: The latest data
         """
+        order_column = "id"
         try:
             # Query to get the latest row based on the order_column
             sql_select = f"SELECT * FROM {table_name} ORDER BY {order_column} DESC LIMIT 1"
@@ -143,18 +144,14 @@ class CANLoggerDatabase:
             print(f"Error retrieving latest message: {e}")
             exit(1)
 
-    def get_latest_from_table_keys(self, table_name: str, val_to_sel: list[str], order_column: str = "id"):
+    def get_latest_from_table_keys(self, table_name: str, val_to_sel: list[str]):
         """
-                Retrieve the latest message (row) from the specified table, ordered by a given column (default: 'id').
-
-                Args:
-                - table_name: The name of the table to query.
-                - order_column: The column to order by (e.g., 'id' or 'time').
-
-                Returns:
-                - column_names: List of column names.
-                - latest_row: The latest row in the table based on the order column.
-                """
+        Selects latest data from a table
+        @param table_name: Table to select from
+        @param val_to_sel: List of columns to select
+        @return: The latest data in the table
+        """
+        order_column = "id"
         try:
             # Query to get the latest row based on the order_column
             sql_select = f"SELECT {', '.join(val_to_sel)} FROM {table_name} ORDER BY {order_column} DESC LIMIT 1"
@@ -173,6 +170,11 @@ class CANLoggerDatabase:
             exit(1)
 
     def clear_table(self, table_name: str):
+        """
+        Deletes all data from a table
+        @param table_name: table to delete from
+        @return: None
+        """
         try:
             # Step 1: Delete all rows from the table
             sql_delete_data = f"DELETE FROM {table_name}"
