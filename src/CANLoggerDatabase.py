@@ -88,33 +88,64 @@ class CANLoggerDatabase:
 
     def get_all_from_table(self, table_name: str):
         try:
-            # Query to select all data from the table
             sql_select = f"SELECT * FROM {table_name}"
             cursor = self.conn.execute(sql_select)
 
-            # Fetch all rows
             rows = cursor.fetchall()
 
             column_names = [description[0] for description in cursor.description]
             return column_names, rows
 
-            # if rows:
-            #     # Fetch the column names to display with the data
-            #     column_names = [description[0] for description in cursor.description]
-            #
-            #     # Print column headers
-            #     print(f"Data from table '{table_name}':")
-            #     print(" | ".join(column_names))
-            #     print("-" * 50)
-            #
-            #     # Print each row of data
-            #     for row in rows:
-            #         print(" | ".join(map(str, row)))
-            # else:
-            #     print(f"No data found in table '{table_name}'.")
-
         except sqlite3.Error as e:
             print(f"Error retrieving data: {e}")
+            exit(1)
+
+    def get_latest_from_table(self, table_name: str, order_column: str = "id"):
+        """
+        Retrieve the latest message (row) from the specified table, ordered by a given column (default: 'id').
+
+        Args:
+        - table_name: The name of the table to query.
+        - order_column: The column to order by (e.g., 'id' or 'time').
+
+        Returns:
+        - column_names: List of column names.
+        - latest_row: The latest row in the table based on the order column.
+        """
+        try:
+            # Query to get the latest row based on the order_column
+            sql_select = f"SELECT * FROM {table_name} ORDER BY {order_column} DESC LIMIT 1"
+            cursor = self.conn.execute(sql_select)
+
+            # Fetch the latest row
+            latest_row = cursor.fetchone()
+
+            # Get column names
+            column_names = [description[0] for description in cursor.description]
+
+            return column_names, latest_row
+
+        except sqlite3.Error as e:
+            print(f"Error retrieving latest message: {e}")
+            exit(1)
+
+
+    def clear_table(self, table_name: str):
+        try:
+            # Step 1: Delete all rows from the table
+            sql_delete_data = f"DELETE FROM {table_name}"
+            self.conn.execute(sql_delete_data)
+            self.conn.commit()
+            print(f"All data from table '{table_name}' has been deleted.")
+
+            # Step 2: Reset the autoincrement counter by removing the entry from sqlite_sequence
+            sql_reset_autoincrement = f"DELETE FROM sqlite_sequence WHERE name='{table_name}'"
+            self.conn.execute(sql_reset_autoincrement)
+            self.conn.commit()
+            print(f"Autoincrement counter for table '{table_name}' has been reset.")
+
+        except sqlite3.Error as e:
+            print(f"Error clearing data or resetting autoincrement: {e}")
             exit(1)
 
 
@@ -122,6 +153,7 @@ if __name__ == "__main__":
     sql_file_name = os.path.join(os.path.dirname(__file__), "can_database.sqlite")
     dbc_file_name = os.path.join(os.path.dirname(__file__), "Rivanna3.dbc")
     logger_db = CANLoggerDatabase(sql_file_name, dbc_file_name)
+    # logger_db.clear_table("AuxBatteryStatus")
     # logger_db.show_all_table_structures()
 
     message = {
@@ -129,5 +161,5 @@ if __name__ == "__main__":
     }
 
     logger_db.add_message_to_db("AuxBatteryStatus", message)
-    aux_table = logger_db.get_all_from_table("AuxBatteryStatus")
+    aux_table = logger_db.get_latest_from_table("AuxBatteryStatus")
     print(aux_table)
