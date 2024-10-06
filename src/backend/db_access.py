@@ -69,6 +69,20 @@ def get_latest_dashboard_data():
     except sqlite3.Error as e:
         print(f"Database error: {e}")
         return {}
+    
+def get_test_motor_data():
+    try:
+        with connect_db() as connection:
+            connection.row_factory = sqlite3.Row
+            query = "SELECT * FROM ECUMotorCommands"
+            latest_motor_data = connection.execute(query).fetchone()
+            if latest_motor_data:
+                return dict(latest_motor_data)
+            return {}
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        return {}
+
 
 
 
