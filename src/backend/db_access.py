@@ -3,6 +3,7 @@ import sqlite3
 def connect_db():
     return sqlite3.connect('src/can_database.sqlite')
 
+
 def get_auxiliary_data():
     """
     Time: Text

@@ -193,7 +193,7 @@ class CANLoggerDatabase:
             exit(1)
 
 if __name__ == "__main__":
-    sql_file_name = os.path.join(os.path.dirname(__file__), "can_database.sqlite")
+    sql_file_name = os.path.join(os.path.dirname(__file__), "../can_database.sqlite")
     dbc_file_name = os.path.join(os.path.dirname(__file__), "Rivanna3.dbc")
     logger_db = CANLoggerDatabase(sql_file_name, dbc_file_name)
     # logger_db.clear_table("AuxBatteryStatus")
