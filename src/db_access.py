@@ -1,7 +1,7 @@
 import sqlite3
 
 def connect_db():
-    return sqlite3.connect('can_database.sqlite')
+    return sqlite3.connect('src/can_database.sqlite')
 
 def get_auxiliary_data():
     """
@@ -10,8 +10,9 @@ def get_auxiliary_data():
     try:
         with connect_db() as connection:
             connection.row_factory = sqlite3.Row
-            query = "SELECT * FROM MotorCommands ORDER BY Time DESC LIMIT 1"
+            query = "SELECT * FROM AuxBatteryStatus ORDER BY Time DESC LIMIT 1"
             latest_auxiliary_data = connection.execute(query).fetchone()
+
             if latest_auxiliary_data:
                 return dict(latest_auxiliary_data)
             return {}
@@ -67,5 +68,7 @@ def get_latest_dashboard_data():
     except sqlite3.Error as e:
         print(f"Database error: {e}")
         return {}
+
+
 
 

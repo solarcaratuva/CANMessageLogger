@@ -207,4 +207,5 @@ if __name__ == "__main__":
     # aux_table = logger_db.get_latest_from_table("AuxBatteryStatus")
     # aux_table = logger_db.get_latest_from_table_keys("AuxBatteryStatus", ["time", "aux_voltage"])
     aux_table = logger_db.get_all_from_table_keys("AuxBatteryStatus", ["time", "aux_voltage"])
+    print(logger_db.get_all_from_table("MotorCommands"))
     print(aux_table)
