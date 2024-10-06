@@ -1,5 +1,6 @@
 import os.path
 import sqlite3
+from datetime import datetime
 from sqlite3 import Error
 import dbc_code
 
@@ -16,6 +17,7 @@ class CANLoggerDatabase:
             exit(1)
 
         self.dbc_messages = dbc_code.get_messages_from_dbc(dbc_filename)
+        # print(self.dbc_messages)
 
         try:
             for can_msg_name, can_msg_types in self.dbc_messages.items():
@@ -34,7 +36,7 @@ class CANLoggerDatabase:
 
                 # Execute the table creation command
                 self.conn.execute(sql_create_table)
-                print(f"Table '{can_msg_name}' created or already exists.")
+                # print(f"Table '{can_msg_name}' created or already exists.")
         except Error as e:
             print(e)
             exit(1)
@@ -65,10 +67,144 @@ class CANLoggerDatabase:
             print(e)
             exit(1)
 
+    def add_message_to_db(self, table_name: str, message):
+        try:
+            # Get the current timestamp and add it to the dictionary
+            message['time'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # Prepare the SQL command to insert the data
+            columns = ", ".join(message.keys())  # Column names as a string
+            placeholders = ", ".join(["?"] * len(message))  # Placeholders for each value
+            sql_insert = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+
+            # Execute the insert command
+            self.conn.execute(sql_insert, list(message.values()))
+            self.conn.commit()
+            # print(f"Data inserted into '{table_name}' successfully.")
+
+        except sqlite3.Error as e:
+            print(f"Error inserting data: {e}")
+            exit(1)
+
+    def get_all_from_table(self, table_name: str):
+        try:
+            sql_select = f"SELECT * FROM {table_name}"
+            cursor = self.conn.execute(sql_select)
+
+            rows = cursor.fetchall()
+
+            column_names = [description[0] for description in cursor.description]
+            return column_names, rows
+
+        except sqlite3.Error as e:
+            print(f"Error retrieving data: {e}")
+            exit(1)
+
+    def get_all_from_table_keys(self, table_name: str, val_to_sel: list[str]):
+        """
+        Selects all data for the given columns
+        @param table_name: Table to select
+        @param val_to_sel: Columns to select from
+        @return:
+        """
+        try:
+            sql_select = f"SELECT {', '.join(val_to_sel)} FROM {table_name}"
+            cursor = self.conn.execute(sql_select)
+
+            rows = cursor.fetchall()
+
+            column_names = [description[0] for description in cursor.description]
+            return column_names, rows
+
+        except sqlite3.Error as e:
+            print(f"Error retrieving data: {e}")
+            exit(1)
+
+    def get_latest_from_table(self, table_name: str):
+        """
+        Selects latest data from table for all columns
+        @param table_name: Table to select from
+        @return: The latest data
+        """
+        order_column = "id"
+        try:
+            # Query to get the latest row based on the order_column
+            sql_select = f"SELECT * FROM {table_name} ORDER BY {order_column} DESC LIMIT 1"
+            cursor = self.conn.execute(sql_select)
+
+            # Fetch the latest row
+            latest_row = cursor.fetchone()
+
+            # Get column names
+            column_names = [description[0] for description in cursor.description]
+
+            return column_names, latest_row
+
+        except sqlite3.Error as e:
+            print(f"Error retrieving latest message: {e}")
+            exit(1)
+
+    def get_latest_from_table_keys(self, table_name: str, val_to_sel: list[str]):
+        """
+        Selects latest data from a table
+        @param table_name: Table to select from
+        @param val_to_sel: List of columns to select
+        @return: The latest data in the table
+        """
+        order_column = "id"
+        try:
+            # Query to get the latest row based on the order_column
+            sql_select = f"SELECT {', '.join(val_to_sel)} FROM {table_name} ORDER BY {order_column} DESC LIMIT 1"
+            cursor = self.conn.execute(sql_select)
+
+            # Fetch the latest row
+            latest_row = cursor.fetchone()
+
+            # Get column names
+            column_names = [description[0] for description in cursor.description]
+
+            return column_names, latest_row
+
+        except sqlite3.Error as e:
+            print(f"Error retrieving latest message: {e}")
+            exit(1)
+
+    def clear_table(self, table_name: str):
+        """
+        Deletes all data from a table
+        @param table_name: table to delete from
+        @return: None
+        """
+        try:
+            # Step 1: Delete all rows from the table
+            sql_delete_data = f"DELETE FROM {table_name}"
+            self.conn.execute(sql_delete_data)
+            self.conn.commit()
+            print(f"All data from table '{table_name}' has been deleted.")
+
+            # Step 2: Reset the autoincrement counter by removing the entry from sqlite_sequence
+            sql_reset_autoincrement = f"DELETE FROM sqlite_sequence WHERE name='{table_name}'"
+            self.conn.execute(sql_reset_autoincrement)
+            self.conn.commit()
+            print(f"Autoincrement counter for table '{table_name}' has been reset.")
+
+        except sqlite3.Error as e:
+            print(f"Error clearing data or resetting autoincrement: {e}")
+            exit(1)
 
 if __name__ == "__main__":
     sql_file_name = os.path.join(os.path.dirname(__file__), "can_database.sqlite")
     dbc_file_name = os.path.join(os.path.dirname(__file__), "Rivanna3.dbc")
     logger_db = CANLoggerDatabase(sql_file_name, dbc_file_name)
-    logger_db.show_all_table_structures()
+    # logger_db.clear_table("AuxBatteryStatus")
+    # logger_db.show_all_table_structures()
 
+    message = {
+        "aux_voltage": 12
+    }
+
+    logger_db.add_message_to_db("AuxBatteryStatus", message)
+    # aux_table = logger_db.get_latest_from_table("AuxBatteryStatus")
+    # aux_table = logger_db.get_latest_from_table_keys("AuxBatteryStatus", ["time", "aux_voltage"])
+    aux_table = logger_db.get_all_from_table_keys("AuxBatteryStatus", ["time", "aux_voltage"])
+    print(aux_table)
