@@ -192,6 +192,8 @@ class CANLoggerDatabase:
             print(f"Error clearing data or resetting autoincrement: {e}")
             exit(1)
 
+import messageParser
+
 if __name__ == "__main__":
     sql_file_name = os.path.join(os.path.dirname(__file__), "../can_database.sqlite")
     dbc_file_name = os.path.join(os.path.dirname(__file__), "Rivanna3.dbc")
@@ -199,11 +201,24 @@ if __name__ == "__main__":
     # logger_db.clear_table("AuxBatteryStatus")
     # logger_db.show_all_table_structures()
 
-    message = {
-        "aux_voltage": 12
-    }
+    message_file_path = os.path.join(os.path.dirname(__file__), "CAN-Message-Generator/out.txt")
+    # Open and process the CAN message file
+    with open(message_file_path, 'r') as f:
+        for line in f:
+            message_dict, timestamp = messageParser.messageParser(line.strip())
+            
+            # Skip if the message could not be parsed
+            if not message_dict:
+                print(f"Could not parse message: {line.strip()}")
+                continue
 
-    logger_db.add_message_to_db("AuxBatteryStatus", message)
+            # Assuming all parsed messages go into the "AuxBatteryStatus" table for now
+            logger_db.add_message_to_db("AuxBatteryStatus", message_dict)
+    # message = {
+    #     "aux_voltage": 12
+    # }
+
+    # logger_db.add_message_to_db("AuxBatteryStatus", message)
     # aux_table = logger_db.get_latest_from_table("AuxBatteryStatus")
     # aux_table = logger_db.get_latest_from_table_keys("AuxBatteryStatus", ["time", "aux_voltage"])
     aux_table = logger_db.get_all_from_table_keys("AuxBatteryStatus", ["time", "aux_voltage"])

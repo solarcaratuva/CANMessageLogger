@@ -1,0 +1,6 @@
+[submodule "CAN-Message-Generator"]
+	path = CAN-Message-Generator
+	url = https://github.com/solarcaratuva/CAN-Message-Generator.git
+[submodule "src/backend/CAN-Message-Generator"]
+	path = src/backend/CAN-Message-Generator
+	url = https://github.com/solarcaratuva/CAN-Message-Generator.git
