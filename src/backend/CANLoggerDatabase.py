@@ -196,7 +196,8 @@ import messageParser
 
 if __name__ == "__main__":
     sql_file_name = os.path.join(os.path.dirname(__file__), "../can_database.sqlite")
-    dbc_file_name = os.path.join(os.path.dirname(__file__), "Rivanna3.dbc")
+    # dbc_file_name = os.path.join(os.path.dirname(__file__), "Rivanna3.dbc")
+    dbc_file_name = os.path.join(os.path.dirname(__file__), "CAN-Message-Generator/CAN-messages/Rivanna2.dbc")
     logger_db = CANLoggerDatabase(sql_file_name, dbc_file_name)
     # logger_db.clear_table("AuxBatteryStatus")
     # logger_db.show_all_table_structures()
@@ -213,7 +214,7 @@ if __name__ == "__main__":
                 continue
 
             # Assuming all parsed messages go into the "AuxBatteryStatus" table for now
-            logger_db.add_message_to_db("AuxBatteryStatus", message_dict)
+            logger_db.add_message_to_db("ECUMotorCommands", message_dict)
     # message = {
     #     "aux_voltage": 12
     # }
@@ -221,6 +222,9 @@ if __name__ == "__main__":
     # logger_db.add_message_to_db("AuxBatteryStatus", message)
     # aux_table = logger_db.get_latest_from_table("AuxBatteryStatus")
     # aux_table = logger_db.get_latest_from_table_keys("AuxBatteryStatus", ["time", "aux_voltage"])
-    aux_table = logger_db.get_all_from_table_keys("AuxBatteryStatus", ["time", "aux_voltage"])
-    print(logger_db.get_all_from_table("MotorCommands"))
-    print(aux_table)
+    # aux_table = logger_db.get_all_from_table_keys("AuxBatteryStatus", ["time", "aux_voltage"])
+    # print(logger_db.get_all_from_table("MotorCommands"))
+    # print(aux_table)
+    ecu_table = logger_db.get_all_from_table("ECUMotorCommands")
+    print(ecu_table)
+

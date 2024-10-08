@@ -2,8 +2,8 @@ import time
 import cantools as ct
 import re
 
-DBC_FILES = ["BPS.dbc", "MotorController.dbc", "MPPT.dbc", "Rivanna2.dbc"]
-DBS = [ct.db.load_file(f"backend/CAN-Message-Generator/CAN-messages/{file}") for file in DBC_FILES]
+DBC_FILES = ["Rivanna2.dbc"]
+DBS = [ct.db.load_file(f"src/backend/CAN-Message-Generator/CAN-messages/{file}") for file in DBC_FILES]
 PATTERN = re.compile(r"^(.*?)\sID\s0x([0-9a-fA-F]+)\sLength\s(\d+)\sData\s0x([0-9a-fA-F]+)")
 ERRORS_LIST = ['BPSError', 'MotorControllerError', 'PowerAuxError']
 
