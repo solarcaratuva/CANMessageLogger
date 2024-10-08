@@ -7,8 +7,10 @@ app = Flask(__name__, template_folder='html')
 def index():
     # Fetch data from the database
     data = db_access.get_test_motor_data()
+    data_list = []
+    data_list.append(data)
     # Render the HTML with the large_data passed in
-    return render_template('debug.html', large_data=data)
+    return render_template('debug.html', large_data=data_list)
 
 if __name__ == '__main__':
     app.run(debug=True)

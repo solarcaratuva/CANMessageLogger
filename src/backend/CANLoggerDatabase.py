@@ -3,6 +3,7 @@ import sqlite3
 from datetime import datetime
 from sqlite3 import Error
 import dbc_code
+import time
 
 
 class CANLoggerDatabase:
@@ -192,6 +193,23 @@ class CANLoggerDatabase:
             print(f"Error clearing data or resetting autoincrement: {e}")
             exit(1)
 
+def process_messages_in_batches(file_path: str, logger_db: CANLoggerDatabase, table_name: str):
+    with open(file_path, 'r') as f:
+        while True:
+            batch = [f.readline().strip() for _ in range(100)]
+            batch = [msg for msg in batch if msg]  # Filter out empty lines
+
+            if not batch:  # End of file
+                break
+
+            for line in batch:
+                message_dict, timestamp = messageParser.messageParser(line)
+                if message_dict:
+                    logger_db.add_message_to_db(table_name, message_dict)
+
+            print(f"Processed {len(batch)} messages, waiting for 1 second...")
+            time.sleep(1)  # Pause before next batch
+
 import messageParser
 
 if __name__ == "__main__":
@@ -203,18 +221,19 @@ if __name__ == "__main__":
     # logger_db.show_all_table_structures()
 
     message_file_path = os.path.join(os.path.dirname(__file__), "CAN-Message-Generator/out.txt")
+    process_messages_in_batches(message_file_path, logger_db, "ECUMotorCommands")
     # Open and process the CAN message file
-    with open(message_file_path, 'r') as f:
-        for line in f:
-            message_dict, timestamp = messageParser.messageParser(line.strip())
+    # with open(message_file_path, 'r') as f:
+    #     for line in f:
+    #         message_dict, timestamp = messageParser.messageParser(line.strip())
             
-            # Skip if the message could not be parsed
-            if not message_dict:
-                print(f"Could not parse message: {line.strip()}")
-                continue
+    #         # Skip if the message could not be parsed
+    #         if not message_dict:
+    #             print(f"Could not parse message: {line.strip()}")
+    #             continue
 
-            # Assuming all parsed messages go into the "AuxBatteryStatus" table for now
-            logger_db.add_message_to_db("ECUMotorCommands", message_dict)
+    #         # Assuming all parsed messages go into the "AuxBatteryStatus" table for now
+    #         logger_db.add_message_to_db("ECUMotorCommands", message_dict)
     # message = {
     #     "aux_voltage": 12
     # }
@@ -225,6 +244,6 @@ if __name__ == "__main__":
     # aux_table = logger_db.get_all_from_table_keys("AuxBatteryStatus", ["time", "aux_voltage"])
     # print(logger_db.get_all_from_table("MotorCommands"))
     # print(aux_table)
-    ecu_table = logger_db.get_all_from_table("ECUMotorCommands")
-    print(ecu_table)
+    ecu_table = logger_db.get_all_from_table_keys("ECUMotorCommands", ["throttle", "regen", "cruise_control_speed"])
+    print(logger_db.get_latest_from_table("ECUMotorCommands"))
 

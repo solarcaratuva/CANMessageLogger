@@ -55,3 +55,4 @@ def messageParser(message: str) -> tuple[dict, float]:
 
     messageDict = decode_dbc(canID, canData)
     return messageDict, time.perf_counter() - timer
+
