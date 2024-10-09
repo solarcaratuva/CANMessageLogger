@@ -1,6 +1,12 @@
 import time
 import cantools as ct
 import re
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from backend.CANLoggerDatabase import CANLoggerDatabase
 
 DBC_FILES = ["Rivanna2.dbc"]
 DBS = [ct.db.load_file(f"src/backend/CAN-Message-Generator/CAN-messages/{file}") for file in DBC_FILES]
@@ -47,7 +53,6 @@ def messageParser(message: str) -> tuple[dict, float]:
             return {"ERROR": "ERROR"}, None
 
     match = re.match(PATTERN, message)
-    print(match)
     if match is None:
         return None, None
     canID = match.group(2)
@@ -55,4 +60,51 @@ def messageParser(message: str) -> tuple[dict, float]:
 
     messageDict = decode_dbc(canID, canData)
     return messageDict, time.perf_counter() - timer
+
+def process_messages_in_batches_backend(file_path: str, logger_db: CANLoggerDatabase, table_name: str):
+    with open(file_path, 'r') as f:
+        while True:
+            batch = [f.readline().strip() for _ in range(100)]
+            batch = [msg for msg in batch if msg]  # Filter out empty lines
+
+            if not batch:  # End of file
+                break
+
+            for line in batch:
+                message_dict, timestamp = messageParser(line)
+                if message_dict:
+                    messagetoadd = message_dict
+                    logger_db.add_message_to_db(table_name, message_dict)
+            message = messagetoadd
+            print(f"Processed {len(batch)} messages, waiting for 1 second...")
+            time.sleep(0.5)  # Pause before next batch
+
+def process_messages_in_batches(file_path: str, logger_db: CANLoggerDatabase, table_name: str, socketio):
+    message_count = 0  # Counter for the messages
+    send_interval = 5  # Send messages every 5 seconds
+    last_send_time = time.perf_counter()
+
+    with open(file_path, 'r') as f:
+        while True:
+            batch = [f.readline().strip() for _ in range(100)]
+            batch = [msg for msg in batch if msg]  # Filter out empty lines
+
+            if not batch:  # End of file
+                break
+
+            for line in batch:
+                message_dict, timestamp = messageParser(line)
+                if message_dict:
+                    logger_db.add_message_to_db(table_name, message_dict)
+                    message_count += 1
+
+                    # Only send messages based on time interval
+                    current_time = time.perf_counter()
+                    if current_time - last_send_time >= send_interval:
+                        socketio.emit('can_message', {'data': message_dict, 'timestamp': timestamp})
+                        print(f"Sent message: {message_dict}")
+                        last_send_time = current_time
+
+            print(f"Processed {len(batch)} messages, waiting for 1 second...")
+            time.sleep(1)  # Pause before next batch
 

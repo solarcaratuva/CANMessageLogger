@@ -2,7 +2,11 @@ import os.path
 import sqlite3
 from datetime import datetime
 from sqlite3 import Error
-import dbc_code
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import backend.dbc_code as dbc_code
 import time
 
 
@@ -193,24 +197,7 @@ class CANLoggerDatabase:
             print(f"Error clearing data or resetting autoincrement: {e}")
             exit(1)
 
-def process_messages_in_batches(file_path: str, logger_db: CANLoggerDatabase, table_name: str):
-    with open(file_path, 'r') as f:
-        while True:
-            batch = [f.readline().strip() for _ in range(100)]
-            batch = [msg for msg in batch if msg]  # Filter out empty lines
-
-            if not batch:  # End of file
-                break
-
-            for line in batch:
-                message_dict, timestamp = messageParser.messageParser(line)
-                if message_dict:
-                    logger_db.add_message_to_db(table_name, message_dict)
-
-            print(f"Processed {len(batch)} messages, waiting for 1 second...")
-            time.sleep(1)  # Pause before next batch
-
-import messageParser
+import backend.messageParser as messageParser
 
 if __name__ == "__main__":
     sql_file_name = os.path.join(os.path.dirname(__file__), "../can_database.sqlite")
@@ -221,7 +208,7 @@ if __name__ == "__main__":
     # logger_db.show_all_table_structures()
 
     message_file_path = os.path.join(os.path.dirname(__file__), "CAN-Message-Generator/out.txt")
-    process_messages_in_batches(message_file_path, logger_db, "ECUMotorCommands")
+    messageParser.process_messages_in_batches_backend(message_file_path, logger_db, "ECUMotorCommands")
     # Open and process the CAN message file
     # with open(message_file_path, 'r') as f:
     #     for line in f:
