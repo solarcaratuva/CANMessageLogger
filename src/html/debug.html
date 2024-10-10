@@ -41,9 +41,11 @@
         </div>
     </nav>
 </header>
+
 <div class="wide-container">
     Wide Container (Centered)
 </div>
+
 <div class="container-fluid mt-4">
     <div class="row">
         <!-- Left large container -->
@@ -54,6 +56,7 @@
                 </div>
             </div>
         </div>
+
         <!-- Right smaller containers -->
         <div class="col-md-4">
             <div class="small-container">
@@ -82,25 +85,23 @@
   // Make sure to replace the port with the correct one if necessary
   const socket = io('http://127.0.0.1:5000'); // Specify the URL of your Flask app
 
-  socket.on('connect', () => {
-    console.log('Connected to server');
-});
-
-  socket.on('can_message', (data) => {
-    console.log(`Received message on client:`, data);
-});
-  // Receive the initial messages when connected
+  // Receive the initial messages when connected (if needed)
   socket.on('initial_messages', (messages) => {
+      const messageContainer = document.getElementById('messageContainer');
+      messageContainer.innerHTML = ''; // Clear existing messages
       messages.forEach((data) => {
           displayMessage(data);
       });
   });
 
-  // Update the large data with new messages
-  socket.on('update_large_data', (messages) => {
-      // Instead of clearing, just append new messages
-      messages.forEach((data) => {
-          displayMessage(data);
+  // Handle receiving batches of messages
+  socket.on('update_large_data', (batchData) => {
+      console.log('Received message batch:', batchData);
+      const messageContainer = document.getElementById('messageContainer');
+
+      // Iterate over the batch and display each message
+      batchData.messages.forEach((data) => {
+          displayMessage(data);  // Display each message from the batch
       });
   });
 
@@ -114,14 +115,7 @@
       // Optionally scroll to the bottom of the container
       messageContainer.scrollTop = messageContainer.scrollHeight;
   }
-  socket.on('can_message', (data) => {
-    console.log(`Received message:`, data);
-    // Handle the message (e.g., display it in the UI)
-});
 </script>
-
-
-
 
 </body>
 </html>

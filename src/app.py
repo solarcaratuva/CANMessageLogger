@@ -20,7 +20,7 @@ def index():
 def handle_connect():
     print("Client connected.")
     # Emit the current messages to the newly connected client
-    socketio.emit('initial_messages', message_list)
+    # socketio.emit('initial_messages', message_list)
     # test_messages = [
     #     {'timestamp': '2024-10-09T13:00:00Z', 'data': {'test': 'Hello, world!'}},
     #     {'timestamp': '2024-10-09T13:01:00Z', 'data': {'test': 'Another message'}}
@@ -31,15 +31,6 @@ def handle_connect():
 @socketio.on('disconnect')
 def handle_disconnect():
     print("Client disconnected.")
-
-@socketio.on('can_message')
-def handle_can_message(data):
-    print(f"Received CAN message: {data}")  # Debug log
-    # Append the incoming message to the message_list
-    message_list.append(data)
-    print(f"Current message list: {message_list}")  # Debug log
-    # Emit the updated list to all connected clients
-    socketio.emit('update_large_data', message_list)
 
 def start_message_processing():
     # Ensure the file paths are correct and the app can access them
@@ -56,7 +47,17 @@ def start_message_processing():
         print(f"DBC file path does not exist: {dbc_file_path}")
 
     logger_db = CANLoggerDatabase(database_path, dbc_file_path)
-    messageParser.process_messages_in_batches(message_file_path, logger_db, "ECUMotorCommands", socketio)
+
+
+    # This function will emit messages in batches directly to clients
+    def emit_messages_in_batches(messages):
+        for message in messages:
+            message_dict = {"data": message}  # Prepare message data to send
+            timestamp = "2024-10-10 12:00:00"  # Example timestamp, adjust as needed
+            message_list.append(message_dict)
+            socketio.emit('update_large_data', {'messages': message_list, 'timestamp': timestamp})
+
+    messageParser.process_messages_in_batches(message_file_path, logger_db, "ECUMotorCommands", emit_messages_in_batches)
 
 if __name__ == '__main__':
     socketio.start_background_task(target=start_message_processing)

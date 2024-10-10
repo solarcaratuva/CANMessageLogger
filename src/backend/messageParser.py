@@ -3,6 +3,7 @@ import cantools as ct
 import re
 import sys
 import os
+from app import socketio
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -79,7 +80,7 @@ def process_messages_in_batches_backend(file_path: str, logger_db: CANLoggerData
             print(f"Processed {len(batch)} messages, waiting for 1 second...")
             time.sleep(0.5)  # Pause before next batch
 
-def process_messages_in_batches(file_path: str, logger_db: CANLoggerDatabase, table_name: str, socketio):
+def process_messages_in_batches(file_path: str, logger_db: CANLoggerDatabase, table_name: str, emit_func):
     message_count = 0  # Counter for the messages
     send_interval = 5  # Send messages every 5 seconds
     last_send_time = time.perf_counter()
@@ -92,18 +93,23 @@ def process_messages_in_batches(file_path: str, logger_db: CANLoggerDatabase, ta
             if not batch:  # End of file
                 break
 
+            message_batch = []  # Collect messages to emit later
+
             for line in batch:
                 message_dict, timestamp = messageParser(line)
                 if message_dict:
+                    # Log the message into the database
                     logger_db.add_message_to_db(table_name, message_dict)
                     message_count += 1
+                    message_batch.append({'data': message_dict, 'timestamp': timestamp})  # Append to batch list
 
-                    # Only send messages based on time interval
-                    current_time = time.perf_counter()
-                    if current_time - last_send_time >= send_interval:
-                        socketio.emit('can_message', {'data': message_dict, 'timestamp': timestamp})
-                        print(f"Sent message: {message_dict}")
-                        last_send_time = current_time
+            # Only emit the batch based on time interval
+            current_time = time.perf_counter()
+            if current_time - last_send_time >= send_interval:
+                if message_batch:  # Only emit if there's data in the batch
+                    emit_func(message_batch)  # Use emit_func to emit messages
+                    print(f"Sent batch of {len(message_batch)} messages")
+                    last_send_time = current_time
 
             print(f"Processed {len(batch)} messages, waiting for 1 second...")
             time.sleep(1)  # Pause before next batch
