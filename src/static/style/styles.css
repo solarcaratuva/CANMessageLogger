@@ -51,3 +51,23 @@ html body{
     height: calc(100% - 40px); /* Fill the remaining space (adjust as necessary) */
     overflow-y: auto; /* Enable vertical scrolling if content exceeds height */
 }
+
+.large-container {
+    position: relative;  /* Ensure the button is positioned relative to this container */
+    padding-bottom: 40px;  /* Add padding to avoid overlap with the button */
+}
+
+#clearMessagesBtn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 10;  /* Ensure it's above other content */
+}
+
+.top-right-container {
+    background-color: #c9c9c9;
+    height: 60%;  /* Now the right container takes the full height */
+    padding: 10px;
+    border-radius: 15px;
+    margin-bottom: 10px; /* Space between smaller containers */
+}

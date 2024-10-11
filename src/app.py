@@ -55,7 +55,17 @@ def start_message_processing():
             message_dict = {"data": message}  # Prepare message data to send
             timestamp = "2024-10-10 12:00:00"  # Example timestamp, adjust as needed
             message_list.append(message_dict)
-            socketio.emit('update_large_data', {'messages': message_list, 'timestamp': timestamp})
+            
+            # Extract keys from the "data" field in the message dictionary
+            if "data" in message:
+                keys = list(message["data"].keys())  # Extract keys from the "data" field
+            
+            # Emit the data along with the dictionary keys from "data"
+            socketio.emit('update_large_data', {
+                'messages': message_list,
+                'timestamp': timestamp,
+                'keys': keys  # Include the extracted "data" field keys
+            })
 
     messageParser.process_messages_in_batches(message_file_path, logger_db, "ECUMotorCommands", emit_messages_in_batches)
 

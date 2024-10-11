@@ -8,114 +8,160 @@
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
 </head>
 <body>
-<header>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="#">
-            <div class="logo-container">
-                <img src="../static/logo.png" id="logo" alt="Logo" class="navbar-logo">
-            </div>
-        </a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav mr-auto">
-                <li class="nav-item active">
-                    <a class="nav-link" href="">Debug Dashboard<span class="sr-only">(current)</span></a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="">Graphs</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="">Link2</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="">Link3</a>
-                </li>
-            </ul>
-
-            <div class="navbar-nav ml-auto">
-                <span class="text-light middleTitle">Debug Dashboard</span>
-            </div>
-        </div>
-    </nav>
-</header>
-
-<div class="wide-container">
-    Wide Container (Centered)
-</div>
-
-<div class="container-fluid mt-4">
-    <div class="row">
-        <!-- Left large container -->
-        <div class="col-md-8">
-            <div class="large-container">
-                <div class="text-container" id="messageContainer">
-                    <!-- Content for large container will be dynamically updated -->
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <a class="navbar-brand" href="#">
+                <div class="logo-container">
+                    <img src="../static/logo.png" id="logo" alt="Logo" class="navbar-logo">
+                </div>
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+    
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="">Debug Dashboard<span class="sr-only">(current)</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="">Graphs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="">Link2</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="">Link3</a>
+                    </li>
+                </ul>
+    
+                <div class="navbar-nav ml-auto">
+                    <span class="text-light middleTitle">Debug Dashboard</span>
                 </div>
             </div>
-        </div>
-
-        <!-- Right smaller containers -->
-        <div class="col-md-4">
-            <div class="small-container">
-                <div class="text-container">
-                    <!-- Content for small container 1 -->
-                    Small Container 1
+        </nav>
+    </header>
+    
+    <div class="wide-container">
+        Wide Container (Centered)
+    </div>
+    
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Left large container -->
+            <div class="col-md-8">
+                <div class="large-container">
+                    <div class="text-container" id="messageContainer">
+                        <!-- Content for large container will be dynamically updated -->
+                    </div>
+                    <!-- Clear Messages Button -->
+                    <button id="clearMessagesBtn" class="btn btn-danger">Clear Messages</button>
                 </div>
             </div>
-            <div class="small-container">
-                <div class="text-container">
-                    <!-- Content for small container 2 -->
-                    Small Container 2
+    
+            <!-- Right smaller containers -->
+            <div class="col-md-4">
+                <div class="top-right-container" id ="checkbox-container">
+                    <div class="text-container">
+                        <h3>Select Data Keys</h3>
+                        <form id="data-keys-form">
+                            <!-- Checkboxes will be dynamically populated here -->
+                        </form>
+                    </div>
                 </div>
-            </div>
-            <div class="small-container">
-                <div class="text-container">
-                    <!-- Content for small container 3 -->
-                    Small Container 3
+                <div class="small-container">
+                    <div class="text-container">
+                        <!-- Content for small container 3 -->
+                        Small Container 3
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+    
+    <script>
+        // Make sure to replace the port with the correct one if necessary
+        const socket = io('http://127.0.0.1:5000'); // Specify the URL of your Flask app
+      
+        // Receive the initial messages when connected (if needed)
+        socket.on('initial_messages', (messages) => {
+            const messageContainer = document.getElementById('messageContainer');
+            messageContainer.innerHTML = ''; // Clear existing messages
+            messages.forEach((data) => {
+                displayMessage(data);
+            });
+        });
+      
+        // Handle receiving batches of messages
+        socket.on('update_large_data', (batchData) => {
+        console.log('Received message batch:', batchData);
+        const messageContainer = document.getElementById('messageContainer');
 
-<script>
-  // Make sure to replace the port with the correct one if necessary
-  const socket = io('http://127.0.0.1:5000'); // Specify the URL of your Flask app
+        // Clear the message container before appending new messages
+        messageContainer.innerHTML = '';
 
-  // Receive the initial messages when connected (if needed)
-  socket.on('initial_messages', (messages) => {
-      const messageContainer = document.getElementById('messageContainer');
-      messageContainer.innerHTML = ''; // Clear existing messages
-      messages.forEach((data) => {
-          displayMessage(data);
-      });
-  });
+        // Iterate over the batch and display each message
+        batchData.messages.forEach((data) => {
+            displayMessage(data);  // Display each message from the batch
+        });
 
-  // Handle receiving batches of messages
-  socket.on('update_large_data', (batchData) => {
-      console.log('Received message batch:', batchData);
-      const messageContainer = document.getElementById('messageContainer');
+        // Extract dictionary keys from the "data" field
+        if (batchData.keys && batchData.keys.length > 0) {
+            populateCheckboxes(batchData.keys);  // Call the function to update the checkboxes
+        }
+        });
+      
+        function displayMessage(data) {
+            const messageContainer = document.getElementById('messageContainer');
+      
+            // Create a new div for the message
+            const newMessageDiv = document.createElement('div');
+            newMessageDiv.innerText = `Timestamp: ${data.timestamp}, Message: ${JSON.stringify(data.data)}`;
+            newMessageDiv.classList.add('message'); // Optional: Add a class for styling
+            messageContainer.appendChild(newMessageDiv); // Append the new message to the container
+      
+            // Check if the number of messages exceeds 100
+            if (messageContainer.childElementCount > 100) {
+                messageContainer.removeChild(messageContainer.firstChild); // Remove the oldest message
+            }
+      
+            // Optionally scroll to the bottom of the container
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+      
+        // Clear message container when the button is clicked
+        document.getElementById('clearMessagesBtn').addEventListener('click', () => {
+            const messageContainer = document.getElementById('messageContainer');
+            messageContainer.innerHTML = ''; // Clear all messages
+        });
 
-      // Iterate over the batch and display each message
-      batchData.messages.forEach((data) => {
-          displayMessage(data);  // Display each message from the batch
-      });
-  });
+        function populateCheckboxes(dataKeys) {
+        const checkboxContainer = document.getElementById('data-keys-form');
 
-  function displayMessage(data) {
-      const messageContainer = document.getElementById('messageContainer');
-      const newMessageDiv = document.createElement('div');
-      newMessageDiv.innerText = `Timestamp: ${data.timestamp}, Message: ${JSON.stringify(data.data)}`;
-      newMessageDiv.classList.add('message'); // Optional: Add a class for styling
-      messageContainer.appendChild(newMessageDiv); // Append the new message to the container
+        // Loop through the new data keys
+        dataKeys.forEach(key => {
+            // Check if the checkbox for the key already exists
+            if (!document.getElementById('checkbox_' + key)) {
+                // If it doesn't exist, create a new checkbox for the key
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'dataKey';
+                checkbox.value = key;
+                checkbox.id = 'checkbox_' + key;
 
-      // Optionally scroll to the bottom of the container
-      messageContainer.scrollTop = messageContainer.scrollHeight;
-  }
-</script>
+                const label = document.createElement('label');
+                label.htmlFor = checkbox.id;
+                label.appendChild(document.createTextNode(key));
 
+                // Append the checkbox and label to the form
+                checkboxContainer.appendChild(checkbox);
+                checkboxContainer.appendChild(label);
+                checkboxContainer.appendChild(document.createElement('br'));
+            }
+        });
+        }
+      </script>
+      
+    
 </body>
 </html>
