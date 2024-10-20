@@ -9,7 +9,7 @@ ERRORS_LIST = ['BPSError', 'MotorControllerError', 'PowerAuxError']
 
 timer = None
 
-def decode_dbc(id_hex: str, data_hex: str) -> dict:
+def decode_dbc(id_hex: str, data: bytes) -> dict:
     """
     Decodes the message using the DBC files.
 
@@ -18,7 +18,7 @@ def decode_dbc(id_hex: str, data_hex: str) -> dict:
     @return: A dictionary of the decoded message. Signals are the keys and decoded values are the values. Returns None if the message type is not found in the DBC files.
     """
     id = int(id_hex, 16)
-    data = bytes.fromhex(data_hex.replace("0x", ""))
+    # bytes.fromhex(data_hex.replace("0x", "")
     data += b'\x00' * 8 # adding padding
 
     for db in DBS:
