@@ -101,7 +101,7 @@ def process_messages_in_batches(file_path: str, logger_db: CANLoggerDatabase, ta
                     # Log the message into the database
                     logger_db.add_message_to_db(table_name, message_dict)
                     message_count += 1
-                    message_batch.append({'data': message_dict, 'timestamp': timestamp})  # Append to batch list
+                    message_batch.append({'table_name':table_name, 'data': message_dict, 'timestamp': timestamp})  # Append to batch list
 
             # Only emit the batch based on time interval
             current_time = time.perf_counter()

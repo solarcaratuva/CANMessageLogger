@@ -61,11 +61,11 @@
     
             <!-- Right smaller containers -->
             <div class="col-md-4">
-                <div class="top-right-container" id ="checkbox-container">
+                <div class="top-right-container" id="checkbox-container">
                     <div class="text-container">
-                        <h3>Select Data Keys</h3>
-                        <form id="data-keys-form">
-                            <!-- Checkboxes will be dynamically populated here -->
+                        <h3>Select Table Names</h3>
+                        <form id="table-names-form">
+                            <!-- Checkboxes for table names will be dynamically populated here -->
                         </form>
                     </div>
                 </div>
@@ -80,9 +80,15 @@
     </div>
     
     <script>
-        // Make sure to replace the port with the correct one if necessary
-        const socket = io('http://127.0.0.1:5000'); // Specify the URL of your Flask app
-      
+        // Socket connection to Flask app
+        const socket = io('http://127.0.0.1:5000'); // Specify the correct URL of your Flask app
+
+        // Variable to set the maximum number of messages to display
+        const maxMessages = 1; // Change this value to control how many messages are shown
+
+        // Array to store messages
+        let messagesArray = []; // To keep track of messages received
+
         // Receive the initial messages when connected (if needed)
         socket.on('initial_messages', (messages) => {
             const messageContainer = document.getElementById('messageContainer');
@@ -91,77 +97,101 @@
                 displayMessage(data);
             });
         });
-      
+
         // Handle receiving batches of messages
         socket.on('update_large_data', (batchData) => {
-        console.log('Received message batch:', batchData);
-        const messageContainer = document.getElementById('messageContainer');
+            console.log('Received message batch:', batchData);
 
-        // Clear the message container before appending new messages
-        messageContainer.innerHTML = '';
+            // Iterate over the batch and display each message
+            batchData.messages.forEach((data) => {
+                displayMessage(data);  // Display each message from the batch
+            });
 
-        // Iterate over the batch and display each message
-        batchData.messages.forEach((data) => {
-            displayMessage(data);  // Display each message from the batch
-        });
-
-        // Extract dictionary keys from the "data" field
-        if (batchData.keys && batchData.keys.length > 0) {
-            populateCheckboxes(batchData.keys);  // Call the function to update the checkboxes
-        }
-        });
-      
-        function displayMessage(data) {
-            const messageContainer = document.getElementById('messageContainer');
-      
-            // Create a new div for the message
-            const newMessageDiv = document.createElement('div');
-            newMessageDiv.innerText = `Timestamp: ${data.timestamp}, Message: ${JSON.stringify(data.data)}`;
-            newMessageDiv.classList.add('message'); // Optional: Add a class for styling
-            messageContainer.appendChild(newMessageDiv); // Append the new message to the container
-      
-            // Check if the number of messages exceeds 100
-            if (messageContainer.childElementCount > 100) {
-                messageContainer.removeChild(messageContainer.firstChild); // Remove the oldest message
+            // Extract table names from the "table_name" field in batchData
+            if (batchData.table_name) {
+                populateCheckboxes(batchData.table_name);  // Populate table name checkboxes dynamically
             }
-      
-            // Optionally scroll to the bottom of the container
-            messageContainer.scrollTop = messageContainer.scrollHeight;
-        }
-      
-        // Clear message container when the button is clicked
-        document.getElementById('clearMessagesBtn').addEventListener('click', () => {
-            const messageContainer = document.getElementById('messageContainer');
-            messageContainer.innerHTML = ''; // Clear all messages
         });
 
-        function populateCheckboxes(dataKeys) {
-        const checkboxContainer = document.getElementById('data-keys-form');
+        // Populate the checkboxes with table names dynamically
+        function populateCheckboxes(tableNames) {
+            const checkboxContainer = document.getElementById('table-names-form');
 
-        // Loop through the new data keys
-        dataKeys.forEach(key => {
-            // Check if the checkbox for the key already exists
-            if (!document.getElementById('checkbox_' + key)) {
-                // If it doesn't exist, create a new checkbox for the key
+            // Check if the checkbox for the table name already exists
+            if (!document.getElementById('checkbox_' + tableNames)) {
+                // Create a new checkbox for the table name
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
-                checkbox.name = 'dataKey';
-                checkbox.value = key;
-                checkbox.id = 'checkbox_' + key;
+                checkbox.name = 'tableName';
+                checkbox.value = tableNames;
+                checkbox.id = 'checkbox_' + tableNames;
 
                 const label = document.createElement('label');
                 label.htmlFor = checkbox.id;
-                label.appendChild(document.createTextNode(key));
+                label.appendChild(document.createTextNode(tableNames));
 
                 // Append the checkbox and label to the form
                 checkboxContainer.appendChild(checkbox);
                 checkboxContainer.appendChild(label);
                 checkboxContainer.appendChild(document.createElement('br'));
+
+                // Add event listener to dynamically load data when a table is selected
+                checkbox.addEventListener('change', function() {
+                    loadTableData();
+                });
             }
-        });
         }
-      </script>
-      
-    
+
+        // Load table data based on selected checkboxes
+        function loadTableData() {
+            const form = document.getElementById('table-names-form');
+            const selectedTables = [];
+
+            // Get selected table names from the form
+            form.querySelectorAll('input[name="tableName"]:checked').forEach((checkbox) => {
+                selectedTables.push(checkbox.value);
+            });
+
+            // Emit event to the server to request data for selected tables
+            if (selectedTables.length > 0) {
+                socket.emit('request_table_data', { tableNames: selectedTables });
+            }
+        }
+
+        // Display messages in the main container
+        function displayMessage(data) {
+            const messageContainer = document.getElementById('messageContainer');
+            messagesArray.push(data); // Store the received message in the array
+
+            // Create a new div for the message
+            const newMessageDiv = document.createElement('div');
+            const messageContent = [];
+
+            // Loop through each key in the data dictionary and prepare the message content
+            for (const key in data.data) {
+                messageContent.push(`Key: ${key}, Value: ${data.data[key]}`);
+            }
+
+            const timestampLine = `Timestamp: ${data.timestamp}`;
+            newMessageDiv.innerText = `${timestampLine}\n${messageContent.join('\n')}`; // Display timestamp and data
+            newMessageDiv.classList.add('message'); // Optional: Add a class for styling
+            messageContainer.appendChild(newMessageDiv); // Append the new message to the container
+
+            // Display only the last maxMessages
+            while (messageContainer.childElementCount > maxMessages) {
+                messageContainer.removeChild(messageContainer.firstChild); // Remove the oldest message
+            }
+
+            // Optionally scroll to the bottom of the container
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        // Clear all messages
+        document.getElementById('clearMessagesBtn').addEventListener('click', () => {
+            const messageContainer = document.getElementById('messageContainer');
+            messageContainer.innerHTML = ''; // Clear all messages
+            messagesArray = []; // Clear stored messages
+        });
+    </script>
 </body>
 </html>

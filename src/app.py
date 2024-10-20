@@ -51,23 +51,33 @@ def start_message_processing():
 
     # This function will emit messages in batches directly to clients
     def emit_messages_in_batches(messages):
+        max_messages = 1  # Limit the number of messages to keep in memory
         for message in messages:
-            message_dict = {"data": message}  # Prepare message data to send
-            timestamp = "2024-10-10 12:00:00"  # Example timestamp, adjust as needed
+            table_name = message.get("table_name", "ECUMotorCommands")
+            message_dict = {
+                "table_name": table_name,
+                "data": message["data"],
+                "timestamp": message["timestamp"]
+            }
+
+            # Append the new message
             message_list.append(message_dict)
+
+            # Keep only the most recent N messages
+            if len(message_list) > max_messages:
+                message_list.pop(0)  # Remove the oldest message
+
+            keys = list(message["data"].keys()) if "data" in message else []
             
-            # Extract keys from the "data" field in the message dictionary
-            if "data" in message:
-                keys = list(message["data"].keys())  # Extract keys from the "data" field
-            
-            # Emit the data along with the dictionary keys from "data"
+            # Emit the data to the front end
             socketio.emit('update_large_data', {
                 'messages': message_list,
-                'timestamp': timestamp,
-                'keys': keys  # Include the extracted "data" field keys
+                'table_name': table_name,
+                'timestamp': message["timestamp"],
+                'keys': keys
             })
 
-    messageParser.process_messages_in_batches(message_file_path, logger_db, "ECUMotorCommands", emit_messages_in_batches)
+    messageParser.process_messages_in_batches(message_file_path, logger_db, table_name="ECUMotorCommands", emit_func=emit_messages_in_batches)
 
 if __name__ == '__main__':
     socketio.start_background_task(target=start_message_processing)
