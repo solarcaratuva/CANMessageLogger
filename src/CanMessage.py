@@ -1,7 +1,7 @@
 import DBCs
 
 
-class CANmessage:
+class CanMessage:
     def __init__(self, name: str, id: int, signals: dict, timestamp: float):
         self.messageName = name
         self.messageId = id
@@ -9,7 +9,7 @@ class CANmessage:
         self.timeStamp = timestamp
 
 
-def decode_message(int_id: int, data: bytes, timestamp: float) -> CANmessage:
+def decode_message(int_id: int, data: bytes, timestamp: float) -> CanMessage:
     """
     Decodes the message using the DBC files.
 
