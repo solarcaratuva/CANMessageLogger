@@ -46,7 +46,7 @@ html body{
 
 .text-container {
     padding: 20px; /* Add padding for space inside the container */
-    color: #333; /* Text color */
+    color: #ff05a7; /* Text color */
     font-size: 16px; /* Adjust font size as needed */
     height: calc(100% - 40px); /* Fill the remaining space (adjust as necessary) */
     overflow-y: auto; /* Enable vertical scrolling if content exceeds height */
@@ -55,6 +55,9 @@ html body{
 .large-container {
     position: relative;  /* Ensure the button is positioned relative to this container */
     padding-bottom: 40px;  /* Add padding to avoid overlap with the button */
+    display:flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
 }
 
 #clearMessagesBtn {
@@ -70,4 +73,14 @@ html body{
     padding: 10px;
     border-radius: 15px;
     margin-bottom: 10px; /* Space between smaller containers */
+}
+
+.table-data-container {
+    max-width: 50%; /* Set maximum width to 50% of the parent container */
+    margin: 10px 0; /* Add some spacing between containers */
+    padding: 15px; /* Optional: Add padding for aesthetics */
+    border: 1px solid #ccc; /* Optional: Add a border for better visibility */
+    border-radius: 5px; /* Optional: Add rounded corners */
+    background-color: #f8f9fa; /* Optional: Light background for contrast */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Add a shadow for depth */
 }

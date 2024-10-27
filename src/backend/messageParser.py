@@ -82,7 +82,7 @@ def process_messages_in_batches_backend(file_path: str, logger_db: CANLoggerData
 
 def process_messages_in_batches(file_path: str, logger_db: CANLoggerDatabase, table_name: str, emit_func):
     message_count = 0  # Counter for the messages
-    send_interval = 5  # Send messages every 5 seconds
+    send_interval = 1  # Send messages every 5 seconds
     last_send_time = time.perf_counter()
 
     with open(file_path, 'r') as f:
