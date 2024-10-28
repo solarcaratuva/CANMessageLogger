@@ -13,7 +13,7 @@ def decode_message(int_id: int, data: bytes, timestamp: float) -> CanMessage:
     """
     Decodes the message using the DBC files.
 
-    @param int_id: The ID as an int of the message in hexadecimal.
+    @param int_id: The ID as an int of the message name/type in hexadecimal.
     @param data: The data as a python byte object of the message in hexadecimal.
     @param timestamp: timestamp of the message stored as float time from start time.
 
@@ -33,11 +33,11 @@ def decode_message(int_id: int, data: bytes, timestamp: float) -> CanMessage:
             decoded_message = db.decode_message(id, data)
     '''
 
-    for db in DBCs:
+    for db in DBCs.DBCs:
         for msg in db.messages:
-            if msg.frame_id == id:
+            if msg.frame_id == int_id:
                 name = msg.name
-                decoded_message = db.decode_message(id, data)
+                decoded_message = db.decode_message(int_id, data)
                 break
         if decoded_message is not None:
             break
@@ -46,4 +46,4 @@ def decode_message(int_id: int, data: bytes, timestamp: float) -> CanMessage:
     if decoded_message is None:
         return None
 
-    return CANmessage(name, id, decoded_message, timestamp)
+    return CanMessage(name, int_id, decoded_message, timestamp)
