@@ -32,7 +32,7 @@ def decode_dbc(id_hex: str, data_hex: str) -> dict:
         message_ids = [msg.frame_id for msg in db.messages]
         if id in message_ids:
             decoded_message = db.decode_message(id, data)
-            return decoded_message
+            return id, decoded_message
     return None
         
 
@@ -59,8 +59,8 @@ def messageParser(message: str) -> tuple[dict, float]:
     canID = match.group(2)
     canData = match.group(4)
 
-    messageDict = decode_dbc(canID, canData)
-    return messageDict, time.perf_counter() - timer
+    id, messageDict = decode_dbc(canID, canData)
+    return id, messageDict, time.perf_counter() - timer
 
 def process_messages_in_batches_backend(file_path: str, logger_db: CANLoggerDatabase, table_name: str):
     with open(file_path, 'r') as f:
@@ -80,11 +80,17 @@ def process_messages_in_batches_backend(file_path: str, logger_db: CANLoggerData
             print(f"Processed {len(batch)} messages, waiting for 1 second...")
             time.sleep(0.5)  # Pause before next batch
 
-def process_messages_in_batches(file_path: str, logger_db: CANLoggerDatabase, table_name: str, emit_func):
+def process_messages_in_batches(file_path: str, logger_db: CANLoggerDatabase, emit_func):
     message_count = 0  # Counter for the messages
     send_interval = 1  # Send messages every 5 seconds
     last_send_time = time.perf_counter()
 
+    ID_TO_TABLE = {
+        513: 'ECUMotorCommands',
+        769: 'ECUPowerAuxCommands',
+        0x789: 'table_name_3',
+        # Add more mappings as needed
+    }
     with open(file_path, 'r') as f:
         while True:
             batch = [f.readline().strip() for _ in range(100)]
@@ -96,8 +102,9 @@ def process_messages_in_batches(file_path: str, logger_db: CANLoggerDatabase, ta
             message_batch = []  # Collect messages to emit later
 
             for line in batch:
-                message_dict, timestamp = messageParser(line)
+                id, message_dict, timestamp = messageParser(line)
                 if message_dict:
+                    table_name = ID_TO_TABLE.get(id)
                     # Log the message into the database
                     logger_db.add_message_to_db(table_name, message_dict)
                     message_count += 1

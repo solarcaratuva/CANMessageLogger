@@ -48,12 +48,14 @@ def start_message_processing():
 
     logger_db = CANLoggerDatabase(database_path, dbc_file_path)
 
+    table_names = logger_db.get_table_names()
+
 
     # This function will emit messages in batches directly to clients
     def emit_messages_in_batches(messages):
         max_messages = 1  # Limit the number of messages to keep in memory
         for message in messages:
-            table_name = message.get("table_name", "ECUMotorCommands")
+            table_name = message.get("table_name")
             message_dict = {
                 "table_name": table_name,
                 "data": message["data"],
@@ -77,7 +79,7 @@ def start_message_processing():
                 'keys': keys
             })
 
-    messageParser.process_messages_in_batches(message_file_path, logger_db, table_name="ECUMotorCommands", emit_func=emit_messages_in_batches)
+    messageParser.process_messages_in_batches(message_file_path, logger_db, emit_func=emit_messages_in_batches)
 
 if __name__ == '__main__':
     socketio.start_background_task(target=start_message_processing)

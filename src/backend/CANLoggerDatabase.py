@@ -124,7 +124,18 @@ class CANLoggerDatabase:
         except sqlite3.Error as e:
             print(f"Error retrieving data: {e}")
             exit(1)
-
+    def get_table_names(self):
+        """
+        Retrieves a list of all table names in the database.
+        """
+        try:
+            cursor = self.conn.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            tables = cursor.fetchall()
+            return [table[0] for table in tables]  # Extract table names from the result
+        except sqlite3.Error as e:
+            print(f"Error retrieving table names: {e}")
+            exit(1)
+            
     def get_latest_from_table(self, table_name: str):
         """
         Selects latest data from table for all columns
