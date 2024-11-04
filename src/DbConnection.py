@@ -13,8 +13,10 @@ class DbConnection:
         self.cur = self.conn.cursor()
 
     def __del__(self):
-        self.cur.close()
-        self.conn.close()
+        if self.cur and hasattr(self,'cur'):
+            self.cur.close()
+        if self.conn and hasattr(self,'conn'):
+            self.conn.close()
 
     def __db_execute(self, can_msg: CanMessage) -> None:
         """
