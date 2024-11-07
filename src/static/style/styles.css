@@ -14,6 +14,11 @@
     background-color: #c9c9c9;
     height: 700px; /* Adjust height as needed */
     border-radius: 15px;
+    display:flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    position: relative;  /* Ensure the button is positioned relative to this container */
+    padding-bottom: 40px;  /* Add padding to avoid overlap with the button */
 }
 .medium-container {
     background-color: #c9c9c9;
@@ -50,13 +55,8 @@ html body{
     font-size: 16px; /* Adjust font size as needed */
     height: calc(100% - 40px); /* Fill the remaining space (adjust as necessary) */
     overflow-y: auto; /* Enable vertical scrolling if content exceeds height */
-}
-
-.large-container {
-    position: relative;  /* Ensure the button is positioned relative to this container */
-    padding-bottom: 40px;  /* Add padding to avoid overlap with the button */
-    display:flex;
-    flex-wrap: wrap;
+    display: flex;
+    flex-wrap:wrap;
     justify-content: flex-start;
 }
 
@@ -84,3 +84,5 @@ html body{
     background-color: #f8f9fa; /* Optional: Light background for contrast */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Add a shadow for depth */
 }
+
+
