@@ -16,9 +16,9 @@ def process_data() -> None:
     db_conn = DbConnection()
     list_can_messages = []
     while True:
-        cm_tuple = queue.get()
-        if cm_tuple is None:
+        if queue.empty():
             break
+        cm_tuple = queue.get()
         can_msg = CanMessage.decode_message(*cm_tuple)
         list_can_messages.append(can_msg)
 

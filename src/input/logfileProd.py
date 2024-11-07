@@ -22,13 +22,14 @@ def parse_line(log_line: str) -> ():
         # Convert time to milliseconds
         milliseconds = (hours * 3600 + minutes * 60 + seconds) * 1000
 
-        # Check if the seconds have changed
+        # Check if the seconds have changed (First message just ignore), if it has not changed then increment
         if previous_mseconds is not None and milliseconds == previous_mseconds:
-            milliseconds += millisecond_incrementer
             millisecond_incrementer += 5
-        else:
+        else: # resets if it changes (or if it is the first message)
             millisecond_incrementer = 0
-            previous_mseconds = seconds
+            previous_mseconds = milliseconds
+
+        milliseconds += millisecond_incrementer
 
         # Convert the ID to an integer
         id_int = int(id_hex, 16)
