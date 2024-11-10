@@ -25,7 +25,6 @@ class DbConnection:
         Does not commit, need to call commit after calling this function
 
         @param can_msg: A CanMessage object
-
         @return: None, adds signals from CanMessage object to database. Does not commit. Needs to call commit after.
         """
         signal_dict = can_msg.sigDict
@@ -45,9 +44,7 @@ class DbConnection:
         type as values (for now it is always set to datatype of INTEGER).
 
         @param dbcs: list of DBCs objects to be used to generate dictionary of message types
-
-        @return: a dictionary containing message type as the keys, and the value being another sub-dictionary that has
-        the signal type as keys and signal data type as values (for now it is always set to datatype of INTEGER).
+        @return: a dictionary containing message type as the keys, and the value being another sub-dictionary that has the signal type as keys and signal data type as values (for now it is always set to datatype of INTEGER).
         """
         can_message_signal_types = {}
         # {'message_name': {signal_name: signal_type, ..., ... }, ..., ...}
@@ -64,7 +61,6 @@ class DbConnection:
         Add a single Can Message to the connection's database
 
         @param can_msg: The CanMessage object to be added to database
-
         @return: None, just adds single CAN message to connection's database
         """
         self.__db_insert_message(can_msg)  # helper function defined above
@@ -76,7 +72,6 @@ class DbConnection:
         Add a batch (list) of CanMessage objects to the connection's database
 
         @param can_msg_list: The list of CanMessage objects to be added to database
-
         @return: None, adds all CanMessage objects to connection's database
         """
         for can_msg in can_msg_list:
@@ -89,7 +84,6 @@ class DbConnection:
         Execute a single SQL query and returns what the SQL query returns as a list of dictionaries
 
         @param query: The query to execute as a String
-
         @return: list of dictionaries, each dictionary represents a single CANmessage and signals/values as key/values
         """
         self.cur.execute(query)
