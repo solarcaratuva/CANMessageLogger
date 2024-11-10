@@ -10,7 +10,7 @@ millisecond_incrementer = 0
 previous_mseconds = None
 
 
-def parse_line(log_line: str) -> tuple[int, bytes, float]:
+def parse_line(log_line: str) -> tuple[int, bytes, int]:
     global start_time_mseconds, millisecond_incrementer, previous_mseconds
 
     match = pattern.search(log_line)
