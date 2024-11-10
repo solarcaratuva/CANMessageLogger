@@ -15,6 +15,20 @@ html, body {
     margin: 0; /* Remove default margin */
     padding: 0; /* Remove default padding */
     font-family: Arial, sans-serif; /* Optional: Set a default font for the website */
+    background-image: url('../solarcarimage.jpg'); /* Path to your background image */
+    background-size: cover;  /* Make sure the image covers the entire background */
+    background-position: center center;  /* Center the image */
+    background-repeat: no-repeat;  /* Prevent the image from repeating */
+}
+
+.wide-container {
+    background-color: #f8f9fa;
+    padding: 20px;  /* Add some padding inside the container */
+    border-radius: 8px;  /* Optional: round the corners of the container */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);  /* Optional: add a subtle shadow for depth */
+    margin-left: 20px;
+    margin-right: 20px;
+
 }
 
 /* Container styling */
