@@ -43,44 +43,41 @@
             </div>
         </nav>
     </header>
+    <div>
+        <div class="small-container text-center mt-4">
+            <h2>Error Messages!</h2>
+        </div>
 
-    <div class="wide-container text-center mt-4">
-        <h2>Error Messages!</h2>
-    </div>
-
-    <div class="container-fluid mt-4">
-        <div class="row">
-            <!-- Left large container -->
-            <div class="col-md-8">
-                <div class="large-container">
-                    <div class="text-container" id="messageContainer">
-                        <!-- Content for large container will be dynamically updated -->
-                    </div>
-                    <!-- Clear Messages Button -->
-                    <button id="clearMessagesBtn" class="btn btn-danger mt-2">Clear Messages</button>
-                </div>
-            </div>
-
-            <!-- Right smaller containers -->
-            <div class="col-md-4">
-                <div class="top-right-container" id="checkbox-container">
-                    <div class="text-container">
-                        <h3>Select Table Names</h3>
-                        <form id="table-names-form">
-                            <!-- Checkboxes for table names will be dynamically populated here -->
-                        </form>
+        <div class="container-fluid mt-4">
+            <div class="row">
+                <!-- Left large container -->
+                <div class="col-md-8">
+                    <div class="large-container">
+                        <div class="text-container" id="messageContainer">
+                            <!-- Content for large container will be dynamically updated -->
+                        </div>
                     </div>
                 </div>
-                <div class="small-container mt-4">
-                    <div class="text-container">
-                        <!-- Content for small container 3 -->
-                        <h5>Small Container 3</h5>
+
+                <!-- Right smaller containers -->
+                <div class="col-md-4">
+                    <div class="small-container" id="checkbox-container">
+                        <div class="text-container">
+                            <h5>Boards</h5>
+                        </div>
+                    </div>
+                    <div class="small-container mt-4">
+                        <div class="text-container">
+                            <!-- Content for small container 3 -->
+                            <form id="table-names-form">
+                                <!-- Checkboxes for table names will be dynamically populated here -->
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
     <script>
         // Socket connection to Flask app
         const socket = io('http://127.0.0.1:5000'); // Specify the correct URL of your Flask app
@@ -90,6 +87,7 @@
 
         // Object to store messages for different tables
         let tableMessages = {};
+        let lastMessageTime = {};
 
         // Receive the initial messages when connected (if needed)
         socket.on('initial_messages', (messages) => {
@@ -160,65 +158,73 @@
 
         // Display messages in the main container
         function displayMessage(data) {
-            const messageContainer = document.getElementById('messageContainer');
-            const tableName = data.table_name; // Get the table name from the data
+        const messageContainer = document.getElementById('messageContainer');
+        const tableName = data.table_name; // Get the table name from the data
 
-            // If the table name does not exist in the tableMessages object, create an entry
-            if (!tableMessages[tableName]) {
-                tableMessages[tableName] = []; // Initialize an array for this table's messages
-                
-                // Create a new Bootstrap card for this table
-                const card = document.createElement('div');
-                card.className = 'card mt-3';
-                card.id = 'card_' + tableName; // Give the card an ID based on the table name
+        // Get the current message timestamp
+        const currentTimestamp = new Date(data.timestamp);
 
-                const cardHeader = document.createElement('div');
-                cardHeader.className = 'card-header';
-                cardHeader.innerText = tableName; // Set the card header as the table name
+        // If the table name does not exist in the tableMessages object, create an entry
+        if (!tableMessages[tableName]) {
+            tableMessages[tableName] = []; // Initialize an array for this table's messages
+            lastMessageTime[tableName] = currentTimestamp; // Set initial last message time
+            
+            // Create a new Bootstrap card for this table
+            const card = document.createElement('div');
+            card.className = 'card mt-3';
+            card.id = 'card_' + tableName; // Give the card an ID based on the table name
 
-                const cardBody = document.createElement('div');
-                cardBody.className = 'card-body';
-                cardBody.id = 'cardBody_' + tableName; // ID for the card body to update messages
+            const cardHeader = document.createElement('div');
+            cardHeader.className = 'card-header';
+            cardHeader.innerText = tableName; // Set the card header as the table name
 
-                // Append the header and body to the card
-                card.appendChild(cardHeader);
-                card.appendChild(cardBody);
-                messageContainer.appendChild(card); // Append the card to the main message container
-            }
+            const cardBody = document.createElement('div');
+            cardBody.className = 'card-body';
+            cardBody.id = 'cardBody_' + tableName; // ID for the card body to update messages
 
-            // Store the received message in the array for this specific table
-            tableMessages[tableName].push(data);
-
-            // If the number of messages exceeds the limit, remove the oldest message
-            if (tableMessages[tableName].length > maxMessagesPerTable) {
-                tableMessages[tableName].shift(); // Remove the oldest message (first element)
-            }
-
-            // Clear the card body to repopulate it with the latest messages
-            const cardBody = document.getElementById('cardBody_' + tableName);
-            cardBody.innerHTML = ''; // Clear previous messages
-
-            // Prepare and display all the current messages for this table
-            tableMessages[tableName].forEach((msg) => {
-                const messageContent = [];
-                for (const key in msg.data) {
-                    messageContent.push(`${key}: ${msg.data[key]}`);
-                }
-                const timestampLine = `Timestamp: ${msg.timestamp}`;
-                const newMessageText = `${timestampLine}\n${messageContent.join('\n')}`;
-
-                // Create a new div for the message
-                const newMessageDiv = document.createElement('div');
-                newMessageDiv.innerText = newMessageText; // Display timestamp and data
-                newMessageDiv.classList.add('message', 'mb-2'); // Optional: Add classes for styling
-
-                // Append the new message to the appropriate card body
-                cardBody.appendChild(newMessageDiv);
-            });
-
-            // Optionally scroll to the bottom of the card body
-            cardBody.scrollTop = cardBody.scrollHeight;
+            // Append the header and body to the card
+            card.appendChild(cardHeader);
+            card.appendChild(cardBody);
+            messageContainer.appendChild(card); // Append the card to the main message container
         }
+
+        // Calculate time since last message (in seconds)
+        const timeSinceLastMessage = Math.floor((currentTimestamp - lastMessageTime[tableName]) / 1000);
+        lastMessageTime[tableName] = currentTimestamp; // Update the last message time
+
+        // Store the received message in the array for this specific table
+        tableMessages[tableName].push(data);
+
+        // If the number of messages exceeds the limit, remove the oldest message
+        if (tableMessages[tableName].length > maxMessagesPerTable) {
+            tableMessages[tableName].shift(); // Remove the oldest message (first element)
+        }
+
+        // Clear the card body to repopulate it with the latest messages
+        const cardBody = document.getElementById('cardBody_' + tableName);
+        cardBody.innerHTML = ''; // Clear previous messages
+
+        // Prepare and display all the current messages for this table
+        tableMessages[tableName].forEach((msg) => {
+            const messageContent = [];
+            for (const key in msg.data) {
+                messageContent.push(`${key}: ${msg.data[key]}`);
+            }
+            const timeSinceLastLine = `Time Since Last Message: ${timeSinceLastMessage} seconds`;
+            const newMessageText = `${timeSinceLastLine}\n${messageContent.join('\n')}`;
+
+            // Create a new div for the message
+            const newMessageDiv = document.createElement('div');
+            newMessageDiv.innerText = newMessageText; // Display time since last message and data
+            newMessageDiv.classList.add('message', 'mb-2'); // Optional: Add classes for styling
+
+            // Append the new message to the appropriate card body
+            cardBody.appendChild(newMessageDiv);
+        });
+
+        // Optionally scroll to the bottom of the card body
+        cardBody.scrollTop = cardBody.scrollHeight;
+    }
     </script>
 </body>
 </html>

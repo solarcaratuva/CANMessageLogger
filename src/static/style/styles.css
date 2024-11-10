@@ -10,79 +10,99 @@
     display: inline-block; /* Make sure it wraps around the logo */
 }
 
-.large-container {
-    background-color: #c9c9c9;
-    height: 700px; /* Adjust height as needed */
-    border-radius: 15px;
-    display:flex;
+html, body {
+    background-color: #575b5e; /* Set background color for the entire website */
+    margin: 0; /* Remove default margin */
+    padding: 0; /* Remove default padding */
+    font-family: Arial, sans-serif; /* Optional: Set a default font for the website */
+}
+
+/* Container styling */
+.large-container, .small-container {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
     flex-wrap: wrap;
-    justify-content: flex-start;
-    position: relative;  /* Ensure the button is positioned relative to this container */
-    padding-bottom: 40px;  /* Add padding to avoid overlap with the button */
-}
-.medium-container {
-    background-color: #c9c9c9;
-    height: 464.67px; /* Adjust height as needed */
-    margin-bottom: 10px;
-    border-radius: 15px;
-}
-.small-container {
-    background-color: #c9c9c9;
-    height: 226.67px; /* Adjust height as needed */
-    margin-bottom: 10px; /* Space between smaller containers */
-    border-radius: 15px;
 }
 
-html body{
-    background-color: #575b5e;
-}
-
-.wide-container {
-    width: 80%; /* Adjust width to make it wide */
-    height: 50px; /* Small height */
-    background-color: #c9c9c9; /* Light background color */
-    margin-top: 20px; /* Space below the navbar */
-    border-radius: 15px; /* Rounded corners */
-    display: flex; /* Flexbox for content centering */
-    justify-content: center; /* Center content horizontally */
-    align-items: center; /* Center content vertically */
-    margin-left: 10%
+.large-container {
+    padding: 25px;
 }
 
 .text-container {
-    padding: 20px; /* Add padding for space inside the container */
-    color: #ff05a7; /* Text color */
-    font-size: 16px; /* Adjust font size as needed */
-    height: calc(100% - 40px); /* Fill the remaining space (adjust as necessary) */
-    overflow-y: auto; /* Enable vertical scrolling if content exceeds height */
-    display: flex;
-    flex-wrap:wrap;
-    justify-content: flex-start;
-}
-
-#clearMessagesBtn {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    z-index: 10;  /* Ensure it's above other content */
-}
-
-.top-right-container {
-    background-color: #c9c9c9;
-    height: 60%;  /* Now the right container takes the full height */
+    overflow-y: auto;
+    max-height: 400px;
     padding: 10px;
-    border-radius: 15px;
-    margin-bottom: 10px; /* Space between smaller containers */
+    font-size: 16px;
+    display:flex;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
-.table-data-container {
-    max-width: 50%; /* Set maximum width to 50% of the parent container */
-    margin: 10px 0; /* Add some spacing between containers */
-    padding: 15px; /* Optional: Add padding for aesthetics */
-    border: 1px solid #ccc; /* Optional: Add a border for better visibility */
-    border-radius: 5px; /* Optional: Add rounded corners */
-    background-color: #f8f9fa; /* Optional: Light background for contrast */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Add a shadow for depth */
+/* Card Styling */
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background-color: #ffffff;
 }
+
+.card-header {
+    background-color: #343a40;
+    color: #4a4949;
+    font-weight: bold;
+    padding: 10px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.card-body {
+    padding: 15px;
+    color: #333;
+}
+
+
+/* Checkbox styling */
+#table-names-form label {
+    display: inline-block;
+    margin-right: 10px;
+    font-size: 15px;
+    color: #495057;
+}
+
+input[type="checkbox"] {
+    margin-right: 5px;
+}
+
+/* Message styling */
+.message {
+    background-color: #e9ecef;
+    padding: 8px;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    white-space: pre-wrap;
+}
+
+/* Smooth scrolling */
+.text-container, .card-body {
+    scrollbar-width: thin;
+}
+
+.text-container::-webkit-scrollbar, .card-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.text-container::-webkit-scrollbar-thumb, .card-body::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 10px;
+}
+
+.text-container::-webkit-scrollbar-thumb:hover, .card-body::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+}
+
 
 
