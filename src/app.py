@@ -5,7 +5,7 @@ import backend.messageParser as messageParser
 from backend.CANLoggerDatabase import CANLoggerDatabase
 import os
 
-app = Flask(__name__, template_folder='html')
+app = Flask(__name__, template_folder='frontend/html')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # List to store messages to display on the front end
