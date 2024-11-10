@@ -8,10 +8,9 @@ queue = queue.Queue()
 
 def process_data() -> None:
     """
-    Pops all stored tuples on CAN messages queue (each tuple representing a single CAN message) and returns a list of
-    CanMessage objects from the stored tuples
+    Pops all stored tuples on CAN messages queue (each tuple representing a single CAN message) and adds them into the database
 
-    @return: a list of CanMessage objects from the stored tuples that were on queue
+    @return: Nothing, it will just add all CAN messages from the queue into the database
     """
     db_conn = DbConnection()
     list_can_messages = []

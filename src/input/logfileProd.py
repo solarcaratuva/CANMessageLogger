@@ -10,42 +10,42 @@ millisecond_incrementer = 0
 previous_mseconds = None
 
 
-def parse_line(log_line: str) -> ():
+def parse_line(log_line: str) -> tuple[int, bytes, float]:
     global start_time_mseconds, millisecond_incrementer, previous_mseconds
 
     match = pattern.search(log_line)
-    if match:
-        hours, minutes, seconds = map(int, match.groups()[:3])
-        id_hex = match.group(4)
-        data_hex = match.group(5)
+    if match is None:  # if the line from the file does not match the REGEX, return none
+        return None
 
-        # Convert time to milliseconds
-        milliseconds = (hours * 3600 + minutes * 60 + seconds) * 1000
+    hours, minutes, seconds = map(int, match.groups()[:3])
+    id_hex = match.group(4)
+    data_hex = match.group(5)
 
-        # Check if the seconds have changed (First message just ignore), if it has not changed then increment
-        if previous_mseconds is not None and milliseconds == previous_mseconds:
-            millisecond_incrementer += 5
-        else: # resets if it changes (or if it is the first message)
-            millisecond_incrementer = 0
-            previous_mseconds = milliseconds
+    # Convert time to milliseconds
+    milliseconds = (hours * 3600 + minutes * 60 + seconds) * 1000
 
-        milliseconds += millisecond_incrementer
+    # Check if the seconds have changed (First message just ignore), if it has not changed then increment
+    if previous_mseconds is not None and milliseconds == previous_mseconds:
+        millisecond_incrementer += 5
+    else:  # resets if it changes (or if it is the first message)
+        millisecond_incrementer = 0
+        previous_mseconds = milliseconds
 
-        # Convert the ID to an integer
-        id_int = int(id_hex, 16)
+    milliseconds += millisecond_incrementer
 
-        # Convert the data to a byte object
-        data_bytes = bytes.fromhex(data_hex[2:])
+    # Convert the ID to an integer
+    id_int = int(id_hex, 16)
 
-        if start_time_mseconds is None:
-            start_time_mseconds = milliseconds
+    # Convert the data to a byte object
+    data_bytes = bytes.fromhex(data_hex[2:])
 
-        time_since_start = milliseconds - start_time_mseconds
+    if start_time_mseconds is None:
+        start_time_mseconds = milliseconds
 
-        cm_tuple = (id_int, data_bytes, time_since_start)
-        return cm_tuple
+    time_since_start = milliseconds - start_time_mseconds
 
-    return None
+    cm_tuple = (id_int, data_bytes, time_since_start)
+    return cm_tuple
 
 
 def process_logfile(path_to_log_file: str) -> None:
