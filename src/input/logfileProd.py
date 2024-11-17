@@ -1,4 +1,4 @@
-from src.input.consumer import queue
+from input.consumer import queue
 import time
 
 import re

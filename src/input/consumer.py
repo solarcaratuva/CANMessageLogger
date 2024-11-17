@@ -1,7 +1,7 @@
 import queue
 import time
-from src.backend import CanMessage
-from src.backend.DbConnection import DbConnection
+from backend import CanMessage
+from backend.DbConnection import DbConnection
 
 DbConnection.setup_the_db_path("C:.\\src\\database")
 queue = queue.Queue()

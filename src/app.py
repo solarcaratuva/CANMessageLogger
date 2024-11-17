@@ -4,8 +4,9 @@ import backend.db_access as db_access
 import backend.DbConnection as dbconnect
 import os
 import time
+from input import consumer, logfileProd
 
-app = Flask(__name__, template_folder='frontend/html')
+app = Flask(__name__, template_folder='frontend/html', static_folder='frontend/static')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # List to store messages to display on the front end
@@ -43,21 +44,22 @@ def process_messages_in_batches(file_path: str, logger_db: dbconnect, emit_func)
         tables = logger_db.query("SELECT name FROM sqlite_master WHERE type='table';")
         for table in tables:
             table_name = table['name']
-            result = logger_db.query(f"Select COUNT(*) as count FROM {table_name};")
-            print(result[0]['count'], table_name)
-            row = 0
-            if result[0]['count']:
-                row = logger_db.query(f"SELECT * FROM {table_name} ORDER BY timeStamp DESC LIMIT 1;")
-            else:
-                print(f"Table for {table_name} is empty.")
-            if row:
-                timestamp = row['timeStamp']
-                del row['timeStamp']
-                message_dict = row
+            if table_name != "sqlite_sequence":
+                result = logger_db.query(f"Select COUNT(*) as len FROM {table_name};")
+                print(result[0]['len'], table_name)
+                row = 0
+                if result[0]['len']:
+                    row = logger_db.query(f"SELECT * FROM {table_name} ORDER BY timeStamp DESC LIMIT 1;")
+                else:
+                    print(f"Table for {table_name} is empty.")
+                if row:
+                    timestamp = row[0]['timeStamp']
+                    del row[0]['timeStamp']
+                    message_dict = row[0]
 
-                message_count += 1
-                message_batch.append({'table_name': table_name, 'data': message_dict,
-                                      'timestamp': timestamp})  # Append to batch list
+                    message_count += 1
+                    message_batch.append({'table_name': table_name, 'data': message_dict,
+                                        'timestamp': timestamp})  # Append to batch list
 
         # Only emit the batch based on time interval
         current_time = time.perf_counter()
@@ -128,6 +130,10 @@ def start_message_processing():
     dbconnect.DbConnection.setup_the_db_path('src/can_database.sqlite')
     logger_db = dbconnect.DbConnection()
     logger_db.setup_the_tables()
+
+    # testing code
+    logfileProd.process_logfile("Logging_Data.txt")
+    consumer.process_data()
 
     table_names = logger_db.get_table_names() # Brian is handling this right now
 
