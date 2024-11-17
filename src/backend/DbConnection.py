@@ -1,6 +1,6 @@
 import sqlite3
-from DBCs import DBCs  # need to have DBCs.py in same directory! (this is the wrapper file we made for generating DBCs)
-import CanMessage  # our own CanMessage Object
+from backend.DBCs import DBCs  # need to have DBCs.py in same directory! (this is the wrapper file we made for generating DBCs)
+import backend.CanMessage as CanMessage  # our own CanMessage Object
 
 # Before initializing any DbConnection objects, must run setup_the_db_path(path : str)
 DB_path = None  # static, i.e. shared with all DbConnection Objects
@@ -104,7 +104,7 @@ class DbConnection:
         for can_msg_type, signal_types_dict in can_msg_signals.items():
             columns = ', '.join([f'{signal_name} INTEGER' for signal_name in signal_types_dict.keys()])
 
-            sql = f'CREATE TABLE {can_msg_type} (count INTEGER PRIMARY KEY AUTOINCREMENT, {columns}, timeStamp INTEGER)'  # add timestamp column
+            sql = f'CREATE TABLE IF NOT EXISTS {can_msg_type} (count INTEGER PRIMARY KEY AUTOINCREMENT, {columns}, timeStamp INTEGER)'  # add timestamp column
 
             self.cur.execute(sql)
 

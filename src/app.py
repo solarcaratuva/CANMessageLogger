@@ -40,10 +40,16 @@ def process_messages_in_batches(file_path: str, logger_db: dbconnect, emit_func)
     while True:
         message_batch = []  # Collect messages to emit later
 
-        tables = dbconnect.query("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = logger_db.query("SELECT name FROM sqlite_master WHERE type='table';")
         for table in tables:
             table_name = table['name']
-            row = dbconnect.query(f"SELECT * FROM {table_name} ORDER BY timeStamp DESC LIMIT 1")
+            result = logger_db.query(f"Select COUNT(*) as count FROM {table_name};")
+            print(result[0]['count'], table_name)
+            row = 0
+            if result[0]['count']:
+                row = logger_db.query(f"SELECT * FROM {table_name} ORDER BY timeStamp DESC LIMIT 1;")
+            else:
+                print(f"Table for {table_name} is empty.")
             if row:
                 timestamp = row['timeStamp']
                 del row['timeStamp']
@@ -119,8 +125,9 @@ def start_message_processing():
     if not os.path.exists(database_path):
         print(f"Database path does not exist: {database_path}")
 
-    dbconnect.setup_the_db_path('src/can_database.sqlite')
-    logger_db = dbconnect()
+    dbconnect.DbConnection.setup_the_db_path('src/can_database.sqlite')
+    logger_db = dbconnect.DbConnection()
+    logger_db.setup_the_tables()
 
     table_names = logger_db.get_table_names() # Brian is handling this right now
 
