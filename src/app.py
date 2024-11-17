@@ -1,8 +1,7 @@
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 import backend.db_access as db_access
-import backend.messageParser as messageParser
-from backend.CANLoggerDatabase import CANLoggerDatabase
+import backend.DbConnection as dbconnect
 import os
 
 app = Flask(__name__, template_folder='frontend/html')
@@ -36,20 +35,18 @@ def start_message_processing():
     # Ensure the file paths are correct and the app can access them
     message_file_path = os.path.abspath('src/backend/CAN-Message-Generator/out.txt')  # Absolute path to avoid path issues
     database_path = os.path.abspath('src/can_database.sqlite')  # Absolute path to the SQLite database
-    dbc_file_path = os.path.abspath('src/backend/CAN-Message-Generator/CAN-messages/Rivanna2.dbc')
+    # dbc_file_path = os.path.abspath('src/backend/CAN-Message-Generator/CAN-messages/Rivanna2.dbc')
 
     # Check if the paths exist
     if not os.path.exists(message_file_path):
         print(f"Message file path does not exist: {message_file_path}")
     if not os.path.exists(database_path):
         print(f"Database path does not exist: {database_path}")
-    if not os.path.exists(dbc_file_path):
-        print(f"DBC file path does not exist: {dbc_file_path}")
 
-    logger_db = CANLoggerDatabase(database_path, dbc_file_path)
+    dbconnect.setup_the_db_path('src/can_database.sqlite')
+    logger_db = dbconnect()
 
-    table_names = logger_db.get_table_names()
-
+    table_names = logger_db.get_table_names() # Brian is handling this right now
 
     # This function will emit messages in batches directly to clients
     def emit_messages_in_batches(messages):
@@ -80,6 +77,8 @@ def start_message_processing():
             })
 
     messageParser.process_messages_in_batches(message_file_path, logger_db, emit_func=emit_messages_in_batches)
+
+
 
 if __name__ == '__main__':
     socketio.start_background_task(target=start_message_processing)
