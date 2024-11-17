@@ -1,10 +1,12 @@
 import queue
+import time
 from src.backend import CanMessage
 from src.backend.DbConnection import DbConnection
 
 DbConnection.setup_the_db_path("C:.\\src\\database")
 queue = queue.Queue()
 
+LOOP_TIME = 0.5
 
 def process_data() -> None:
     """
@@ -40,3 +42,4 @@ def process_data_live() -> None:
             list_can_messages.append(can_msg)
 
         db_conn.add_batch_can_msg(list_can_messages)
+        time.sleep(LOOP_TIME)

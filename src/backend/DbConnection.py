@@ -6,7 +6,6 @@ import CanMessage  # our own CanMessage Object
 DB_path = None  # static, i.e. shared with all DbConnection Objects
 
 
-
 class DbConnection:
     def __init__(self):
         self.conn = sqlite3.connect(DB_path)
@@ -111,6 +110,13 @@ class DbConnection:
 
         self.conn.commit()
 
+    def get_table_names(self) -> list[str]:
+        self.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = self.cur.fetchall()
+
+        # Convert the result to a list of table names
+        return [table[0] for table in tables]
+
     @staticmethod
     def setup_the_db_path(path: str) -> None:
         """
@@ -120,46 +126,3 @@ class DbConnection:
         """
         global DB_path
         DB_path = path
-
-    def process_messages_in_batches(self, file_path: str, emit_func):
-        
-        '''message_count = 0  # Counter for the messages
-        send_interval = 1  # Send messages every 5 seconds
-        last_send_time = time.perf_counter()
-
-        ID_TO_TABLE = {
-            513: 'ECUMotorCommands',
-            769: 'ECUPowerAuxCommands',
-            0x789: 'table_name_3',
-            # Add more mappings as needed
-        }
-        with open(file_path, 'r') as f:
-            while True:
-                batch = [f.readline().strip() for _ in range(100)]
-                batch = [msg for msg in batch if msg]  # Filter out empty lines
-
-                if not batch:  # End of file
-                    break
-
-                message_batch = []  # Collect messages to emit later
-
-                for line in batch:
-                    id, message_dict, timestamp = messageParser(line)
-                    if message_dict:
-                        table_name = ID_TO_TABLE.get(id)
-                        # Log the message into the database
-                        logger_db.add_message_to_db(table_name, message_dict)
-                        message_count += 1
-                        message_batch.append({'table_name': table_name, 'data': message_dict,
-                                              'timestamp': timestamp})  # Append to batch list
-
-                # Only emit the batch based on time interval
-                current_time = time.perf_counter()
-                if current_time - last_send_time >= send_interval:
-                    if message_batch:  # Only emit if there's data in the batch
-                        emit_func(message_batch)  # Use emit_func to emit messages
-                        print(f"Sent batch of {len(message_batch)} messages")
-                        last_send_time = current_time
-
-                print(f"Processed {len(batch)} messages, waiting for 1 second...")
-                time.sleep(1)  # Pause before next batch'''

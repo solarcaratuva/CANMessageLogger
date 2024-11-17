@@ -3,6 +3,7 @@ from flask_socketio import SocketIO
 import backend.db_access as db_access
 import backend.DbConnection as dbconnect
 import os
+import time
 
 app = Flask(__name__, template_folder='frontend/html')
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -30,6 +31,81 @@ def handle_connect():
 @socketio.on('disconnect')
 def handle_disconnect():
     print("Client disconnected.")
+
+def process_messages_in_batches(file_path: str, logger_db: dbconnect, emit_func):
+    message_count = 0  # Counter for the messages
+    send_interval = 1  # Send messages every 5 seconds
+    last_send_time = time.perf_counter()
+
+    while True:
+        message_batch = []  # Collect messages to emit later
+
+        tables = dbconnect.query("SELECT name FROM sqlite_master WHERE type='table';")
+        for table in tables:
+            table_name = table['name']
+            row = dbconnect.query(f"SELECT * FROM {table_name} ORDER BY timeStamp DESC LIMIT 1")
+            if row:
+                timestamp = row['timeStamp']
+                del row['timeStamp']
+                message_dict = row
+
+                message_count += 1
+                message_batch.append({'table_name': table_name, 'data': message_dict,
+                                      'timestamp': timestamp})  # Append to batch list
+
+        # Only emit the batch based on time interval
+        current_time = time.perf_counter()
+
+        if current_time - last_send_time >= send_interval:
+            if message_batch:  # Only emit if there's data in the batch
+                emit_func(message_batch)  # Use emit_func to emit messages
+                print(f"Sent batch of {len(message_batch)} messages")
+                last_send_time = current_time
+
+        time.sleep(1)  # Pause before next batch
+'''
+def process_messages_in_batches(file_path: str, logger_db: CANLoggerDatabase, emit_func):
+    message_count = 0  # Counter for the messages
+    send_interval = 1  # Send messages every 5 seconds
+    last_send_time = time.perf_counter()
+
+    ID_TO_TABLE = {
+        513: 'ECUMotorCommands',
+        769: 'ECUPowerAuxCommands',
+        0x789: 'table_name_3',
+        # Add more mappings as needed
+    }
+    with open(file_path, 'r') as f:
+        while True:
+            batch = [f.readline().strip() for _ in range(100)]
+            batch = [msg for msg in batch if msg]  # Filter out empty lines
+
+            if not batch:  # End of file
+                break
+
+            message_batch = []  # Collect messages to emit later
+
+            for line in batch:
+                id, message_dict, timestamp = messageParser(line)
+                if message_dict:
+                    table_name = ID_TO_TABLE.get(id)
+                    # Log the message into the database
+                    logger_db.add_message_to_db(table_name, message_dict)
+                    message_count += 1
+                    message_batch.append({'table_name': table_name, 'data': message_dict,
+                                          'timestamp': timestamp})  # Append to batch list
+
+            # Only emit the batch based on time interval
+            current_time = time.perf_counter()
+            if current_time - last_send_time >= send_interval:
+                if message_batch:  # Only emit if there's data in the batch
+                    emit_func(message_batch)  # Use emit_func to emit messages
+                    print(f"Sent batch of {len(message_batch)} messages")
+                    last_send_time = current_time
+
+            print(f"Processed {len(batch)} messages, waiting for 1 second...")
+            time.sleep(1)  # Pause before next batch
+'''
 
 def start_message_processing():
     # Ensure the file paths are correct and the app can access them
@@ -75,50 +151,8 @@ def start_message_processing():
                 'timestamp': message["timestamp"],
                 'keys': keys
             })
-'''
-def process_messages_in_batches(file_path: str, logger_db: CANLoggerDatabase, emit_func):
-    message_count = 0  # Counter for the messages
-    send_interval = 1  # Send messages every 5 seconds
-    last_send_time = time.perf_counter()
 
-    ID_TO_TABLE = {
-        513: 'ECUMotorCommands',
-        769: 'ECUPowerAuxCommands',
-        0x789: 'table_name_3',
-        # Add more mappings as needed
-    }
-    with open(file_path, 'r') as f:
-        while True:
-            batch = [f.readline().strip() for _ in range(100)]
-            batch = [msg for msg in batch if msg]  # Filter out empty lines
-
-            if not batch:  # End of file
-                break
-
-            message_batch = []  # Collect messages to emit later
-
-            for line in batch:
-                id, message_dict, timestamp = messageParser(line)
-                if message_dict:
-                    table_name = ID_TO_TABLE.get(id)
-                    # Log the message into the database
-                    logger_db.add_message_to_db(table_name, message_dict)
-                    message_count += 1
-                    message_batch.append({'table_name': table_name, 'data': message_dict,
-                                          'timestamp': timestamp})  # Append to batch list
-
-            # Only emit the batch based on time interval
-            current_time = time.perf_counter()
-            if current_time - last_send_time >= send_interval:
-                if message_batch:  # Only emit if there's data in the batch
-                    emit_func(message_batch)  # Use emit_func to emit messages
-                    print(f"Sent batch of {len(message_batch)} messages")
-                    last_send_time = current_time
-
-            print(f"Processed {len(batch)} messages, waiting for 1 second...")
-            time.sleep(1)  # Pause before next batch
-'''
-process_messages_in_batches(message_file_path, logger_db, emit_func=emit_messages_in_batches)
+    process_messages_in_batches(message_file_path, logger_db, emit_func=emit_messages_in_batches)
 
 if __name__ == '__main__':
     socketio.start_background_task(target=start_message_processing)

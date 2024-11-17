@@ -1,6 +1,9 @@
 from src.input.consumer import queue
+import time
 
 import re
+
+LOOP_TIME = 0.005
 
 #                          Timestamp                        ID                              Data Bytes
 pattern = re.compile(r'(\d{2}):(\d{2}):(\d{2}) DEBUG .+ ID (0x[0-9A-Fa-f]+) Length \d+ Data (0x[0-9A-Fa-f]+)')
@@ -56,22 +59,11 @@ def process_logfile(path_to_log_file: str) -> None:
                 queue.put(cm_tup)
 
 
-'''
-    global timer
-    if timer == None:
-        timer = time.perf_counter()
+def process_logfile_live(path_to_log_file: str) -> None:
+    with open(path_to_log_file, 'r') as file:
+        for line in file:
+            cm_tup = parse_line(line)
+            if cm_tup is not None:  # if the line from log file followed the format, add to queue
+                queue.put(cm_tup)
+            time.sleep(LOOP_TIME)
 
-    for msg in ERRORS_LIST:
-        if msg in message:
-            return {"ERROR": "ERROR"}, None
-
-    match = re.match(PATTERN, message)
-    print(match)
-    if match is None:
-        return None, None
-    canID = match.group(2)
-    canData = match.group(4)
-
-    messageDict = decode_dbc(canID, canData)
-    return messageDict, time.perf_counter() - timer
-'''
