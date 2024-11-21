@@ -132,8 +132,8 @@ def start_message_processing():
     logger_db = dbconnect.DbConnection()
     logger_db.setup_the_tables()
 
-    socketio.start_background_task(target=partial(logfileProd.process_logfile, "message.txt"))
-    socketio.start_background_task(target=consumer.process_data)  # If it doesn't take arguments
+    socketio.start_background_task(target=partial(logfileProd.process_logfile_live, "message.txt"))
+    socketio.start_background_task(target=consumer.process_data_live)  # If it doesn't take arguments
 
     table_names = logger_db.get_table_names() # Brian is handling this right now
 
