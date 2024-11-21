@@ -150,11 +150,30 @@
                 selectedTables.push(checkbox.value);
             });
 
-            // Emit event to the server to request data for selected tables
+            // Emit event to the server to request data for selected tables (if needed)
             if (selectedTables.length > 0) {
-                socket.emit('request_table_data', { tableNames: selectedTables });
+                // Hide non-selected tables and show only selected ones
+                updateVisibleTables(selectedTables);
+            } else {
+                // If no checkboxes are selected, show all tables
+                updateVisibleTables(null);
             }
         }
+        
+    function updateVisibleTables(selectedTables) {
+    const messageContainer = document.getElementById('messageContainer');
+    const allCards = messageContainer.querySelectorAll('.card');
+
+    allCards.forEach((card) => {
+        const tableName = card.id.replace('card_', ''); // Extract table name from card ID
+
+        if (!selectedTables || selectedTables.includes(tableName)) {
+            card.style.display = 'block'; // Show the card
+        } else {
+            card.style.display = 'none'; // Hide the card
+        }
+    });
+}
 
         // Display messages in the main container
         function displayMessage(data) {
