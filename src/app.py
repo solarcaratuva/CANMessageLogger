@@ -132,8 +132,8 @@ def start_message_processing():
     logger_db.setup_the_tables()
 
     # testing code
-    logfileProd.process_logfile("Logging_Data.txt")
-    consumer.process_data()
+    logfileProd.process_logfile_live("Logging_Data.txt")
+    consumer.process_data_live()
 
     table_names = logger_db.get_table_names() # Brian is handling this right now
 
