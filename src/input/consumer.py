@@ -21,7 +21,10 @@ def process_data() -> None:
             break
         cm_tuple = queue.get()
         can_msg = CanMessage.decode_message(*cm_tuple)
-        list_can_messages.append(can_msg)
+        if can_msg is not None:
+            list_can_messages.append(can_msg)
+        else:
+            print(cm_tuple)
 
     db_conn.add_batch_can_msg(list_can_messages)
 
@@ -39,7 +42,10 @@ def process_data_live() -> None:
                 break
             cm_tuple = queue.get()
             can_msg = CanMessage.decode_message(*cm_tuple)
-            list_can_messages.append(can_msg)
+            if can_msg is not None:
+                list_can_messages.append(can_msg)
+            else:
+                print("there was a none can message")
 
         db_conn.add_batch_can_msg(list_can_messages)
-        time.sleep(LOOP_TIME)
+        time.sleep(LOOP_TIME)   

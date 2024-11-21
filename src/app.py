@@ -5,6 +5,7 @@ import backend.DbConnection as dbconnect
 import os
 import time
 from input import consumer, logfileProd
+from functools import partial
 
 app = Flask(__name__, template_folder='frontend/html', static_folder='frontend/static')
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -117,7 +118,7 @@ def process_messages_in_batches(file_path: str, logger_db: CANLoggerDatabase, em
 
 def start_message_processing():
     # Ensure the file paths are correct and the app can access them
-    message_file_path = os.path.abspath('src/backend/CAN-Message-Generator/out.txt')  # Absolute path to avoid path issues
+    message_file_path = os.path.abspath('message.txt')  # Absolute path to avoid path issues
     database_path = os.path.abspath('src/can_database.sqlite')  # Absolute path to the SQLite database
     # dbc_file_path = os.path.abspath('src/backend/CAN-Message-Generator/CAN-messages/Rivanna2.dbc')
 
@@ -125,15 +126,14 @@ def start_message_processing():
     if not os.path.exists(message_file_path):
         print(f"Message file path does not exist: {message_file_path}")
     if not os.path.exists(database_path):
-        print(f"Database path does not exist: {database_path}")
+        print(f"Database path does not exist: {database_path}") 
 
-    dbconnect.DbConnection.setup_the_db_path('src/can_database.sqlite')
+    dbconnect.DbConnection.setup_the_db_path(database_path)
     logger_db = dbconnect.DbConnection()
     logger_db.setup_the_tables()
 
-    # testing code
-    logfileProd.process_logfile_live("Logging_Data.txt")
-    consumer.process_data_live()
+    socketio.start_background_task(target=partial(logfileProd.process_logfile, "message.txt"))
+    socketio.start_background_task(target=consumer.process_data)  # If it doesn't take arguments
 
     table_names = logger_db.get_table_names() # Brian is handling this right now
 
