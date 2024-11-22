@@ -1,9 +1,9 @@
-from input.consumer import queue
+from src.input.consumer import queue
 import time
 
 import re
 
-LOOP_TIME = 0.01
+LOOP_TIME = 0.005
 
 #                          Timestamp                        ID                              Data Bytes
 pattern = re.compile(r'(\d{2}):(\d{2}):(\d{2}) DEBUG .+ ID (0x[0-9A-Fa-f]+) Length \d+ Data (0x[0-9A-Fa-f]+)')
@@ -57,6 +57,7 @@ def process_logfile(path_to_log_file: str) -> None:
             cm_tup = parse_line(line)
             if cm_tup is not None:  # if the line from log file followed the format, add to queue
                 queue.put(cm_tup)
+            print("Just processed: ", cm_tup)
 
 
 def process_logfile_live(path_to_log_file: str) -> None:
@@ -65,5 +66,6 @@ def process_logfile_live(path_to_log_file: str) -> None:
             cm_tup = parse_line(line)
             if cm_tup is not None:  # if the line from log file followed the format, add to queue
                 queue.put(cm_tup)
+            print("Just processed: ", cm_tup)
             time.sleep(LOOP_TIME)
 

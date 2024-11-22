@@ -1,6 +1,6 @@
 import sqlite3
-from backend.DBCs import DBCs  # need to have DBCs.py in same directory! (this is the wrapper file we made for generating DBCs)
-import backend.CanMessage as CanMessage  # our own CanMessage Object
+from DBCs import DBCs  # need to have DBCs.py in same directory! (this is the wrapper file we made for generating DBCs)
+import CanMessage as CanMessage  # our own CanMessage Object
 
 # Before initializing any DbConnection objects, must run setup_the_db_path(path : str)
 DB_path = None  # static, i.e. shared with all DbConnection Objects

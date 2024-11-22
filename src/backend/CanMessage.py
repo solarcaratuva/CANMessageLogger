@@ -1,4 +1,4 @@
-from backend.DBCs import DBCs
+from DBCs import DBCs
 
 class CanMessage:
     def __init__(self, name: str, id: int, signals: dict, timestamp: float):
@@ -6,6 +6,9 @@ class CanMessage:
         self.messageId = id
         self.sigDict = signals
         self.timeStamp = timestamp
+
+    def __str__(self):
+        return f'MessageType: {self.messageName}, MessageID: {self.messageId}, TimeStamp: {self.timeStamp}, Signals: {str(self.sigDict)}'
 
 @staticmethod
 def decode_message(id: int, data: bytes, timestamp: float) -> CanMessage:
