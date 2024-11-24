@@ -1,6 +1,6 @@
 import sqlite3
-from backend.DBCs import DBCs  # need to have DBCs.py in same directory! (this is the wrapper file we made for generating DBCs)
-import backend.CanMessage as CanMessage  # our own CanMessage Object
+from src.backend.dbcs import DBCs  # need to have dbcs.py in same directory! (this is the wrapper file we made for generating DBCs)
+from src.backend.can_message import CanMessage  # our own CanMessage Object
 
 # Before initializing any DbConnection objects, must run setup_the_db_path(path : str)
 
@@ -9,7 +9,7 @@ class DbConnection:
     DB_path = None  # static, i.e. shared with all DbConnection Objects
 
     def __init__(self):
-        print("The database path is: ", DbConnection.DB_path)
+        #print("The database path is: ", DbConnection.DB_path)
         self.conn = sqlite3.connect(DbConnection.DB_path)
         self.conn.row_factory = sqlite3.Row
         self.cur = self.conn.cursor()
@@ -40,7 +40,7 @@ class DbConnection:
     @staticmethod
     def __parse_can_message_signals(dbcs: list) -> dict:
         """
-        Given the DBCs objects in list generated in DBCs.py, functions creates and returns a dictionary containing message
+        Given the DBCs objects in list generated in dbcs.py, functions creates and returns a dictionary containing message
         type as the keys, and the value being another sub-dictionary that has the signal type as keys and signal data
         type as values (for now it is always set to datatype of INTEGER).
 
@@ -127,4 +127,4 @@ class DbConnection:
         @return: Nothing, just sets the SQL database connection path for all DbConnection objects (it is static)
         """
         DbConnection.DB_path = path
-        print("Just set DB_path to: ", DbConnection.DB_path)
+        #print("Just set DB_path to: ", DbConnection.DB_path)

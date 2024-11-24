@@ -1,10 +1,14 @@
 import argparse
+from src.socket.socket import socketio, app
+from src.backend.input import consumer, logfileProd
+from functools import partial
 
 def main(): 
     cli_message_reader()
-    
+
+
 def cli_message_reader():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser() # not quite sure how to set this in app.py
     parser.add_argument("--liveData", type=str,
                         help="The path to the live data file.")
     parser.add_argument("--inputFile", type=str,
@@ -18,5 +22,16 @@ def cli_message_reader():
     #print(args.outputDB)
     #print(args.set_dbc_branch)
 
+
 if __name__ == "__main__":
     main()
+
+    # need to call .set_up_tables here!! (before running threads)
+    # want to add setup_logfile call here (for the producer class)
+
+    # create db_connection, then call set_up_tables
+
+    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)  # to run the socket io app
+    socketio.start_background_task(target=consumer.process_data_live)
+    socketio.start_background_task(target=partial(logfileProd.process_logfile_live, "logging_data2.txt"))
+    # add thread running: live consumer and live producer

@@ -36,6 +36,30 @@ def handle_connect():
 def handle_disconnect():
     print("Client disconnected.")
 
+@socketio.on('get_new_data')
+def handle_data_request():
+    message_batch = []  # Collect messages to emit later
+
+    tables = logger_db.query("SELECT name FROM sqlite_master WHERE type='table';")
+    for table in tables:
+        table_name = table['name']
+        if table_name != "sqlite_sequence":
+            result = logger_db.query(f"Select COUNT(*) as len FROM {table_name};")
+            print(result[0]['len'], table_name)
+            row = 0
+            if result[0]['len']:
+                row = logger_db.query(f"SELECT * FROM {table_name} ORDER BY timeStamp DESC LIMIT 1;")
+            else:
+                print(f"Table for {table_name} is empty.")
+            if row:
+                timestamp = row[0]['timeStamp']
+                del row[0]['timeStamp']
+                message_dict = row[0]
+
+                message_count += 1
+                message_batch.append({'table_name': table_name, 'data': message_dict,
+                                      'timestamp': timestamp})  # Append to batch list
+
 
 def process_messages_in_batches(file_path: str, logger_db: dbconnect, emit_func):
     message_count = 0  # Counter for the messages
