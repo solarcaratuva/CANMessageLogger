@@ -14,14 +14,6 @@ def index():
 @socketio.on('connect')
 def handle_connect():
     print("Client connected.")
-    # Emit the current messages to the newly connected client
-    # socketio.emit('initial_messages', message_list)
-    # test_messages = [
-    #     {'timestamp': '2024-10-09T13:00:00Z', 'data': {'test': 'Hello, world!'}},
-    #     {'timestamp': '2024-10-09T13:01:00Z', 'data': {'test': 'Another message'}}
-    # ]
-    # socketio.emit('initial_messages', test_messages)
-    # socketio.emit('update_large_data', test_messages)
 
 
 @socketio.on('disconnect')

@@ -5,7 +5,11 @@ from src.backend.db_connection import DbConnection
 
 queue = queue.Queue()
 
-LOOP_TIME = 0.001
+LOOP_TIME = 0.0001
+
+# Logic for live data processing
+last_consume_time = None  # the last time the live consumer function consumed data
+start_consume_time = None  # the time live consumer started consuming data
 
 
 def process_data() -> None:
@@ -34,9 +38,10 @@ def process_data_live() -> None:
 
     @return: Nothing, it will just add all CAN messages from the queue into the database
     """
-    i = 0
-    while i < 3001:
-        #print(f"DB_path in process_data: {DbConnection.DB_path}")
+    global start_consume_time, last_consume_time
+    start_consume_time = time.perf_counter()
+    while True:
+        last_consume_time = time.perf_counter()
         db_conn = DbConnection()
         list_can_messages = []
         while True:
@@ -50,5 +55,4 @@ def process_data_live() -> None:
 
         db_conn.add_batch_can_msg(list_can_messages)
         time.sleep(LOOP_TIME)
-        i+=1
 

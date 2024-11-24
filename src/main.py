@@ -1,7 +1,11 @@
 import argparse
+from src.backend.db_connection import DbConnection
 from src.socket.socket import socketio, app
 from src.backend.input import consumer, logfileProd
 from functools import partial
+
+database_path = "./src/can_database.sqlite"
+datafile_path = "./logging_data2.txt"
 
 def main(): 
     cli_message_reader()
@@ -26,12 +30,12 @@ def cli_message_reader():
 if __name__ == "__main__":
     main()
 
-    # need to call .set_up_tables here!! (before running threads)
-    # want to add setup_logfile call here (for the producer class)
+    # need to call .set_up_tables and .setup_database_oath here!! (before running threads)
+    DbConnection.setup_the_db_path(database_path)
 
-    # create db_connection, then call set_up_tables
+    dbconnection = DbConnection()
+    dbconnection.setup_the_tables()
 
-    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)  # to run the socket io app
     socketio.start_background_task(target=consumer.process_data_live)
-    socketio.start_background_task(target=partial(logfileProd.process_logfile_live, "logging_data2.txt"))
-    # add thread running: live consumer and live producer
+    socketio.start_background_task(target=partial(logfileProd.process_logfile_live, datafile_path))
+    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)  # to run the socket io app, .run is blocking! No code below this
