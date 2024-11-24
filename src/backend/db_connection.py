@@ -1,21 +1,23 @@
 import sqlite3
-from DBCs import DBCs  # need to have DBCs.py in same directory! (this is the wrapper file we made for generating DBCs)
-import CanMessage as CanMessage  # our own CanMessage Object
+from backend.DBCs import DBCs  # need to have DBCs.py in same directory! (this is the wrapper file we made for generating DBCs)
+import backend.CanMessage as CanMessage  # our own CanMessage Object
 
 # Before initializing any DbConnection objects, must run setup_the_db_path(path : str)
-DB_path = None  # static, i.e. shared with all DbConnection Objects
 
 
 class DbConnection:
+    DB_path = None  # static, i.e. shared with all DbConnection Objects
+
     def __init__(self):
-        self.conn = sqlite3.connect(DB_path)
+        print("The database path is: ", DbConnection.DB_path)
+        self.conn = sqlite3.connect(DbConnection.DB_path)
         self.conn.row_factory = sqlite3.Row
         self.cur = self.conn.cursor()
 
     def __del__(self):
-        if self.cur and hasattr(self,'cur'):
+        if hasattr(self,'cur') and self.cur:
             self.cur.close()
-        if self.conn and hasattr(self,'conn'):
+        if  hasattr(self,'conn') and self.conn:
             self.conn.close()
 
     def __db_insert_message(self, can_msg: CanMessage) -> None:
@@ -124,5 +126,5 @@ class DbConnection:
 
         @return: Nothing, just sets the SQL database connection path for all DbConnection objects (it is static)
         """
-        global DB_path
-        DB_path = path
+        DbConnection.DB_path = path
+        print("Just set DB_path to: ", DbConnection.DB_path)

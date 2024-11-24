@@ -1,4 +1,4 @@
-from DBCs import DBCs
+from backend.DBCs import DBCs
 
 class CanMessage:
     def __init__(self, name: str, id: int, signals: dict, timestamp: float):

@@ -1,10 +1,9 @@
 from flask import Flask, render_template
 from flask_socketio import SocketIO
-import backend.db_access as db_access
-import backend.DbConnection as dbconnect
+from src.backend.db_connection import DbConnection as dbconnect
+from src.backend.input import logfileProd, consumer
 import os
 import time
-from input import consumer, logfileProd
 from functools import partial
 
 app = Flask(__name__, template_folder='frontend/html', static_folder='frontend/static')
@@ -13,10 +12,12 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # List to store messages to display on the front end
 message_list = []
 
+
 @app.route('/')
 def index():
     # Render the HTML with the large_data passed in
     return render_template('debug.html', large_data=message_list)
+
 
 @socketio.on('connect')
 def handle_connect():
@@ -30,9 +31,11 @@ def handle_connect():
     # socketio.emit('initial_messages', test_messages)
     # socketio.emit('update_large_data', test_messages)
 
+
 @socketio.on('disconnect')
 def handle_disconnect():
     print("Client disconnected.")
+
 
 def process_messages_in_batches(file_path: str, logger_db: dbconnect, emit_func):
     message_count = 0  # Counter for the messages
@@ -60,7 +63,7 @@ def process_messages_in_batches(file_path: str, logger_db: dbconnect, emit_func)
 
                     message_count += 1
                     message_batch.append({'table_name': table_name, 'data': message_dict,
-                                        'timestamp': timestamp})  # Append to batch list
+                                                                    'timestamp': timestamp})  # Append to batch list
 
         # Only emit the batch based on time interval
         current_time = time.perf_counter()
@@ -73,9 +76,10 @@ def process_messages_in_batches(file_path: str, logger_db: dbconnect, emit_func)
 
         time.sleep(1)  # Pause before next batch
 
+
 def start_message_processing():
     # Ensure the file paths are correct and the app can access them
-    message_file_path = os.path.abspath('message.txt')  # Absolute path to avoid path issues
+    message_file_path = os.path.abspath('logging_data2.txt')  # Absolute path to avoid path issues
     database_path = os.path.abspath('src/can_database.sqlite')  # Absolute path to the SQLite database
     # dbc_file_path = os.path.abspath('src/backend/CAN-Message-Generator/CAN-messages/Rivanna2.dbc')
 
@@ -85,14 +89,14 @@ def start_message_processing():
     if not os.path.exists(database_path):
         print(f"Database path does not exist: {database_path}") 
 
-    dbconnect.DbConnection.setup_the_db_path(database_path)
-    logger_db = dbconnect.DbConnection()
+    dbconnect.setup_the_db_path(database_path)
+    logger_db = dbconnect()
     logger_db.setup_the_tables()
 
-    socketio.start_background_task(target=partial(logfileProd.process_logfile_live, "message.txt"))
     socketio.start_background_task(target=consumer.process_data_live)  # If it doesn't take arguments
+    socketio.start_background_task(target=partial(logfileProd.process_logfile_live, "logging_data2.txt"))
 
-    table_names = logger_db.get_table_names() # Brian is handling this right now
+    table_names = logger_db.get_table_names()
 
     # This function will emit messages in batches directly to clients
     def emit_messages_in_batches(messages):
@@ -124,7 +128,8 @@ def start_message_processing():
 
     process_messages_in_batches(message_file_path, logger_db, emit_func=emit_messages_in_batches)
 
+
 if __name__ == '__main__':
     socketio.start_background_task(target=start_message_processing)
     # Use socketio.run(app) to handle Flask and SocketIO
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
