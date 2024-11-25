@@ -9,7 +9,7 @@ LOOP_TIME = 0.0001
 
 # Logic for live data processing
 last_consume_time = None  # the last time the live consumer function consumed data
-start_consume_time = None  # the time live consumer started consuming data
+start_consume_time = time.perf_counter()  # the system time when
 
 
 def process_data() -> None:

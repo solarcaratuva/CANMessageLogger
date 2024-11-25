@@ -1,7 +1,7 @@
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 from src.backend.db_connection import DbConnection as dbconnect
-from src.backend.input import logfileProd, consumer
+from src.backend.input import logfile_producer, consumer
 import os
 import time
 from functools import partial

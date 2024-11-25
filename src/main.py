@@ -1,7 +1,7 @@
 import argparse
 from src.backend.db_connection import DbConnection
 from src.socket.socket import socketio, app
-from src.backend.input import consumer, logfileProd
+from src.backend.input import consumer, logfile_producer
 from functools import partial
 
 database_path = "./src/can_database.sqlite"
