@@ -8,8 +8,8 @@ queue = queue.Queue()
 LOOP_TIME = 0.0001
 
 # Logic for live data processing
-last_consume_time = None  # the last time the live consumer function consumed data
-start_consume_time = time.perf_counter()  # the system time when
+last_consume_time = None  # the last time the consumer consumed data
+start_consume_time = time.perf_counter()  # the very first time when consumer started consuming
 
 
 def process_data() -> None:
@@ -25,7 +25,7 @@ def process_data() -> None:
         if queue.empty():
             break
         cm_tuple = queue.get()
-        can_msg = CanMessage.decode_message(*cm_tuple)
+        can_msg = decode_message(*cm_tuple)
         if can_msg is not None:
             list_can_messages.append(can_msg)
 

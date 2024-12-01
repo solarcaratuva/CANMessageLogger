@@ -9,13 +9,12 @@ LOOP_TIME = 0.0001
 pattern = re.compile(r'(\d{2}):(\d{2}):(\d{2}) DEBUG .+ ID (0x[0-9A-Fa-f]+) Length \d+ Data (0x[0-9A-Fa-f]+)')
 
 # These global vars are required for the non-live log-file processing
-not_live_start_ms = None
 msIncrementer = 0
 msPrevious = None
 
 
 def parse_line(log_line: str) -> tuple[int, bytes, int]:
-    global not_live_start_ms, msIncrementer, msPrevious
+    global msIncrementer, msPrevious
 
     match = pattern.search(log_line)
     if match is None:  # if the line from the file does not match the REGEX, return none
@@ -43,10 +42,7 @@ def parse_line(log_line: str) -> tuple[int, bytes, int]:
     # Convert the data to a byte object
     data_bytes = bytes.fromhex(data_hex[2:])
 
-    if not_live_start_ms is None:
-        not_live_start_ms = milliseconds
-
-    time_since_start = milliseconds - not_live_start_ms
+    time_since_start = milliseconds
 
     cm_tuple = (id_int, data_bytes, time_since_start)
     return cm_tuple
