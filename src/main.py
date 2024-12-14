@@ -1,20 +1,44 @@
 import argparse
-from src.backend.db_connection import DbConnection
-from src.socket.socket import socketio, app
-from src.backend.input import consumer, logfile_producer
+from backend.db_connection import DbConnection
+from socket.socket import socketio, app
+from backend.input import consumer, logfile_producer
 from functools import partial
 
 database_path = "./src/can_database.sqlite"
 datafile_path = "./logging_data2.txt"
 
-def main(): 
-    cli_message_reader()
 
+def main(): 
+    parser = cli_message_reader()
+
+    args = parser.parse_args()
+
+    # need to call .set_up_tables and .setup_database_path here!! (before running threads)
+    DbConnection.setup_the_db_path(database_path)
+
+    dbconn = DbConnection()
+    dbconn.setup_the_tables()
+
+    match args.logType:
+        case "past_log":
+            socketio.start_background_task(target=consumer.process_data)
+            socketio.start_background_task(target=partial(logfile_producer.process_logfile, datafile_path))
+        case "livelog":
+            pass
+            # NOT IMPLEMENTED YET
+        case "mock_livelog":
+            socketio.start_background_task(target=consumer.process_data_live)
+            socketio.start_background_task(target=partial(logfile_producer.process_logfile_live, datafile_path))
+        case "db":
+            pass
+
+    socketio.run(app, debug=True,
+                 allow_unsafe_werkzeug=True)  # to run the socket io app, .run is blocking! No code below this
 
 def cli_message_reader():
     global datafile_path, database_path
 
-    datatype_choices =["past_log", "live_log", "live_mock"]
+    datatype_choices =["past_log", "livelog", "mock_livelog", "db"]
 
     parser = argparse.ArgumentParser() # not quite sure how to set this in app.py
     parser.add_argument("logType", choices=datatype_choices, type=str,
@@ -27,23 +51,9 @@ def cli_message_reader():
     # parser.add_argument("--set_dbc_branch", type=str,
     #                    help="sets the branch of the DBC files submodule")
 
-    args = parser.parse_args()
-
-    if args.inputFile is not None:
-        datafile_path = args.inpuFile
-    if args.outputDB is not None:
-        database_path = args.outputDB
+    return parser
 
 
 if __name__ == "__main__":
     main()
 
-    # need to call .set_up_tables and .setup_database_oath here!! (before running threads)
-    DbConnection.setup_the_db_path(database_path)
-
-    dbconnection = DbConnection()
-    dbconnection.setup_the_tables()
-
-    socketio.start_background_task(target=consumer.process_data_live)
-    socketio.start_background_task(target=partial(logfile_producer.process_logfile_live, datafile_path))
-    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)  # to run the socket io app, .run is blocking! No code below this

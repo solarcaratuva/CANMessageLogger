@@ -49,6 +49,7 @@ def parse_line(log_line: str) -> tuple[int, bytes, int]:
 
 
 def process_logfile(path_to_log_file: str) -> None:
+    print("log_file")
     with open(path_to_log_file, 'r') as file:
         for line in file:
             cm_tup = parse_line(line)
@@ -58,6 +59,7 @@ def process_logfile(path_to_log_file: str) -> None:
 
 # Emphasize: TimeStamp is NOT taken from logfile, it is system time (see sys_cm_tuple)
 def process_logfile_live(path_to_log_file: str) -> None:
+    print("log_file_live")
     with open(path_to_log_file, 'r') as file:
         for line in file:
             cm_tup = parse_line(line)

@@ -13,6 +13,7 @@ start_consume_time = time.perf_counter()  # the very first time when consumer st
 
 
 def process_data() -> None:
+    print("process_data")
     """
     Pops all stored tuples on CAN messages queue (each tuple representing a single CAN message) and adds them into the database
 
@@ -33,6 +34,7 @@ def process_data() -> None:
 
 
 def process_data_live() -> None:
+    print("process_data_live")
     """
     Pops all stored tuples on CAN messages queue (each tuple representing a single CAN message) and adds them into the database
 
