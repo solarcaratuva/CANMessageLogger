@@ -1,4 +1,4 @@
-from src.backend.dbcs import DBCs
+from backend.dbcs import DBCs
 
 
 class CanMessage:

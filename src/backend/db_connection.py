@@ -127,4 +127,4 @@ class DbConnection:
         @return: Nothing, just sets the SQL database connection path for all DbConnection objects (it is static)
         """
         DbConnection.DB_path = path
-        #print("Just set DB_path to: ", DbConnection.DB_path)
+        print("Just set DB_path to: ", DbConnection.DB_path)

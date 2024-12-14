@@ -1,7 +1,7 @@
 import queue
 import time
-from src.backend.can_message import CanMessage, decode_message
-from src.backend.db_connection import DbConnection
+from backend.can_message import CanMessage, decode_message
+from backend.db_connection import DbConnection
 
 queue = queue.Queue()
 
