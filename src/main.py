@@ -1,6 +1,6 @@
 import argparse
 from backend.db_connection import DbConnection
-from sockio.socket import socketio, app
+from src.backend.sockio.socket import socketio
 from backend.input import consumer, logfile_producer
 from functools import partial
 
