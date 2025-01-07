@@ -57,7 +57,7 @@ def process_logfile(path_to_log_file: str) -> None:
                 queue.put(cm_tup)
 
 
-# Emphasize: TimeStamp is NOT taken from logfile, it is system time (see sys_cm_tuple)
+# Emphasize: For this function TimeStamp is NOT taken from logfile, it is system time (see sys_cm_tuple)
 def process_logfile_live(path_to_log_file: str) -> None:
     print("log_file_live")
     with open(path_to_log_file, 'r') as file:
