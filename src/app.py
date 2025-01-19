@@ -26,6 +26,26 @@ def handle_connect():
 def handle_disconnect():
     print("Client disconnected.")
 
+@app.route('/get_table_names', methods=['GET'])
+def get_table_names():
+    logger_db = dbconnect.DbConnection()
+    
+    try:
+        # Query to get all table names from the SQLite database
+        tables = logger_db.query("SELECT name FROM sqlite_master WHERE type='table';")
+        
+        # Extract table names from the query result
+        table_names = [table['name'] for table in tables]
+        
+        # Return the table names as a JSON response
+        return jsonify({"table_names": table_names})
+    
+    except Exception as e:
+        # Log the error and return an error response
+        app.logger.error(f"Error fetching table names: {str(e)}")
+        return jsonify({"error": "Unable to fetch table names"}), 500
+
+
 @app.route('/get_latest_message', methods=['GET'])
 def get_latest_message_batch():
     logger_db = dbconnect.DbConnection()
@@ -50,6 +70,13 @@ def get_latest_message_batch():
 
                 message_batch.append({'table_name': table_name, 'data': message_dict,
                                       'timestamp': timestamp})  # Append to batch list
+            else:
+                timestamp = 0
+                message_dict = {"Colby": "Sir"}
+
+                message_batch.append({'table_name': table_name, 'data': message_dict,
+                                      'timestamp': timestamp})  # Append to batch list
+                
 
     # Prepare the response structure
     if message_batch:

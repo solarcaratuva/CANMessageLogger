@@ -64,6 +64,13 @@
                     <div class="small-container" id="checkbox-container">
                         <div class="text-container">
                             <h5>Boards</h5>
+                            <input 
+                                type="text" 
+                                id="search-bar" 
+                                class="form-control mb-3" 
+                                placeholder="Search tables..." 
+                                onkeyup="filterCheckboxes()"
+                            />
                         </div>
                     </div>
                     <div class="small-container mt-4">
@@ -90,58 +97,70 @@
         let lastMessageTime = {};
 
         // Handle receiving batches of messages]
-        function fetchLatestMessages() {
-            fetch('/get_latest_message')
-                .then(response => response.json())
-                .then(batchData => {
-                    console.log('Received message batch:', batchData);
+    // Function to fetch table names and populate checkboxes
+    function fetchTableNames() {
+        fetch('/get_table_names') // Assuming you have an endpoint that returns table names
+            .then(response => response.json())
+            .then(data => {
+                if (Array.isArray(data.table_names)) {
+                    populateCheckboxes(data.table_names); // Populate table name checkboxes dynamically
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching table names:', error);
+            });
+    }
 
-                    // Iterate over the batch and display each message
-                    batchData.messages.forEach((data) => {
-                        displayMessage(data);  // Display each message from the batch
-                    });
+    // Function to fetch the latest messages
+    function fetchLatestMessages() {
+        fetch('/get_latest_message')
+            .then(response => response.json())
+            .then(batchData => {
+                console.log('Received message batch:', batchData);
 
-                    // Extract table names from the "table_name" field in batchData
-                    if (Array.isArray(batchData.table_names)) {
-                        populateCheckboxes(batchData.table_names);  // Populate table name checkboxes dynamically
-                    }
+                // Iterate over the batch and display each message
+                batchData.messages.forEach((data) => {
+                    displayMessage(data); // Display each message from the batch
                 });
-        }
+            })
+            .catch(error => {
+                console.error('Error fetching latest messages:', error);
+            });
+    }
 
+    // Call the function to fetch table names once at the beginning
+    fetchTableNames();
 
         setInterval(fetchLatestMessages, 1000);
 
         function populateCheckboxes(tableNames) {
-            const checkboxContainer = document.getElementById('table-names-form');
+    const checkboxContainer = document.getElementById('table-names-form');
+    checkboxContainer.innerHTML = ''; // Clear existing checkboxes
 
-            // Clear existing checkboxes before adding new ones
-            checkboxContainer.innerHTML = '';
+    tableNames.forEach((tableName) => {
+        if (!document.getElementById('checkbox_' + tableName)) {
+            const checkboxWrapper = document.createElement('div'); // Wrapper for styling and filtering
+            checkboxWrapper.className = 'checkbox-wrapper';
 
-            // Loop through the list of table names and create a checkbox for each
-            tableNames.forEach(tableName => {
-        // Check if the checkbox for the table name already exists
-            if (!document.getElementById('checkbox_' + tableName)) {
-                // Create a new checkbox for the table name
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.name = 'tableName';
-                checkbox.value = tableName;
-                checkbox.id = 'checkbox_' + tableName;
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.name = 'tableName';
+            checkbox.value = tableName;
+            checkbox.id = 'checkbox_' + tableName;
 
-                const label = document.createElement('label');
-                label.htmlFor = checkbox.id;
-                label.appendChild(document.createTextNode(tableName));
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.appendChild(document.createTextNode(tableName));
 
-                // Append the checkbox and label to the form
-                checkboxContainer.appendChild(checkbox);
-                checkboxContainer.appendChild(label);
-                checkboxContainer.appendChild(document.createElement('br'));
+            checkboxWrapper.appendChild(checkbox);
+            checkboxWrapper.appendChild(label);
+            checkboxContainer.appendChild(checkboxWrapper);
 
-                // Add event listener to dynamically load data when a table is selected
-                checkbox.addEventListener('change', loadTableData);
-            }
+            checkbox.addEventListener('change', loadTableData); // Add event listener
+        }
     });
 }
+
 
         // Load table data based on selected checkboxes
         function loadTableData() {
@@ -247,6 +266,19 @@
         // Optionally scroll to the bottom of the card body
         cardBody.scrollTop = cardBody.scrollHeight;
     }
+    function filterCheckboxes() {
+    const searchInput = document.getElementById('search-bar').value.toLowerCase(); // Get the search input
+    const checkboxes = document.getElementById('table-names-form').querySelectorAll('input[type="checkbox"]'); // Get all checkboxes
+
+    checkboxes.forEach((checkbox) => {
+        const label = checkbox.nextElementSibling.textContent.toLowerCase(); // Get the corresponding label text
+        if (label.includes(searchInput)) {
+            checkbox.parentElement.style.display = 'block'; // Show matching checkboxes
+        } else {
+            checkbox.parentElement.style.display = 'none'; // Hide non-matching checkboxes
+        }
+    });
+}
     </script>
 </body>
 </html>
