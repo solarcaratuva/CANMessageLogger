@@ -2,8 +2,10 @@ from flask import Flask, render_template, jsonify
 from flask_socketio import SocketIO
 import backend.db_access as db_access
 import backend.DbConnection as dbconnect
+import backend.dbc_code as dbc_code
 import os
 import time
+import cantools
 from input import consumer, logfileProd
 from functools import partial
 
@@ -21,6 +23,26 @@ def index():
 @app.route('/alert_manager')
 def alert_manager():
     return render_template('alert_manager.html')
+
+@app.route('/parse_dbc_fields', methods=['POST'])
+def parse_dbc_fields():
+    """
+    Use this to populate the alerts form with available fields from the DBC files
+
+    Currently linked to the Rivanna3.dbc file from src/backend but commented out code can
+    switch to using the dbc file from resources/CAN-messages
+    """
+    
+    # BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    # dbc_path = os.path.join(BASE_DIR, '../resources/CAN-messages/Rivanna3.dbc')
+    # dbc_path = os.path.normpath(dbc_path)
+
+    dbc_path = "src/backend/Rivanna3.dbc"
+    
+    result = dbc_code.get_messages_from_dbc(dbc_path)
+    print("result: ", result)
+
+    return jsonify({'message': result})
 
 
 @socketio.on('connect')

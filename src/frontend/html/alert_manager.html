@@ -104,14 +104,85 @@
     </div>
 
     <script>
-        document.getElementById('addAlertBtn').addEventListener('click', function() {
-            $('#addAlertModal').modal('show');
+        document.getElementById('addAlertBtn').addEventListener('click', function () {
+    // Show the modal
+    $('#addAlertModal').modal('show');
+
+    // Fetch parsed DBC fields from the server
+    fetch('/parse_dbc_fields', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            console.log("HERES THe DATA: ", data.message);
+            // Clear any existing checkboxes
+            const formGroup = document.querySelector('#alertForm .form-group');
+            formGroup.innerHTML = '<label for="alertType">Alert Type</label>';
+
+            // Populate the form dynamically with checkboxes
+            for (const [category, fields] of Object.entries(data.message)) {
+                // Add a category label
+                const categoryLabel = document.createElement('h5');
+                categoryLabel.innerText = category;
+                formGroup.appendChild(categoryLabel);
+
+                // Add checkboxes for each field in the category
+                for (const [fieldKey, fieldLabel] of Object.entries(fields)) {
+                    console.log("Field key: ", fieldKey);
+                    console.log("Field label: ", fieldLabel);
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'form-check-input';
+                    checkbox.id = fieldKey;
+                    checkbox.value = fieldKey;
+
+                    const label = document.createElement('label');
+                    label.className = 'form-check-label';
+                    label.htmlFor = fieldKey;
+                    label.innerText = fieldKey;
+
+                    const checkboxContainer = document.createElement('div');
+                    checkboxContainer.className = 'form-check';
+                    checkboxContainer.appendChild(checkbox);
+                    checkboxContainer.appendChild(label);
+
+                    formGroup.appendChild(checkboxContainer);
+                }
+            }
+        })
+        .catch((error) => {
+            console.error('Error fetching DBC fields:', error);
         });
+});
 
         document.getElementById('saveAlertBtn').addEventListener('click', function() {
-            // Logic to save the alert
-            $('#addAlertModal').modal('hide');
-        });
+
+            const formData = {
+                type1: document.getElementById('alertType1').checked,
+                type2: document.getElementById('alertType2').checked,
+                type3: document.getElementById('alertType3').checked,
+            };
+            fetch('/parse_dbc_fields', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data.message);
+                $('#addAlertModal').modal('hide');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+                $('#addAlertModal').modal('hide');
+            });
+            
     </script>
     <div class="container-fluid mt-4">
         <div class="row">
