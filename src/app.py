@@ -18,6 +18,11 @@ def index():
     # Render the HTML with the large_data passed in
     return render_template('debug.html', large_data=message_list)
 
+@app.route('/alert_manager')
+def alert_manager():
+    return render_template('alert_manager.html')
+
+
 @socketio.on('connect')
 def handle_connect():
     print("Client connected.")
