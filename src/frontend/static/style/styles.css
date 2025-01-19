@@ -21,6 +21,14 @@ html, body {
     background-repeat: no-repeat;  /* Prevent the image from repeating */
 }
 
+canvas {
+    max-width: 90%;
+    height: 70vh;
+    margin: auto;
+    display: block;
+}
+
+
 .wide-container {
     background-color: #f8f9fa;
     padding: 20px;  /* Add some padding inside the container */

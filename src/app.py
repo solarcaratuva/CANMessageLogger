@@ -18,6 +18,27 @@ def index():
     # Render the HTML with the large_data passed in
     return render_template('debug.html', large_data=message_list)
 
+@app.route('/graphs')
+def graph_view():
+    return render_template('graphs.html', large_data=message_list)
+
+@app.route('/api/throttle-data', methods=['GET'])
+def get_throttle_data():
+    """
+    API endpoint to fetch throttle and timestamp data from the MotorCommands table.
+    """
+    try:
+        logger_db = dbconnect.DbConnection()  # Initialize the DbConnection
+        query = "SELECT throttle_pedal, timeStamp FROM MotorCommands ORDER BY timeStamp ASC"
+        rows = logger_db.query(query)  # Use the existing query method
+
+        # Format the data for JSON response
+        data = [{'throttle': row['throttle_pedal'], 'timestamp': row['timeStamp']} for row in rows]
+        return jsonify(data)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @socketio.on('connect')
 def handle_connect():
     print("Client connected.")
