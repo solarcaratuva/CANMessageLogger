@@ -89,46 +89,48 @@
         let tableMessages = {};
         let lastMessageTime = {};
 
-        // Receive the initial messages when connected (if needed)
-        socket.on('initial_messages', (messages) => {
-            const messageContainer = document.getElementById('messageContainer');
-            messageContainer.innerHTML = ''; // Clear existing messages
-            messages.forEach((data) => {
-                displayMessage(data);
-            });
-        });
+        // Handle receiving batches of messages]
+        function fetchLatestMessages() {
+            fetch('/get_latest_message')
+                .then(response => response.json())
+                .then(batchData => {
+                    console.log('Received message batch:', batchData);
 
-        // Handle receiving batches of messages
-        socket.on('update_large_data', (batchData) => {
-            console.log('Received message batch:', batchData);
+                    // Iterate over the batch and display each message
+                    batchData.messages.forEach((data) => {
+                        displayMessage(data);  // Display each message from the batch
+                    });
 
-            // Iterate over the batch and display each message
-            batchData.messages.forEach((data) => {
-                displayMessage(data);  // Display each message from the batch
-            });
+                    // Extract table names from the "table_name" field in batchData
+                    if (Array.isArray(batchData.table_names)) {
+                        populateCheckboxes(batchData.table_names);  // Populate table name checkboxes dynamically
+                    }
+                });
+        }
 
-            // Extract table names from the "table_name" field in batchData
-            if (batchData.table_name) {
-                populateCheckboxes(batchData.table_name);  // Populate table name checkboxes dynamically
-            }
-        });
 
-        // Populate the checkboxes with table names dynamically
+        setInterval(fetchLatestMessages, 1000);
+
         function populateCheckboxes(tableNames) {
             const checkboxContainer = document.getElementById('table-names-form');
 
-            // Check if the checkbox for the table name already exists
-            if (!document.getElementById('checkbox_' + tableNames)) {
+            // Clear existing checkboxes before adding new ones
+            checkboxContainer.innerHTML = '';
+
+            // Loop through the list of table names and create a checkbox for each
+            tableNames.forEach(tableName => {
+        // Check if the checkbox for the table name already exists
+            if (!document.getElementById('checkbox_' + tableName)) {
                 // Create a new checkbox for the table name
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.name = 'tableName';
-                checkbox.value = tableNames;
-                checkbox.id = 'checkbox_' + tableNames;
+                checkbox.value = tableName;
+                checkbox.id = 'checkbox_' + tableName;
 
                 const label = document.createElement('label');
                 label.htmlFor = checkbox.id;
-                label.appendChild(document.createTextNode(tableNames));
+                label.appendChild(document.createTextNode(tableName));
 
                 // Append the checkbox and label to the form
                 checkboxContainer.appendChild(checkbox);
@@ -138,7 +140,8 @@
                 // Add event listener to dynamically load data when a table is selected
                 checkbox.addEventListener('change', loadTableData);
             }
-        }
+    });
+}
 
         // Load table data based on selected checkboxes
         function loadTableData() {
