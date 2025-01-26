@@ -1,6 +1,7 @@
 import sqlite3
 from backend.DBCs import DBCs  # need to have DBCs.py in same directory! (this is the wrapper file we made for generating DBCs)
 import backend.CanMessage as CanMessage  # our own CanMessage Object
+import json
 
 # Before initializing any DbConnection objects, must run setup_the_db_path(path : str)
 DB_path = None  # static, i.e. shared with all DbConnection Objects
@@ -100,6 +101,19 @@ class DbConnection:
         # Should only be called once!
         can_msg_signals = self.__parse_can_message_signals(DBCs)
 
+        sql_alerts =    '''
+                        CREATE TABLE IF NOT EXISTS Alerts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        field TEXT NOT NULL,
+                        type TEXT NOT NULL,         
+                        bool_value TEXT,             
+                        comparisons_json TEXT        
+                        );
+                        '''
+
+        self.cur.execute(sql_alerts)
+
         # create table for each can_message_name
         for can_msg_type, signal_types_dict in can_msg_signals.items():
             columns = ', '.join([f'{signal_name} INTEGER' for signal_name in signal_types_dict.keys()])
@@ -126,3 +140,50 @@ class DbConnection:
         """
         global DB_path
         DB_path = path
+
+    def create_alert(self, alert_data):
+        """
+        Inserts an alert into the Alerts table.alert_data is expected to be a dict, e.g.:
+        {
+        "name": "My Alert",
+        "field": "batteryVoltage",
+        "type": "double",
+        "value": "false"  # if bool
+        "comparisons": [
+            { "operator": "<", "value": 3.0 },
+            { "operator": ">", "value": 4.2 }
+        ]
+        }
+        """
+        try:
+            connection = self.conn
+            cursor = connection.cursor()
+
+            # Extract data from alert_data
+            name = alert_data.get('name')
+            field = alert_data.get('field')
+            type_ = alert_data.get('type')
+
+            bool_value = None
+            comparisons_json = None
+
+            if type_ == 'bool':
+                bool_value = alert_data.get('value')  # "true"/"false"
+            elif type_ in ['int', 'double']:
+                # Convert the comparisons list to a JSON string
+                comps = alert_data.get('comparisons', [])
+                comparisons_json = json.dumps(comps)
+
+            cursor.execute('''
+                INSERT INTO Alerts (name, field, type, bool_value, comparisons_json)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (name, field, type_, bool_value, comparisons_json))
+
+            connection.commit()
+            new_id = cursor.lastrowid
+            print(f"Created alert with ID {new_id}")
+            return new_id
+        
+        except sqlite3.Error as e:
+            print(f"Database error inserting alert: {e}")
+            return None

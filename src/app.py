@@ -1,4 +1,5 @@
-from flask import Flask, render_template, jsonify
+import sqlite3
+from flask import Flask, request, render_template, jsonify
 from flask_socketio import SocketIO
 import backend.db_access as db_access
 import backend.DbConnection as dbconnect
@@ -14,6 +15,9 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # List to store messages to display on the front end
 message_list = []
+
+alert_definitions = {} # {1: alert1, 2: alert2, 3: alert3, ...}
+alertsCreated = 0
 
 @app.route('/')
 def index():
@@ -43,6 +47,23 @@ def parse_dbc_fields():
     print("result: ", result)
 
     return jsonify({'message': result})
+
+@app.route('/create_alert', methods=['POST'])
+def create_alert():
+    global alertsCreated
+    global alert_definitions
+
+    logger_db = dbconnect.DbConnection()
+    data = request.json
+
+    alert_id = logger_db.create_alert(data)
+    print("created the alert: ", data, alert_id)
+
+    return jsonify({
+        "status": "success",
+        "message": "Alert created",
+        "alert_id": alert_id
+    }), 200
 
 
 @socketio.on('connect')
