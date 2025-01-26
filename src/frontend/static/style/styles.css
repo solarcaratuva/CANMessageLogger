@@ -45,11 +45,12 @@ html, body {
 .large-container {
     padding: 25px;
     flex:1;
+    height: 600px;
 }
 
 .text-container {
     overflow-y: auto;
-    max-height: 400px;
+    max-height: 100%;
     padding: 10px;
     font-size: 16px;
     display:flex;
@@ -132,4 +133,13 @@ input[type="checkbox"] {
     color: darkgoldenrod;
 }
 
+.separator {
+    border: 1px solid #000; /* Solid black line */
+    margin: 10px 0; /* Spacing above and below the line */
+    width: 100%; /* Full width of the container */
+}
+
+#messageContainer {
+    height: 100%;
+}
 

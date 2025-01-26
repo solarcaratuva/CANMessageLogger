@@ -61,7 +61,7 @@
 
                 <!-- Right smaller containers -->
                 <div class="col-md-4">
-                    <div class="small-container" id="checkbox-container">
+                    <div class="small-container" id="checkbox-container" style="height:600px">
                         <div class="text-container">
                             <h5>Boards</h5>
                             <input 
@@ -72,8 +72,8 @@
                                 onkeyup="filterCheckboxes()"
                             />
                         </div>
-                    </div>
-                    <div class="small-container mt-4">
+                        <hr class="separator">
+                    <div class="small-container mt-4" style="height:350px">
                         <div class="text-container">
                             <!-- Content for small container 3 -->
                             <form id="table-names-form">
@@ -81,6 +81,7 @@
                             </form>
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -103,7 +104,8 @@
             .then(response => response.json())
             .then(data => {
                 if (Array.isArray(data.table_names)) {
-                    populateCheckboxes(data.table_names); // Populate table name checkboxes dynamically
+                    let defaultCheckedTables = ["MotorCommands"];
+                    populateCheckboxes(data.table_names, defaultCheckedTables); // Populate table name checkboxes dynamically
                 }
             })
             .catch(error => {
@@ -133,7 +135,7 @@
 
         setInterval(fetchLatestMessages, 1000);
 
-        function populateCheckboxes(tableNames) {
+        function populateCheckboxes(tableNames, defaultCheckedTables = []) {
     const checkboxContainer = document.getElementById('table-names-form');
     checkboxContainer.innerHTML = ''; // Clear existing checkboxes
 
@@ -148,6 +150,9 @@
             checkbox.value = tableName;
             checkbox.id = 'checkbox_' + tableName;
 
+            // Check if the tableName is in the defaultCheckedTables array
+            checkbox.checked = defaultCheckedTables.includes(tableName);
+
             const label = document.createElement('label');
             label.htmlFor = checkbox.id;
             label.appendChild(document.createTextNode(tableName));
@@ -159,7 +164,19 @@
             checkbox.addEventListener('change', loadTableData); // Add event listener
         }
     });
+
+    // Trigger loadTableData for all default-checked checkboxes
+    const defaultCheckedCheckboxes = document.querySelectorAll(
+        'input[name="tableName"]:checked'
+    );
+    defaultCheckedCheckboxes.forEach((checkbox) => {
+        // Simulate a call to loadTableData for each default-checked checkbox
+        checkbox.dispatchEvent(new Event('change'));
+    });
 }
+
+
+
 
 
         // Load table data based on selected checkboxes
