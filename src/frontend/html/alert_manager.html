@@ -290,10 +290,13 @@
       <div class="col-md-12">
         <div class="small-container">
           <div class="text-container">
-            <h3>Alerts</h3>
-            <div class="alert-container" id="alertContainer">
-              <!-- Content for alert container will be dynamically updated -->
+            <h3>Active Alerts</h3>
+            <div class="container mt-5">
+              <div id="alertsList" class="row">
+                <!-- Alerts will be dynamically added here -->
+              </div>
             </div>
+            
           </div>
         </div>
       </div>
@@ -301,6 +304,56 @@
   </div>
 
   <script>
+    function fetchAlerts() {
+      fetch('/get_alerts', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        const alertsContainer = document.getElementById('alertsList');
+        alertsContainer.innerHTML = ''; // Clear previous alerts
+
+        if (data.status === 'success' && data.alerts.length > 0) {
+          data.alerts.forEach((alert) => {
+            const alertCard = document.createElement('div');
+            alertCard.className = 'col-md-4';
+
+            alertCard.innerHTML = `
+              <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                  <h5 class="card-title">${alert.name}</h5>
+                </div>
+                <div class="card-body">
+                  <p><strong>Field:</strong> ${alert.field}</p>
+                  <p><strong>Type:</strong> ${alert.type}</p>
+                  <p><strong>Boolean Value:</strong> ${alert.bool_value || 'N/A'}</p>
+                  <p><strong>Comparisons:</strong> ${alert.comparisons_json || 'N/A'}</p>
+                </div>
+              </div>
+            `;
+
+            alertsContainer.appendChild(alertCard);
+          });
+        } else {
+          alertsContainer.innerHTML = `
+            <div class="col-md-12">
+              <div class="alert alert-info" role="alert">
+                No active alerts found.
+              </div>
+            </div>
+          `;
+        }
+      })
+      .catch((error) => {
+        console.error('Error fetching alerts:', error);
+      });
+  }
+
+    // Fetch alerts on page load
+    document.addEventListener('DOMContentLoaded', fetchAlerts);
     let selectedField = null;
     let selectedFieldType = null; //bool, int, or double for now
 

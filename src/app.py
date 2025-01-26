@@ -65,6 +65,18 @@ def create_alert():
         "alert_id": alert_id
     }), 200
 
+@app.route('/get_alerts', methods=['GET'])
+def get_alerts():
+    try:
+        logger_db = dbconnect.DbConnection()
+        query = "SELECT * FROM Alerts"
+        alerts = logger_db.query(query)
+        return jsonify({"status": "success", "alerts": alerts}), 200
+    except Exception as e:
+        print(f"Error fetching alerts: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 
 @socketio.on('connect')
 def handle_connect():
