@@ -321,16 +321,40 @@
             const alertCard = document.createElement('div');
             alertCard.className = 'col-md-4';
 
+            let comparisons = 'N/A';
+            if (alert.comparisons_json) {
+              try {
+                const parsedComparisons = JSON.parse(alert.comparisons_json);
+                comparisons = parsedComparisons
+                  .map((comp) => `(${comp.operator}, ${comp.value})`)
+                  .join('<br>');
+              } catch (e) {
+                console.error('Error parsing comparisons_json:', e);
+              }
+            }
+
+            const fields = `
+              ${alert.name ? `<p><strong>Name:</strong> ${alert.name}</p>` : ''}
+              ${alert.field ? `<p><strong>Field:</strong> ${alert.field} (${alert.type})</p>` : ''}
+              ${
+                (alert.type === 'int' || alert.type === 'double') && comparisons
+                  ? `<p><strong>Alert Condition(s):</strong><br>${comparisons}</p>`
+                  : ''
+              }
+              ${
+                alert.type === 'bool' && alert.bool_value
+                  ? `<p><strong>Alert Condition(s):</strong> ${alert.bool_value}</p>`
+                  : ''
+              }
+            `;
+
             alertCard.innerHTML = `
               <div class="card mb-3">
                 <div class="card-header bg-primary text-white">
-                  <h5 class="card-title">${alert.name}</h5>
+                  <h5 class="card-title">${alert.name || 'Untitled Alert'}</h5>
                 </div>
                 <div class="card-body">
-                  <p><strong>Field:</strong> ${alert.field}</p>
-                  <p><strong>Type:</strong> ${alert.type}</p>
-                  <p><strong>Boolean Value:</strong> ${alert.bool_value || 'N/A'}</p>
-                  <p><strong>Comparisons:</strong> ${alert.comparisons_json || 'N/A'}</p>
+                  ${fields}
                 </div>
               </div>
             `;
