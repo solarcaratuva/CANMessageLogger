@@ -314,16 +314,18 @@
       document.getElementById("nextBtn").style.display = "inline-block";
       document.getElementById("boolOptions").style.display = "none";
       document.getElementById("numericOptions").style.display = "none";
-      
-      //Clear selected stuff
-      document.getElementById("alertName").value = "";
-      const radioGroup = document.getElementById("radioGroup");
-      radioGroup.innerHTML = "";
 
-      //Show the modal
+      // Clear selected stuff
+      document.getElementById("alertName").value = "";
+      
+      // IMPORTANT: Only clear out the #radioGroup
+      const radioGroup = document.getElementById("radioGroup");
+      radioGroup.innerHTML = "";  // do not overwrite the entire formGroup
+
+      // Show the modal
       $("#addAlertModal").modal("show");
 
-      //Fetch parsed DBC fields from the server (in app.py for now)
+      // Fetch parsed DBC fields from the server
       fetch("/parse_dbc_fields", {
         method: "POST",
         headers: {
@@ -332,20 +334,17 @@
       })
       .then((response) => response.json())
       .then((data) => {
-        const formGroup = document.querySelector("#alertForm .form-group");
-        formGroup.innerHTML = '<label for="alertType"><strong>Alert Type:</strong></label>';
 
-        //Populate with radio buttons
         for (const [category, fields] of Object.entries(data.message)) {
-          //Category label
+          
+          //Create a category label
           const categoryLabel = document.createElement("h5");
           categoryLabel.classList.add("mt-3");
           categoryLabel.innerText = category;
-          formGroup.appendChild(categoryLabel);
+          radioGroup.appendChild(categoryLabel);
 
           //Fields under this category
           for (const [fieldKey, fieldLabel] of Object.entries(fields)) {
-            //Assume fieldLabel is the type ("bool", "int", etc.)
             const radioContainer = document.createElement("div");
             radioContainer.className = "form-check";
 
@@ -364,8 +363,7 @@
 
             radioContainer.appendChild(radio);
             radioContainer.appendChild(label);
-
-            formGroup.appendChild(radioContainer);
+            radioGroup.appendChild(radioContainer);
           }
         }
       })
@@ -373,6 +371,7 @@
         console.error("Error fetching DBC fields:", error);
       });
     });
+
 
     //Next button: move from Step 1 to Step 2
     document.getElementById("nextBtn").addEventListener("click", function () {
