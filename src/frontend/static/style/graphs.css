@@ -1,21 +1,41 @@
-/* Styles for Graphs Page */
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: white; /* White background for graphs page */
-    color: black;
+/* Layout styles */
+#container {
+    display: flex;
+    height: 100vh;
+    background-color: white;
+}
+
+#graph-section {
+    flex: 3;
+    padding: 20px;
+}
+
+#control-bar {
+    flex: 1;
+    background-color: #f4f4f9;
+    padding: 20px;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
+    align-items: flex-start;
+}
+
+#control-bar h2 {
+    margin-bottom: 20px;
+}
+
+#control-bar select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    font-size: 1em;
 }
 
 /* Canvas styling */
 canvas {
     max-width: 90%;
     height: 70vh;
-    margin: 20px auto;
+    margin: 0 auto;
     display: block;
 }
+

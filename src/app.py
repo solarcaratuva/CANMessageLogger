@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO
 import backend.db_access as db_access
 import backend.DbConnection as dbconnect
@@ -22,22 +22,57 @@ def index():
 def graph_view():
     return render_template('graphs.html', large_data=message_list)
 
-@app.route('/api/throttle-data', methods=['GET'])
-def get_throttle_data():
+
+@app.route('/api/motorcommands-fields', methods=['GET'])
+def get_motorcommands_fields():
     """
-    API endpoint to fetch throttle and timestamp data from the MotorCommands table.
+    API endpoint to fetch all fields in the MotorCommands table.
     """
     try:
-        logger_db = dbconnect.DbConnection()  # Initialize the DbConnection
-        query = "SELECT throttle_pedal, timeStamp FROM MotorCommands ORDER BY timeStamp ASC"
-        rows = logger_db.query(query)  # Use the existing query method
-
-        # Format the data for JSON response
-        data = [{'throttle': row['throttle_pedal'], 'timestamp': row['timeStamp']} for row in rows]
-        return jsonify(data)
-
+        logger_db = dbconnect.DbConnection()
+        query = "PRAGMA table_info(MotorCommands);"
+        rows = logger_db.query(query)
+        fields = [row['name'] for row in rows if row['name'] != 'timeStamp']  # Exclude timeStamp
+        return jsonify(fields)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/motorcommands-data', methods=['GET'])
+def get_motorcommands_data():
+    """
+    API endpoint to fetch all data for selected fields.
+    """
+    fields = request.args.get('fields')
+    if not fields:
+        return jsonify({'error': 'Fields are required'}), 400
+
+    try:
+        selected_fields = fields.split(',')
+        logger_db = dbconnect.DbConnection()
+
+        # Fetch all data and include timestamps
+        query = f"""
+        SELECT timeStamp, {', '.join(selected_fields)}
+        FROM MotorCommands
+        ORDER BY timeStamp ASC
+        """
+        rows = logger_db.query(query)
+
+        if not rows:
+            return jsonify([])  # Return empty array if no data
+
+        # Format data
+        data = [
+            {'timestamp': row['timeStamp'], **{field: row[field] for field in selected_fields}}
+            for row in rows
+        ]
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+
 
 @socketio.on('connect')
 def handle_connect():
@@ -135,4 +170,4 @@ def start_message_processing():
 
 if __name__ == '__main__':
     socketio.start_background_task(target=start_message_processing)
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, port=5050)
