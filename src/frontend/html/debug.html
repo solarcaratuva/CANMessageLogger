@@ -87,55 +87,59 @@
         </div>
     </div>
     <script>
-        // Socket connection to Flask app
-        const socket = io('http://127.0.0.1:5000'); // Specify the correct URL of your Flask app
+// Socket connection to Flask app
+const socket = io('http://127.0.0.1:5000'); // Specify the correct URL of your Flask app
 
-        // Variable to set the maximum number of messages to display
-        const maxMessagesPerTable = 1; // Change this value to control how many messages are shown per table
+// Variable to set the maximum number of messages to display
+const maxMessagesPerTable = 1; // Change this value to control how many messages are shown per table
 
-        // Object to store messages for different tables
-        let tableMessages = {};
-        let lastMessageTime = {};
+// Object to store messages for different tables
+let tableMessages = {};
+let lastMessageTime = {};
+console.log('test');
 
-        // Handle receiving batches of messages]
-    // Function to fetch table names and populate checkboxes
-    function fetchTableNames() {
-        fetch('/get_table_names') // Assuming you have an endpoint that returns table names
-            .then(response => response.json())
-            .then(data => {
-                if (Array.isArray(data.table_names)) {
-                    let defaultCheckedTables = ["MotorCommands"];
-                    populateCheckboxes(data.table_names, defaultCheckedTables); // Populate table name checkboxes dynamically
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching table names:', error);
+// Handle receiving batches of messages
+
+// Function to fetch table names and populate checkboxes
+function fetchTableNames() {
+    fetch('/get_table_names') // Assuming you have an endpoint that returns table names
+        .then(response => response.json())
+        .then(data => {
+            if (Array.isArray(data.table_names)) {
+                let defaultCheckedTables = ["MotorCommands"];
+                populateCheckboxes(data.table_names, defaultCheckedTables); // Populate table name checkboxes dynamically
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching table names:', error);
+        });
+}
+
+// Function to fetch the latest messages
+function fetchLatestMessages() {
+    fetch('/get_latest_message')
+        .then(response => response.json())
+        .then(batchData => {
+            console.log('Received message batch:', batchData);
+
+            // Iterate over the batch and display each message
+            batchData.messages.forEach((data) => {
+                displayMessage(data); // Display each message from the batch
             });
-    }
+        })
+        .catch(error => {
+            console.error('Error fetching latest messages:', error);
+        });
+}
 
-    // Function to fetch the latest messages
-    function fetchLatestMessages() {
-        fetch('/get_latest_message')
-            .then(response => response.json())
-            .then(batchData => {
-                console.log('Received message batch:', batchData);
+// Call the function to fetch table names once at the beginning
+fetchTableNames();
 
-                // Iterate over the batch and display each message
-                batchData.messages.forEach((data) => {
-                    displayMessage(data); // Display each message from the batch
-                });
-            })
-            .catch(error => {
-                console.error('Error fetching latest messages:', error);
-            });
-    }
+setInterval(fetchLatestMessages, 1000);
 
-    // Call the function to fetch table names once at the beginning
-    fetchTableNames();
-
-        setInterval(fetchLatestMessages, 1000);
-
-        function populateCheckboxes(tableNames, defaultCheckedTables = []) {
+// Populate checkboxes dynamically
+function populateCheckboxes(tableNames, defaultCheckedTables = []) {
+    console.log("Starting populating...");
     const checkboxContainer = document.getElementById('table-names-form');
     checkboxContainer.innerHTML = ''; // Clear existing checkboxes
 
@@ -162,6 +166,10 @@
             checkboxContainer.appendChild(checkboxWrapper);
 
             checkbox.addEventListener('change', loadTableData); // Add event listener
+            console.log("hello");
+            if(checkbox.checked){
+                console.log(tableName);
+            }
         }
     });
 
@@ -175,31 +183,28 @@
     });
 }
 
+// Load table data based on selected checkboxes
+function loadTableData() {
+    const form = document.getElementById('table-names-form');
+    const selectedTables = [];
 
+    // Get selected table names from the form
+    form.querySelectorAll('input[name="tableName"]:checked').forEach((checkbox) => {
+        selectedTables.push(checkbox.value);
+    });
 
+    // Emit event to the server to request data for selected tables (if needed)
+    if (selectedTables.length > 0) {
+        // Hide non-selected tables and show only selected ones
+        updateVisibleTables(selectedTables);
+    } else {
+        // If no checkboxes are selected, show all tables
+        updateVisibleTables(null);
+    }
+}
 
-
-        // Load table data based on selected checkboxes
-        function loadTableData() {
-            const form = document.getElementById('table-names-form');
-            const selectedTables = [];
-
-            // Get selected table names from the form
-            form.querySelectorAll('input[name="tableName"]:checked').forEach((checkbox) => {
-                selectedTables.push(checkbox.value);
-            });
-
-            // Emit event to the server to request data for selected tables (if needed)
-            if (selectedTables.length > 0) {
-                // Hide non-selected tables and show only selected ones
-                updateVisibleTables(selectedTables);
-            } else {
-                // If no checkboxes are selected, show all tables
-                updateVisibleTables(null);
-            }
-        }
-        
-    function updateVisibleTables(selectedTables) {
+// Update which tables are visible based on selected checkboxes
+function updateVisibleTables(selectedTables) {
     const messageContainer = document.getElementById('messageContainer');
     const allCards = messageContainer.querySelectorAll('.card');
 
@@ -214,76 +219,77 @@
     });
 }
 
-        // Display messages in the main container
-        function displayMessage(data) {
-        const messageContainer = document.getElementById('messageContainer');
-        const tableName = data.table_name; // Get the table name from the data
+// Display messages in the main container
+function displayMessage(data) {
+    const messageContainer = document.getElementById('messageContainer');
+    const tableName = data.table_name; // Get the table name from the data
 
-        // Get the current message timestamp
-        const currentTimestamp = new Date(data.timestamp);
+    // Get the current message timestamp
+    const currentTimestamp = new Date(data.timestamp);
 
-        // If the table name does not exist in the tableMessages object, create an entry
-        if (!tableMessages[tableName]) {
-            tableMessages[tableName] = []; // Initialize an array for this table's messages
-            lastMessageTime[tableName] = currentTimestamp; // Set initial last message time
-            
-            // Create a new Bootstrap card for this table
-            const card = document.createElement('div');
-            card.className = 'card mt-3';
-            card.id = 'card_' + tableName; // Give the card an ID based on the table name
+    // If the table name does not exist in the tableMessages object, create an entry
+    if (!tableMessages[tableName]) {
+        tableMessages[tableName] = []; // Initialize an array for this table's messages
+        lastMessageTime[tableName] = currentTimestamp; // Set initial last message time
+        
+        // Create a new Bootstrap card for this table
+        const card = document.createElement('div');
+        card.className = 'card mt-3';
+        card.id = 'card_' + tableName; // Give the card an ID based on the table name
 
-            const cardHeader = document.createElement('div');
-            cardHeader.className = 'card-header';
-            cardHeader.innerText = tableName; // Set the card header as the table name
+        const cardHeader = document.createElement('div');
+        cardHeader.className = 'card-header';
+        cardHeader.innerText = tableName; // Set the card header as the table name
 
-            const cardBody = document.createElement('div');
-            cardBody.className = 'card-body';
-            cardBody.id = 'cardBody_' + tableName; // ID for the card body to update messages
+        const cardBody = document.createElement('div');
+        cardBody.className = 'card-body';
+        cardBody.id = 'cardBody_' + tableName; // ID for the card body to update messages
 
-            // Append the header and body to the card
-            card.appendChild(cardHeader);
-            card.appendChild(cardBody);
-            messageContainer.appendChild(card); // Append the card to the main message container
-        }
-
-        // Calculate time since last message (in seconds)
-        const timeSinceLastMessage = Math.floor((currentTimestamp - lastMessageTime[tableName]) / 1000);
-        lastMessageTime[tableName] = currentTimestamp; // Update the last message time
-
-        // Store the received message in the array for this specific table
-        tableMessages[tableName].push(data);
-
-        // If the number of messages exceeds the limit, remove the oldest message
-        if (tableMessages[tableName].length > maxMessagesPerTable) {
-            tableMessages[tableName].shift(); // Remove the oldest message (first element)
-        }
-
-        // Clear the card body to repopulate it with the latest messages
-        const cardBody = document.getElementById('cardBody_' + tableName);
-        cardBody.innerHTML = ''; // Clear previous messages
-
-        // Prepare and display all the current messages for this table
-        tableMessages[tableName].forEach((msg) => {
-            const messageContent = [];
-            for (const key in msg.data) {
-                messageContent.push(`${key}: ${msg.data[key]}`);
-            }
-            const timeSinceLastLine = `Time Since Last Message: ${timeSinceLastMessage} seconds`;
-            const newMessageText = `${timeSinceLastLine}\n${messageContent.join('\n')}`;
-
-            // Create a new div for the message
-            const newMessageDiv = document.createElement('div');
-            newMessageDiv.innerText = newMessageText; // Display time since last message and data
-            newMessageDiv.classList.add('message', 'mb-2'); // Optional: Add classes for styling
-
-            // Append the new message to the appropriate card body
-            cardBody.appendChild(newMessageDiv);
-        });
-
-        // Optionally scroll to the bottom of the card body
-        cardBody.scrollTop = cardBody.scrollHeight;
+        // Append the header and body to the card
+        card.appendChild(cardHeader);
+        card.appendChild(cardBody);
+        messageContainer.appendChild(card); // Append the card to the main message container
     }
-    function filterCheckboxes() {
+
+    // Calculate time since last message (in seconds)
+    const timeSinceLastMessage = Math.floor((currentTimestamp - lastMessageTime[tableName]) / 1000);
+    lastMessageTime[tableName] = currentTimestamp; // Update the last message time
+
+    // Store the received message in the array for this specific table
+    tableMessages[tableName].push(data);
+
+    // If the number of messages exceeds the limit, remove the oldest message
+    if (tableMessages[tableName].length > maxMessagesPerTable) {
+        tableMessages[tableName].shift(); // Remove the oldest message (first element)
+    }
+
+    // Clear the card body to repopulate it with the latest messages
+    const cardBody = document.getElementById('cardBody_' + tableName);
+    cardBody.innerHTML = ''; // Clear previous messages
+
+    // Prepare and display all the current messages for this table
+    tableMessages[tableName].forEach((msg) => {
+        const messageContent = [];
+        for (const key in msg.data) {
+            messageContent.push(`${key}: ${msg.data[key]}`);
+        }
+        const timeSinceLastLine = `Time Since Last Message: ${timeSinceLastMessage} seconds`;
+        const newMessageText = `${timeSinceLastLine}\n${messageContent.join('\n')}`;
+
+        // Create a new div for the message
+        const newMessageDiv = document.createElement('div');
+        newMessageDiv.innerText = newMessageText; // Display time since last message and data
+        newMessageDiv.classList.add('message', 'mb-2'); // Optional: Add classes for styling
+
+        // Append the new message to the appropriate card body
+        cardBody.appendChild(newMessageDiv);
+    });
+
+    // Optionally scroll to the bottom of the card body
+    cardBody.scrollTop = cardBody.scrollHeight;
+}
+
+function filterCheckboxes() {
     const searchInput = document.getElementById('search-bar').value.toLowerCase(); // Get the search input
     const checkboxes = document.getElementById('table-names-form').querySelectorAll('input[type="checkbox"]'); // Get all checkboxes
 
@@ -296,6 +302,7 @@
         }
     });
 }
+
     </script>
 </body>
 </html>
