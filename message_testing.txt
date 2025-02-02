@@ -1,0 +1,2 @@
+00 DEBUG /root/Rivanna2/Common/src/MainCANInterface.cpp:40: Sent CAN message with ID 0x300 Length 1 Data 0x10
+00:00:00 DEBUG /root/Rivanna2/Common/src/MainCANInterface.cpp:40: Sent CAN message with ID 0x200 Length 8 Data 0x0200000000010000

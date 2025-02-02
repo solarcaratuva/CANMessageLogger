@@ -202,3 +202,4 @@ class DbConnection:
         
         except sqlite3.Error as e:
             print(f"Database error deleting alert: {e}")
+        

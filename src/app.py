@@ -4,6 +4,7 @@ from flask_socketio import SocketIO
 import backend.db_access as db_access
 import backend.DbConnection as dbconnect
 import backend.dbc_code as dbc_code
+import input.alertChecker as alertChecker
 import os
 import time
 import cantools
@@ -56,6 +57,8 @@ def create_alert():
     logger_db = dbconnect.DbConnection()
     data = request.json
 
+    
+
     alert_id = logger_db.create_alert(data)
     print("created the alert: ", data, alert_id)
 
@@ -67,6 +70,9 @@ def create_alert():
 
 @app.route('/get_alerts', methods=['GET'])
 def get_alerts():
+    print("get alert ")
+    alertChecker.fetchActiveAlerts()
+    print("fetched alerts")
     try:
         logger_db = dbconnect.DbConnection()
         query = "SELECT * FROM Alerts"
@@ -160,7 +166,8 @@ def get_latest_message_batch():
 
 def start_message_processing():
     # Ensure the file paths are correct and the app can access them
-    message_file_path = os.path.abspath('message.txt')  # Absolute path to avoid path issues
+    # CHANGE THIS BACK message_file_path = os.path.abspath('message.txt')  # Absolute path to avoid path issues
+    message_file_path = os.path.abspath('message_testing.txt')
     database_path = os.path.abspath('src/can_database.sqlite')  # Absolute path to the SQLite database
 
     # Check if the paths exist
@@ -173,7 +180,7 @@ def start_message_processing():
     logger_db = dbconnect.DbConnection()
     logger_db.setup_the_tables()
 
-    socketio.start_background_task(target=partial(logfileProd.process_logfile_live, "message.txt"))
+    socketio.start_background_task(target=partial(logfileProd.process_logfile_live, "message_testing.txt")) #CHANGE THIS BACK
     socketio.start_background_task(target=consumer.process_data_live)  # If it doesn't take arguments
 
     table_names = logger_db.get_table_names()  # Placeholder for your table names
