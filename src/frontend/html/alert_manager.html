@@ -304,6 +304,27 @@
   </div>
 
   <script>
+    function deleteAlert(alertId) {
+      fetch('/delete_alert', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({"alert_id": alertId}),
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status === 'success') {
+          fetchAlerts();
+        } else {
+          console.error('Error deleting alert:', data.message);
+        }
+      })
+      .catch((error) => {
+        console.error('Error deleting alert:', error);
+      });
+    }
+
     function fetchAlerts() {
       fetch('/get_alerts', {
         method: 'GET',
@@ -351,7 +372,18 @@
             alertCard.innerHTML = `
               <div class="card mb-3">
                 <div class="card-header bg-primary text-white">
-                  <h5 class="card-title">${alert.name || 'Untitled Alert'}</h5>
+                  <h5 class="card-title">${alert.name || 'Untitled Alert'}
+                    <div class="container text-right mt-3">
+                      <button
+                        class="btn btn-warning"
+                        id="deleteAlertBtn"
+                        style="background-color: red; color: white; border: 1px solid #ccc; border-radius: 5px;"
+                        onclick="deleteAlert('${alert.id}')"
+                      >
+                        Delete
+                      </button>
+                    </div>  
+                  </h5>
                 </div>
                 <div class="card-body">
                   ${fields}

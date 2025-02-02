@@ -76,6 +76,13 @@ def get_alerts():
         print(f"Error fetching alerts: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route('/delete_alert', methods=['POST'])
+def delete_alert():
+    alert_id = request.json['alert_id']
+    logger_db = dbconnect.DbConnection()
+    logger_db.delete_alert(alert_id)
+    return jsonify({"status": "success", "message": "Alert deleted"}), 200
+
 
 
 @socketio.on('connect')

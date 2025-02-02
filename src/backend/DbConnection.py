@@ -187,3 +187,18 @@ class DbConnection:
         except sqlite3.Error as e:
             print(f"Database error inserting alert: {e}")
             return None
+    
+    def delete_alert(self, alert_id):
+        try:
+            connection = self.conn
+            cursor = connection.cursor()
+
+            cursor.execute('''
+                DELETE FROM Alerts WHERE id = ?
+            ''', (alert_id,))
+
+            connection.commit()
+            print(f"Deleted alert with ID {alert_id}")
+        
+        except sqlite3.Error as e:
+            print(f"Database error deleting alert: {e}")
