@@ -94,6 +94,7 @@ const socket = io('http://127.0.0.1:5000'); // Specify the correct URL of your F
 const maxMessagesPerTable = 1; // Change this value to control how many messages are shown per table
 
 // Object to store messages for different tables
+let checkedTables = ["MotorCommands", "DashboardCommands"];
 let tableMessages = {};
 let lastMessageTime = {};
 console.log('test');
@@ -106,8 +107,7 @@ function fetchTableNames() {
         .then(response => response.json())
         .then(data => {
             if (Array.isArray(data.table_names)) {
-                let defaultCheckedTables = ["MotorCommands"];
-                populateCheckboxes(data.table_names, defaultCheckedTables); // Populate table name checkboxes dynamically
+                populateCheckboxes(data.table_names, checkedTables); // Populate table name checkboxes dynamically
             }
         })
         .catch(error => {
@@ -124,7 +124,7 @@ function fetchLatestMessages() {
 
             // Iterate over the batch and display each message
             batchData.messages.forEach((data) => {
-                displayMessage(data); // Display each message from the batch
+                displayMessage(data, checkedTables); // Display each message from the batch
             });
         })
         .catch(error => {
@@ -142,6 +142,7 @@ function populateCheckboxes(tableNames, defaultCheckedTables = []) {
     console.log("Starting populating...");
     const checkboxContainer = document.getElementById('table-names-form');
     checkboxContainer.innerHTML = ''; // Clear existing checkboxes
+    checkedTables = [];
 
     tableNames.forEach((tableName) => {
         if (!document.getElementById('checkbox_' + tableName)) {
@@ -166,9 +167,9 @@ function populateCheckboxes(tableNames, defaultCheckedTables = []) {
             checkboxContainer.appendChild(checkboxWrapper);
 
             checkbox.addEventListener('change', loadTableData); // Add event listener
-            console.log("hello");
             if(checkbox.checked){
-                console.log(tableName);
+                checkedTables.push(tableName);
+                console.log("Table Name: " + tableName);
             }
         }
     });
@@ -220,7 +221,9 @@ function updateVisibleTables(selectedTables) {
 }
 
 // Display messages in the main container
-function displayMessage(data) {
+let hasInitializedVisibleTables = false; // Track if updateVisibleTables has been called once
+
+function displayMessage(data, checkedTables) {
     const messageContainer = document.getElementById('messageContainer');
     const tableName = data.table_name; // Get the table name from the data
 
@@ -231,7 +234,6 @@ function displayMessage(data) {
     if (!tableMessages[tableName]) {
         tableMessages[tableName] = []; // Initialize an array for this table's messages
         lastMessageTime[tableName] = currentTimestamp; // Set initial last message time
-        
         // Create a new Bootstrap card for this table
         const card = document.createElement('div');
         card.className = 'card mt-3';
@@ -287,6 +289,9 @@ function displayMessage(data) {
 
     // Optionally scroll to the bottom of the card body
     cardBody.scrollTop = cardBody.scrollHeight;
+
+    // Call updateVisibleTables only once on page load
+    loadTableData(checkedTables);
 }
 
 function filterCheckboxes() {
