@@ -63,7 +63,7 @@
                 <div class="col-md-4">
                     <div class="small-container" id="checkbox-container" style="height:600px">
                         <div class="text-container">
-                            <h5>Boards</h5>
+                            <h5>Message Types</h5>
                             <input 
                                 type="text" 
                                 id="search-bar" 
@@ -145,6 +145,9 @@ function populateCheckboxes(tableNames, defaultCheckedTables = []) {
     checkedTables = [];
 
     tableNames.forEach((tableName) => {
+        if (tableName === "sqlite_sequence") {
+            return;
+        }   
         if (!document.getElementById('checkbox_' + tableName)) {
             const checkboxWrapper = document.createElement('div'); // Wrapper for styling and filtering
             checkboxWrapper.className = 'checkbox-wrapper';
