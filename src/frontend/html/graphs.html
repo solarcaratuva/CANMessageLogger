@@ -3,13 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Throttle Graph</title>
-    <link rel="stylesheet" href="../static/style/graphs.css"> <!-- Link the new CSS file -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="../static/scripts/throttleGraph.js" defer></script>
+    <link rel="stylesheet" href="../static/style/styles.css">
+    <title>UVA Solar Car</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <link rel="stylesheet" href="../static/style/graphs.css">
+    <script src="../static/scripts/plotlyGraph.js" defer></script>
 </head>
 <body>
-    <h1>Throttle Data Visualization</h1>
-    <canvas id="graphCanvas"></canvas>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <a class="navbar-brand" href="#">
+                <div class="logo-container">
+                    <img src="../static/logo.png" id="logo" alt="Logo" class="navbar-logo">
+                </div>
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/debug">Debug Dashboard</a>
+                    </li>
+                    <li class="nav-item active">
+                        <a class="nav-link" href="/graphs">Graphs<span class="sr-only">(current)</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Link2</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Link3</a>
+                    </li>
+                </ul>
+
+                <div class="navbar-nav ml-auto">
+                    <span class="text-light middleTitle">Graphs Dashboard</span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div>
+        <div class="wide-container text-center mt-4">
+            <h2>MotorCommands Visualization</h2>
+        </div>
+
+        <div class="container-fluid mt-4">
+            <div class="row">
+                <!-- Left large container -->
+                <div class="col-md-8">
+                    <div class="large-container">
+                        <div id="graphCanvas"></div>
+                    </div>
+                </div>
+
+                <!-- Right smaller containers -->
+                <div class="col-md-4">
+                    <div class="small-container">
+                        <div class="text-container">
+                            <h5>Controls</h5>
+                            <div id="field-selector">
+                                <!-- Dynamically Populated Checkboxes -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

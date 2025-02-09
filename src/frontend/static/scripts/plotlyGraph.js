@@ -47,41 +47,124 @@ const fetchFieldData = async (fields) => {
 // Render the graph using Plotly with step function
 const renderPlotlyGraph = (timestamps, datasets) => {
     const traces = datasets.map((dataset) => ({
-        x: timestamps, // Use Unix timestamps directly
+        x: timestamps,
         y: dataset.data,
         mode: 'lines',
         line: {
-            shape: 'hv' // Horizontal-vertical step function
+            shape: 'hv'
         },
         name: dataset.label
     }));
 
     const layout = {
-        title: 'MotorCommands Visualization',
+        title: {
+            text: 'MotorCommands Visualization',
+            font: {
+                size: 24,
+                color: '#2c3e50'
+            }
+        },
         xaxis: { 
             title: 'Timestamp (Unix)',
             showgrid: true,
-            type: 'linear' // Treat timestamps as linear numbers
+            type: 'linear',
+            gridcolor: '#f0f0f0'
         },
         yaxis: { 
             title: 'Values',
-            showgrid: true
+            showgrid: true,
+            gridcolor: '#f0f0f0'
         },
         showlegend: true,
-        margin: { t: 50, l: 50, r: 50, b: 50 },
-        width: window.innerWidth * 0.95,
-        height: window.innerHeight * 0.8
+        margin: { t: 50, l: 50, r: 20, b: 50 },
+        autosize: true,
+        plot_bgcolor: 'white',
+        paper_bgcolor: 'white',
+        font: {
+            family: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif'
+        }
     };
 
-    Plotly.newPlot('graphCanvas', traces, layout);
+    const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['lasso2d', 'select2d']
+    };
+
+    Plotly.newPlot('graphCanvas', traces, layout, config);
 };
 
-const updateGraph = async () => {
+const renderEmptyGraph = () => {
+    const layout = {
+        title: {
+            text: 'MotorCommands Visualization',
+            font: {
+                size: 24,
+                color: '#2c3e50'
+            }
+        },
+        xaxis: { 
+            title: 'Timestamp (Unix)',
+            showgrid: true,
+            type: 'linear',
+            gridcolor: '#f0f0f0'
+        },
+        yaxis: { 
+            title: 'Values',
+            showgrid: true,
+            gridcolor: '#f0f0f0',
+            range: [-1, 1]  // Default range for empty graph
+        },
+        showlegend: true,
+        margin: { t: 50, l: 50, r: 20, b: 50 },
+        autosize: true,
+        plot_bgcolor: 'white',
+        paper_bgcolor: 'white',
+        annotations: [{
+            text: 'Select fields from the control panel to visualize data',
+            showarrow: false,
+            font: {
+                size: 16,
+                color: '#666'
+            },
+            xref: 'paper',
+            yref: 'paper',
+            x: 0.5,
+            y: 0.5
+        }]
+    };
+
+    const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['lasso2d', 'select2d']
+    };
+
+    Plotly.newPlot('graphCanvas', [], layout, config);
+};
+
+// Debounce function to prevent too many rapid updates
+const debounce = (func, wait) => {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+};
+
+// Modify the updateGraph function to be debounced
+const updateGraphDebounced = debounce(async () => {
     selectedFields = Array.from(document.querySelectorAll('#field-selector input:checked'))
         .map((checkbox) => checkbox.value);
 
     if (selectedFields.length === 0) {
-        Plotly.purge('graphCanvas');
+        renderEmptyGraph();
         return;
     }
 
@@ -93,11 +176,8 @@ const updateGraph = async () => {
     }
 
     const traces = selectedFields.map((field) => {
-        // Get raw timestamps and values
         const rawTimestamps = data.map((row) => row.timestamp);
         const rawValues = data.map((row) => row[field] || null);
-
-        // Preprocess for step function
         const { timestamps, values } = preprocessStepData(rawTimestamps, rawValues);
 
         return {
@@ -106,34 +186,60 @@ const updateGraph = async () => {
             mode: 'lines',
             name: field,
             line: {
-                shape: 'hv' // Horizontal-Vertical Step Function
+                shape: 'hv'
             }
         };
     });
 
+    // Calculate the time range using reduce instead of spread operator
+    const allTimestamps = data.map(row => row.timestamp);
+    const minTime = allTimestamps.reduce((min, curr) => Math.min(min, curr), allTimestamps[0]);
+    const maxTime = allTimestamps.reduce((max, curr) => Math.max(max, curr), allTimestamps[0]);
+    const timeRange = maxTime - minTime;
+    
+    // Add some padding to the range (5% on each side)
+    const padding = timeRange * 0.05;
+
     const layout = {
-        title: 'MotorCommands Visualization',
+        title: {
+            text: 'MotorCommands Visualization',
+            font: {
+                size: 24,
+                color: '#2c3e50'
+            }
+        },
         xaxis: { 
             title: 'Timestamp (Unix)',
             showgrid: true,
-            type: 'linear'
+            type: 'linear',
+            gridcolor: '#f0f0f0',
+            range: [minTime - padding, maxTime + padding],  // Set the range with padding
+            automargin: true  // Ensure labels are visible
         },
         yaxis: { 
             title: 'Values',
-            showgrid: true
+            showgrid: true,
+            gridcolor: '#f0f0f0',
+            automargin: true
         },
         showlegend: true,
-        connectgaps: true,
-        margin: { t: 50, l: 50, r: 50, b: 50 },
-        width: window.innerWidth * 0.95,
-        height: window.innerHeight * 0.8
+        margin: { t: 50, l: 50, r: 20, b: 50 },
+        autosize: true,
+        plot_bgcolor: 'white',
+        paper_bgcolor: 'white'
     };
 
-    Plotly.newPlot('graphCanvas', traces, layout);
-};
+    const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['lasso2d', 'select2d']
+    };
 
+    Plotly.newPlot('graphCanvas', traces, layout, config);
+}, 250); // 250ms debounce time
 
-// Populate field selector with checkboxes
+// Modify the populateFieldSelector function
 const populateFieldSelector = async () => {
     const fieldSelector = document.getElementById('field-selector');
     const fields = await fetchFields();
@@ -152,7 +258,8 @@ const populateFieldSelector = async () => {
         checkboxWrapper.appendChild(label);
         fieldSelector.appendChild(checkboxWrapper);
 
-        checkbox.addEventListener('change', updateGraph);
+        // Use the debounced version for the event listener
+        checkbox.addEventListener('change', updateGraphDebounced);
     });
 };
 
@@ -161,4 +268,13 @@ const initialize = async () => {
     await populateFieldSelector();
 };
 
-initialize();
+// Initialize with empty graph
+document.addEventListener('DOMContentLoaded', () => {
+    renderEmptyGraph();
+    initialize();
+});
+
+// Add window resize handler
+window.addEventListener('resize', () => {
+    Plotly.Plots.resize('graphCanvas');
+});

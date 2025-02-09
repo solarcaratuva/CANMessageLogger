@@ -1,41 +1,123 @@
-/* Layout styles */
-#container {
-    display: flex;
-    height: 100vh;
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    padding-top: 56px; /* Height of Bootstrap navbar */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: white;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Make navbar fixed */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+}
+
+/* Container styles */
+.wide-container {
+    padding: 1rem;
+}
+
+.container-fluid {
+    height: calc(100vh - 120px); /* Subtract navbar height + padding */
+    padding: 1rem;
+}
+
+.large-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 100%;
+    padding: 1rem;
+}
+
+.small-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    height: auto;
+    margin-bottom: 1rem;
+}
+
+/* Graph canvas */
+#graphCanvas {
+    width: 100%;
+    height: calc(100vh - 180px); /* Adjust height to fit screen */
     background-color: white;
 }
 
-#graph-section {
-    flex: 3;
-    padding: 20px;
+/* Field selector styling */
+#field-selector {
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+    padding-right: 10px;
 }
 
-#control-bar {
-    flex: 1;
-    background-color: #f4f4f9;
-    padding: 20px;
-    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+#field-selector div {
+    margin-bottom: 0.5rem;
+}
+
+#field-selector input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+/* Text container */
+.text-container {
+    padding: 0.5rem;
+}
+
+/* Logo container */
+.logo-container {
+    height: 40px;
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
 }
 
-#control-bar h2 {
-    margin-bottom: 20px;
+.navbar-logo {
+    height: 100%;
+    width: auto;
 }
 
-#control-bar select {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 20px;
-    font-size: 1em;
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container-fluid {
+        height: auto;
+    }
+    
+    #graphCanvas {
+        height: 50vh;
+    }
+    
+    #field-selector {
+        max-height: 30vh;
+    }
 }
-
-/* Canvas styling */
-canvas {
-    max-width: 90%;
-    height: 70vh;
-    margin: 0 auto;
-    display: block;
-}
-
