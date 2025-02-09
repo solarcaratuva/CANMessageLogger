@@ -1,20 +1,20 @@
-from input.consumer import queue
+from backend.input.consumer import queue, start_consume_time
 import time
 
 import re
 
-LOOP_TIME = 0.01
+LOOP_TIME = 0.0001
 
 #                          Timestamp                        ID                              Data Bytes
 pattern = re.compile(r'(\d{2}):(\d{2}):(\d{2}) DEBUG .+ ID (0x[0-9A-Fa-f]+) Length \d+ Data (0x[0-9A-Fa-f]+)')
 
-start_time_mseconds = None
-millisecond_incrementer = 0
-previous_mseconds = None
+# These global vars are required for the non-live log-file processing
+msIncrementer = 0
+msPrevious = None
 
 
 def parse_line(log_line: str) -> tuple[int, bytes, int]:
-    global start_time_mseconds, millisecond_incrementer, previous_mseconds
+    global msIncrementer, msPrevious
 
     match = pattern.search(log_line)
     if match is None:  # if the line from the file does not match the REGEX, return none
@@ -28,13 +28,13 @@ def parse_line(log_line: str) -> tuple[int, bytes, int]:
     milliseconds = (hours * 3600 + minutes * 60 + seconds) * 1000
 
     # Check if the seconds have changed (First message just ignore), if it has not changed then increment
-    if previous_mseconds is not None and milliseconds == previous_mseconds:
-        millisecond_incrementer += 5
+    if msPrevious is not None and milliseconds == msPrevious:
+        msIncrementer += 5
     else:  # resets if it changes (or if it is the first message)
-        millisecond_incrementer = 0
-        previous_mseconds = milliseconds
+        msIncrementer = 0
+        msPrevious = milliseconds
 
-    milliseconds += millisecond_incrementer
+    milliseconds += msIncrementer
 
     # Convert the ID to an integer
     id_int = int(id_hex, 16)
@@ -42,16 +42,14 @@ def parse_line(log_line: str) -> tuple[int, bytes, int]:
     # Convert the data to a byte object
     data_bytes = bytes.fromhex(data_hex[2:])
 
-    if start_time_mseconds is None:
-        start_time_mseconds = milliseconds
-
-    time_since_start = milliseconds - start_time_mseconds
+    time_since_start = milliseconds
 
     cm_tuple = (id_int, data_bytes, time_since_start)
     return cm_tuple
 
 
 def process_logfile(path_to_log_file: str) -> None:
+    print("log_file")
     with open(path_to_log_file, 'r') as file:
         for line in file:
             cm_tup = parse_line(line)
@@ -59,11 +57,14 @@ def process_logfile(path_to_log_file: str) -> None:
                 queue.put(cm_tup)
 
 
+# Emphasize: For this function TimeStamp is NOT taken from logfile, it is system time (see sys_cm_tuple)
 def process_logfile_live(path_to_log_file: str) -> None:
+    print("log_file_live")
     with open(path_to_log_file, 'r') as file:
         for line in file:
             cm_tup = parse_line(line)
             if cm_tup is not None:  # if the line from log file followed the format, add to queue
-                queue.put(cm_tup)
+                sys_cm_tup = (cm_tup[0], cm_tup[1], time.perf_counter() - start_consume_time)  # from the System Time
+                queue.put(sys_cm_tup)
             time.sleep(LOOP_TIME)
 

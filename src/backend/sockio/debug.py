@@ -1,36 +1,43 @@
-from flask import Flask, render_template, jsonify
-from flask_socketio import SocketIO
-from src.backend.db_connection import DbConnection as dbconnect
-from src.backend.input import logfile_producer, consumer
-import os
+from main import socketio, app # the socketio app
+from backend.db_connection import DbConnection as dbconnect
+from backend.input import consumer
 import time
-from functools import partial
+from flask import Flask, render_template, jsonify
 
-app = Flask(__name__, template_folder='frontend/html', static_folder='frontend/static')
-socketio = SocketIO(app, cors_allowed_origins="*")
-
-# List to store messages to display on the front end
+logger_db = dbconnect
 message_list = []
 
+# Grabs the latest row from each table
+@socketio.on('get_latest_row_from_tables')
+def handle_data_request():
+    # Need to Add: Logic for keeping track of last send time
+    table_names = logger_db.get_table_names()  # Each table in the Database stores 1 type of Can Message
+    for table_name in table_names:  # Database has a table for each type of Can Message
+        if table_name != "sqlite_sequence":
+            num_messages = logger_db.query(f"Select COUNT(*) as len FROM {table_name};")  # returns a list of dicts
+            print(f"There are {num_messages[0]['len']} messages in table for Can Message Type: {table_name}")
+            if num_messages[0]['len']:
+                row = logger_db.query(f"SELECT * FROM {table_name} ORDER BY timeStamp DESC LIMIT 1;")
+                timestamp = row[0]['timeStamp']
+                del row[0]['timeStamp']
+                message_dict = row[0]
 
-@app.route('/')
-def index():
-    # Render the HTML with the large_data passed in
-    return render_template('debug.html', large_data=message_list)
+                # logic for handling time
+                time_diff = consumer.last_consume_time - (consumer.start_consume_time + timestamp / 1000)
 
-
-@socketio.on('connect')
-def handle_connect():
-    print("Client connected.")
-
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    print("Client disconnected.")
+                socketio.emit('update_large_data', {
+                    'table_name': table_name,
+                    'timestamp': timestamp,
+                    'keys': message_dict,  # signal to signal value dictionary
+                    'time_diff': time_diff
+                })
+            else:
+                print(f"Table for {table_name} is empty.")
 
 @app.route('/get_table_names', methods=['GET'])
 def get_table_names():
-    logger_db = dbconnect.DbConnection()
+    print("table name check")
+    logger_db = dbconnect()
     
     try:
         # Query to get all table names from the SQLite database
@@ -50,7 +57,8 @@ def get_table_names():
 
 @app.route('/get_latest_message', methods=['GET'])
 def get_latest_message_batch():
-    logger_db = dbconnect.DbConnection()
+    print("latest message check")
+    logger_db = dbconnect()
     message_batch = []  # Collect messages to return later
 
     tables = logger_db.query("SELECT name FROM sqlite_master WHERE type='table';")
@@ -118,5 +126,3 @@ def get_latest_message_batch():
         })
     else:
         return jsonify({'message': 'No new messages'})
-
-
