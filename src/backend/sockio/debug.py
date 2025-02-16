@@ -83,7 +83,7 @@ def get_latest_message_batch():
                                           'timestamp': timestamp})  # Append to batch list
                 else:
                     timestamp = 0
-                    message_dict = {"Error": "No messages received"}
+                    message_dict = {}
 
                     message_batch.append({'table_name': table_name, 'data': message_dict,
                                           'timestamp': timestamp})  # Append to batch list
