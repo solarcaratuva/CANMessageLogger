@@ -230,13 +230,14 @@ function displayMessage(data, checkedTables) {
     const messageContainer = document.getElementById('messageContainer');
     const tableName = data.table_name; // Get the table name from the data
 
-    // Get the current message timestamp
-    const currentTimestamp = new Date(data.timestamp);
+    // Handle timestamp correctly
+    let currentTimestamp = data.timestamp === 0 ? null : new Date(data.timestamp);
 
     // If the table name does not exist in the tableMessages object, create an entry
     if (!tableMessages[tableName]) {
         tableMessages[tableName] = []; // Initialize an array for this table's messages
         lastMessageTime[tableName] = currentTimestamp; // Set initial last message time
+        
         // Create a new Bootstrap card for this table
         const card = document.createElement('div');
         card.className = 'card mt-3';
@@ -256,9 +257,13 @@ function displayMessage(data, checkedTables) {
         messageContainer.appendChild(card); // Append the card to the main message container
     }
 
-    // Calculate time since last message (in seconds)
-    const timeSinceLastMessage = Math.floor((currentTimestamp - lastMessageTime[tableName]) / 1000);
-    lastMessageTime[tableName] = currentTimestamp; // Update the last message time
+    // Calculate time since last message
+    let timeSinceLastMessage = "N/A";
+    if (currentTimestamp && lastMessageTime[tableName]) {
+        timeSinceLastMessage = Math.floor((currentTimestamp - lastMessageTime[tableName]) / 1000) + " seconds";
+    }
+
+    lastMessageTime[tableName] = currentTimestamp; // Update last message time only if valid
 
     // Store the received message in the array for this specific table
     tableMessages[tableName].push(data);
@@ -278,7 +283,7 @@ function displayMessage(data, checkedTables) {
         for (const key in msg.data) {
             messageContent.push(`${key}: ${msg.data[key]}`);
         }
-        const timeSinceLastLine = `Time Since Last Message: ${timeSinceLastMessage} seconds`;
+        const timeSinceLastLine = `Time Since Last Message: ${timeSinceLastMessage}`;
         const newMessageText = `${timeSinceLastLine}\n${messageContent.join('\n')}`;
 
         // Create a new div for the message
@@ -296,6 +301,8 @@ function displayMessage(data, checkedTables) {
     // Call updateVisibleTables only once on page load
     loadTableData(checkedTables);
 }
+
+
 
 function filterCheckboxes() {
     const searchInput = document.getElementById('search-bar').value.toLowerCase(); // Get the search input

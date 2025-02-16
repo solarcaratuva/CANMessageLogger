@@ -62,30 +62,31 @@ def get_latest_message_batch():
     message_batch = []  # Collect messages to return later
 
     tables = logger_db.query("SELECT name FROM sqlite_master WHERE type='table';")
-    
+
     for table in tables:
         table_name = table['name']
         if table_name != "sqlite_sequence":
-            result = logger_db.query(f"SELECT COUNT(*) as len FROM {table_name};")
-            print(result[0]['len'], table_name)
-            row = 0
-            if result[0]['len']:
-                row = logger_db.query(f"SELECT * FROM {table_name} ORDER BY timeStamp DESC LIMIT 1;")
-            else:
-                print(f"Table for {table_name} is empty.")
-            if row:
-                timestamp = row[0]['timeStamp']
-                del row[0]['timeStamp']
-                message_dict = row[0]
+            # Get column names excluding 'count'
+            columns = logger_db.query(f"PRAGMA table_info({table_name});")
+            column_names = [col['name'] for col in columns if col['name'].lower() != 'count']
 
-                message_batch.append({'table_name': table_name, 'data': message_dict,
-                                      'timestamp': timestamp})  # Append to batch list
-            else:
-                timestamp = 0
-                message_dict = {"Colby": "Sir"}
+            if column_names:  # Ensure we have columns to select
+                column_list = ', '.join(column_names)
+                row = logger_db.query(f"SELECT {column_list} FROM {table_name} ORDER BY timeStamp DESC LIMIT 1;")
 
-                message_batch.append({'table_name': table_name, 'data': message_dict,
-                                      'timestamp': timestamp})  # Append to batch list
+                if row:
+                    timestamp = row[0]['timeStamp']
+                    del row[0]['timeStamp']
+                    message_dict = row[0]
+
+                    message_batch.append({'table_name': table_name, 'data': message_dict,
+                                          'timestamp': timestamp})  # Append to batch list
+                else:
+                    timestamp = 0
+                    message_dict = {"Error": "No messages received"}
+
+                    message_batch.append({'table_name': table_name, 'data': message_dict,
+                                          'timestamp': timestamp})  # Append to batch list
                 
 
     # Prepare the response structure
