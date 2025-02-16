@@ -56,23 +56,6 @@ def main():
                 parser.error("Need to specify a .db or .sqlite file")
 
             database_path = args.inputFile[0]
-            pass
-
-    tables = dbconn.get_table_names()
-    for table in tables:
-        table_name = table
-        if table_name != "sqlite_sequence":
-            result = dbconn.query(f"Select COUNT(*) as len FROM {table_name};")
-            print(result[0]['len'], table_name)
-            row = 0
-            if result[0]['len']:
-                row = dbconn.query(f"SELECT * FROM {table_name} ORDER BY timeStamp DESC LIMIT 1;")
-            else:
-                print(f"Table for {table_name} is empty.")
-            if row:
-                print(f"Data from table: {table_name}")
-                print(row)
-            print("\n")
 
     socketio.run(app, debug=True, allow_unsafe_werkzeug=True)  # to run the sockio io app, .run is blocking! No code below this
 
