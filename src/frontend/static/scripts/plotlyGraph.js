@@ -35,11 +35,25 @@ const fetchFields = async () => {
 // Fetch data for specific fields with downsampling
 const fetchFieldData = async (fields) => {
     try {
-        const response = await fetch(`/api/motorcommands-data?fields=${fields.join(',')}`);
+        const url = `/api/motorcommands-data?fields=${fields.join(',')}`;
+        console.log('Fetching data for fields:', fields); // Debug log
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('Received data:', data); // Debug log
+        
+        if (!data || data.length === 0) {
+            console.log('No data received from API');
+            return [];
+        }
+        
         return data;
     } catch (error) {
-        console.error('Error fetching data for fields:', error);
+        console.error('Error fetching field data:', error);
         return [];
     }
 };
@@ -162,6 +176,8 @@ const debounce = (func, wait) => {
 const updateGraphDebounced = debounce(async () => {
     selectedFields = Array.from(document.querySelectorAll('#field-selector input:checked'))
         .map((checkbox) => checkbox.value);
+    
+    console.log('Selected fields:', selectedFields);
 
     if (selectedFields.length === 0) {
         renderEmptyGraph();
@@ -169,87 +185,83 @@ const updateGraphDebounced = debounce(async () => {
     }
 
     const data = await fetchFieldData(selectedFields);
-
-    if (!data || data.error) {
-        console.error('Error: No data received');
+    
+    if (!data || data.length === 0) {
+        console.log('No data to plot');
         return;
     }
 
     const traces = selectedFields.map((field) => {
-        const rawTimestamps = data.map((row) => row.timestamp);
-        const rawValues = data.map((row) => row[field] || null);
-        const { timestamps, values } = preprocessStepData(rawTimestamps, rawValues);
+        console.log(`Creating trace for field: ${field}`);
+        const fieldData = data.map(row => ({
+            timestamp: row.timestamp, // Use raw timestamp
+            value: row[field]
+        }));
+        
+        console.log(`Field data for ${field}:`, fieldData);
 
         return {
-            x: timestamps,
-            y: values,
+            x: fieldData.map(d => d.timestamp),
+            y: fieldData.map(d => d.value),
             mode: 'lines',
             name: field,
-            line: {
-                shape: 'hv'
-            }
+            line: { shape: 'hv' }
         };
     });
 
-    // Calculate the time range using reduce instead of spread operator
-    const allTimestamps = data.map(row => row.timestamp);
-    const minTime = allTimestamps.reduce((min, curr) => Math.min(min, curr), allTimestamps[0]);
-    const maxTime = allTimestamps.reduce((max, curr) => Math.max(max, curr), allTimestamps[0]);
-    const timeRange = maxTime - minTime;
-    
-    // Add some padding to the range (5% on each side)
-    const padding = timeRange * 0.05;
-
     const layout = {
-        title: {
-            text: 'MotorCommands Visualization',
-            font: {
-                size: 24,
-                color: '#2c3e50'
-            }
+        title: 'MotorCommands Visualization',
+        xaxis: {
+            title: 'Timestamp',
+            type: 'linear', // Changed from 'date' to 'linear'
+            gridcolor: '#f0f0f0'
         },
-        xaxis: { 
-            title: 'Timestamp (Unix)',
-            showgrid: true,
-            type: 'linear',
-            gridcolor: '#f0f0f0',
-            range: [minTime - padding, maxTime + padding],  // Set the range with padding
-            automargin: true  // Ensure labels are visible
-        },
-        yaxis: { 
-            title: 'Values',
-            showgrid: true,
-            gridcolor: '#f0f0f0',
-            automargin: true
+        yaxis: {
+            title: 'Value',
+            gridcolor: '#f0f0f0'
         },
         showlegend: true,
-        margin: { t: 50, l: 50, r: 20, b: 50 },
-        autosize: true,
         plot_bgcolor: 'white',
         paper_bgcolor: 'white'
     };
 
-    const config = {
-        responsive: true,
-        displayModeBar: true,
-        displaylogo: false,
-        modeBarButtonsToRemove: ['lasso2d', 'select2d']
-    };
+    console.log('Plotting traces:', traces);
+    
+    Plotly.newPlot('graphCanvas', traces, layout);
+}, 250);
 
-    Plotly.newPlot('graphCanvas', traces, layout, config);
-}, 250); // 250ms debounce time
-
-// Modify the populateFieldSelector function
+// Update the populateFieldSelector function
 const populateFieldSelector = async () => {
     const fieldSelector = document.getElementById('field-selector');
     const fields = await fetchFields();
-
+    
+    // Remove any existing headers
+    const existingHeaders = document.querySelectorAll('.control-header, .text-container h5');
+    existingHeaders.forEach(header => header.remove());
+    
+    // Create single header
+    const header = document.createElement('h5');
+    header.textContent = 'Controls';
+    header.style.marginBottom = '1rem';
+    
+    // Get the small-container
+    const container = document.querySelector('.small-container');
+    
+    // Clear the container
+    container.innerHTML = '';
+    
+    // Add elements in the correct order
+    container.appendChild(header);
+    container.appendChild(fieldSelector);
+    
+    // Populate fields
     fields.forEach((field) => {
         const checkboxWrapper = document.createElement('div');
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.value = field;
         checkbox.id = `checkbox-${field}`;
+        
         const label = document.createElement('label');
         label.htmlFor = `checkbox-${field}`;
         label.textContent = field;
@@ -258,8 +270,38 @@ const populateFieldSelector = async () => {
         checkboxWrapper.appendChild(label);
         fieldSelector.appendChild(checkboxWrapper);
 
-        // Use the debounced version for the event listener
         checkbox.addEventListener('change', updateGraphDebounced);
+    });
+    
+    // Add search box at the bottom
+    addSearchBox();
+};
+
+const addSearchBox = () => {
+    const container = document.querySelector('.small-container');
+    const searchContainer = document.createElement('div');
+    searchContainer.className = 'search-container';
+    
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search fields...';
+    searchInput.className = 'search-input';
+    
+    searchContainer.appendChild(searchInput);
+    container.appendChild(searchContainer);
+    
+    // Add search functionality
+    searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const checkboxes = document.querySelectorAll('#field-selector div');
+        
+        checkboxes.forEach(div => {
+            const label = div.querySelector('label');
+            if (label) {
+                const text = label.textContent.toLowerCase();
+                div.style.display = text.includes(searchTerm) ? 'block' : 'none';
+            }
+        });
     });
 };
 

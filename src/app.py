@@ -50,25 +50,40 @@ def get_motorcommands_data():
         selected_fields = fields.split(',')
         logger_db = dbconnect.DbConnection()
 
-        # Fetch all data and include timestamps
+        # Debug print
+        print(f"Fetching data for fields: {selected_fields}")
+
         query = f"""
         SELECT timeStamp, {', '.join(selected_fields)}
         FROM MotorCommands
         ORDER BY timeStamp ASC
         """
+        
+        # Debug print
+        print(f"Executing query: {query}")
+        
         rows = logger_db.query(query)
+        
+        # Debug print
+        print(f"Retrieved {len(rows) if rows else 0} rows")
 
         if not rows:
-            return jsonify([])  # Return empty array if no data
+            return jsonify([])
 
-        # Format data
         data = [
-            {'timestamp': row['timeStamp'], **{field: row[field] for field in selected_fields}}
+            {
+                'timestamp': row['timeStamp'].isoformat() if hasattr(row['timeStamp'], 'isoformat') else row['timeStamp'],
+                **{field: float(row[field]) if row[field] is not None else None for field in selected_fields}
+            }
             for row in rows
         ]
+        
+        # Debug print
+        print(f"Returning {len(data)} formatted records")
+        
         return jsonify(data)
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error in get_motorcommands_data: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
