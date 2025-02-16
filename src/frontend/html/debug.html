@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../static/style/styles.css">
+    <title>UVA Solar Car</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <a class="navbar-brand" href="#">
+                <div class="logo-container">
+                    <img src="../static/logo.png" id="logo" alt="Logo" class="navbar-logo">
+                </div>
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="#">Debug Dashboard<span class="sr-only">(current)</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Graphs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Link2</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Link3</a>
+                    </li>
+                </ul>
+
+                <div class="navbar-nav ml-auto">
+                    <span class="text-light middleTitle">Debug Dashboard</span>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div>
+        <div class="wide-container text-center mt-4">
+            <h2>Error Messages!</h2>
+        </div>
+
+        <div class="container-fluid mt-4">
+            <div class="row">
+                <!-- Left large container -->
+                <div class="col-md-8">
+                    <div class="large-container">
+                        <div class="text-container" id="messageContainer">
+                            <!-- Content for large container will be dynamically updated -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right smaller containers -->
+                <div class="col-md-4">
+                    <div class="small-container" id="checkbox-container" style="height:600px">
+                        <div class="text-container">
+                            <h5>Message Types</h5>
+                            <input 
+                                type="text" 
+                                id="search-bar" 
+                                class="form-control mb-3" 
+                                placeholder="Search tables..." 
+                                onkeyup="filterCheckboxes()"
+                            />
+                        </div>
+                        <hr class="separator">
+                    <div class="small-container mt-4" style="height:350px">
+                        <div class="text-container">
+                            <!-- Content for small container 3 -->
+                            <form id="table-names-form">
+                                <!-- Checkboxes for table names will be dynamically populated here -->
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+// Socket connection to Flask app
+const socket = io('http://127.0.0.1:5000'); // Specify the correct URL of your Flask app
+
+// Variable to set the maximum number of messages to display
+const maxMessagesPerTable = 1; // Change this value to control how many messages are shown per table
+
+// Object to store messages for different tables
+let checkedTables = ["MotorCommands", "DashboardCommands"];
+let tableMessages = {};
+let lastMessageTime = {};
+console.log('test');
+
+// Handle receiving batches of messages
+
+// Function to fetch table names and populate checkboxes
+function fetchTableNames() {
+    fetch('/get_table_names') // Assuming you have an endpoint that returns table names
+        .then(response => response.json())
+        .then(data => {
+            if (Array.isArray(data.table_names)) {
+                populateCheckboxes(data.table_names, checkedTables); // Populate table name checkboxes dynamically
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching table names:', error);
+        });
+}
+
+// Function to fetch the latest messages
+function fetchLatestMessages() {
+    fetch('/get_latest_message')
+        .then(response => response.json())
+        .then(batchData => {
+            console.log('Received message batch:', batchData);
+
+            // Iterate over the batch and display each message
+            batchData.messages.forEach((data) => {
+                displayMessage(data, checkedTables); // Display each message from the batch
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching latest messages:', error);
+        });
+}
+
+// Call the function to fetch table names once at the beginning
+fetchTableNames();
+
+setInterval(fetchLatestMessages, 1000);
+
+// Populate checkboxes dynamically
+function populateCheckboxes(tableNames, defaultCheckedTables = []) {
+    console.log("Starting populating...");
+    const checkboxContainer = document.getElementById('table-names-form');
+    checkboxContainer.innerHTML = ''; // Clear existing checkboxes
+    checkedTables = [];
+
+    tableNames.forEach((tableName) => {
+        if (tableName === "sqlite_sequence") {
+            return;
+        }   
+        if (!document.getElementById('checkbox_' + tableName)) {
+            const checkboxWrapper = document.createElement('div'); // Wrapper for styling and filtering
+            checkboxWrapper.className = 'checkbox-wrapper';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.name = 'tableName';
+            checkbox.value = tableName;
+            checkbox.id = 'checkbox_' + tableName;
+
+            // Check if the tableName is in the defaultCheckedTables array
+            checkbox.checked = defaultCheckedTables.includes(tableName);
+
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.appendChild(document.createTextNode(tableName));
+
+            checkboxWrapper.appendChild(checkbox);
+            checkboxWrapper.appendChild(label);
+            checkboxContainer.appendChild(checkboxWrapper);
+
+            checkbox.addEventListener('change', loadTableData); // Add event listener
+            if(checkbox.checked){
+                checkedTables.push(tableName);
+                console.log("Table Name: " + tableName);
+            }
+        }
+    });
+
+    // Trigger loadTableData for all default-checked checkboxes
+    const defaultCheckedCheckboxes = document.querySelectorAll(
+        'input[name="tableName"]:checked'
+    );
+    defaultCheckedCheckboxes.forEach((checkbox) => {
+        // Simulate a call to loadTableData for each default-checked checkbox
+        checkbox.dispatchEvent(new Event('change'));
+    });
+}
+
+// Load table data based on selected checkboxes
+function loadTableData() {
+    const form = document.getElementById('table-names-form');
+    const selectedTables = [];
+
+    // Get selected table names from the form
+    form.querySelectorAll('input[name="tableName"]:checked').forEach((checkbox) => {
+        selectedTables.push(checkbox.value);
+    });
+
+    // Emit event to the server to request data for selected tables (if needed)
+    if (selectedTables.length > 0) {
+        // Hide non-selected tables and show only selected ones
+        updateVisibleTables(selectedTables);
+    } else {
+        // If no checkboxes are selected, show all tables
+        updateVisibleTables(null);
+    }
+}
+
+// Update which tables are visible based on selected checkboxes
+function updateVisibleTables(selectedTables) {
+    const messageContainer = document.getElementById('messageContainer');
+    const allCards = messageContainer.querySelectorAll('.card');
+
+    allCards.forEach((card) => {
+        const tableName = card.id.replace('card_', ''); // Extract table name from card ID
+
+        if (!selectedTables || selectedTables.includes(tableName)) {
+            card.style.display = 'block'; // Show the card
+        } else {
+            card.style.display = 'none'; // Hide the card
+        }
+    });
+}
+
+// Display messages in the main container
+let hasInitializedVisibleTables = false; // Track if updateVisibleTables has been called once
+
+function displayMessage(data, checkedTables) {
+    const messageContainer = document.getElementById('messageContainer');
+    const tableName = data.table_name; // Get the table name from the data
+
+    // Handle timestamp correctly
+    let currentTimestamp = data.timestamp === 0 ? null : new Date(data.timestamp);
+
+    // If the table name does not exist in the tableMessages object, create an entry
+    if (!tableMessages[tableName]) {
+        tableMessages[tableName] = []; // Initialize an array for this table's messages
+        lastMessageTime[tableName] = currentTimestamp; // Set initial last message time
+        
+        // Create a new Bootstrap card for this table
+        const card = document.createElement('div');
+        card.className = 'card mt-3';
+        card.id = 'card_' + tableName; // Give the card an ID based on the table name
+
+        const cardHeader = document.createElement('div');
+        cardHeader.className = 'card-header';
+        cardHeader.innerText = tableName; // Set the card header as the table name
+
+        const cardBody = document.createElement('div');
+        cardBody.className = 'card-body';
+        cardBody.id = 'cardBody_' + tableName; // ID for the card body to update messages
+
+        // Append the header and body to the card
+        card.appendChild(cardHeader);
+        card.appendChild(cardBody);
+        messageContainer.appendChild(card); // Append the card to the main message container
+    }
+
+    // Calculate time since last message
+    let timeSinceLastMessage = "N/A";
+    if (currentTimestamp && lastMessageTime[tableName]) {
+        timeSinceLastMessage = Math.floor((currentTimestamp - lastMessageTime[tableName]) / 1000) + " seconds";
+    }
+
+    lastMessageTime[tableName] = currentTimestamp; // Update last message time only if valid
+
+    // Store the received message in the array for this specific table
+    tableMessages[tableName].push(data);
+
+    // If the number of messages exceeds the limit, remove the oldest message
+    if (tableMessages[tableName].length > maxMessagesPerTable) {
+        tableMessages[tableName].shift(); // Remove the oldest message (first element)
+    }
+
+    // Clear the card body to repopulate it with the latest messages
+    const cardBody = document.getElementById('cardBody_' + tableName);
+    cardBody.innerHTML = ''; // Clear previous messages
+
+    // Prepare and display all the current messages for this table
+    tableMessages[tableName].forEach((msg) => {
+        const messageContent = [];
+        for (const key in msg.data) {
+            messageContent.push(`${key}: ${msg.data[key]}`);
+        }
+        const timeSinceLastLine = `Time Since Last Message: ${timeSinceLastMessage}`;
+        const newMessageText = `${timeSinceLastLine}\n${messageContent.join('\n')}`;
+
+        // Create a new div for the message
+        const newMessageDiv = document.createElement('div');
+        newMessageDiv.innerText = newMessageText; // Display time since last message and data
+        newMessageDiv.classList.add('message', 'mb-2'); // Optional: Add classes for styling
+
+        // Append the new message to the appropriate card body
+        cardBody.appendChild(newMessageDiv);
+    });
+
+    // Optionally scroll to the bottom of the card body
+    cardBody.scrollTop = cardBody.scrollHeight;
+
+    // Call updateVisibleTables only once on page load
+    loadTableData(checkedTables);
+}
+
+
+
+function filterCheckboxes() {
+    const searchInput = document.getElementById('search-bar').value.toLowerCase(); // Get the search input
+    const checkboxes = document.getElementById('table-names-form').querySelectorAll('input[type="checkbox"]'); // Get all checkboxes
+
+    checkboxes.forEach((checkbox) => {
+        const label = checkbox.nextElementSibling.textContent.toLowerCase(); // Get the corresponding label text
+        if (label.includes(searchInput)) {
+            checkbox.parentElement.style.display = 'block'; // Show matching checkboxes
+        } else {
+            checkbox.parentElement.style.display = 'none'; // Hide non-matching checkboxes
+        }
+    });
+}
+
+    </script>
+</body>
+</html>

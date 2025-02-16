@@ -5,5 +5,8 @@ Resources\__pycache__
 dist
 build
 main.spec
-
+venv
+*.sqlite
+*.db
+*.sqlite-journal
 TODO
