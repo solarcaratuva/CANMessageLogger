@@ -7,7 +7,7 @@ from backend.sockio import debug
 
 
 def main():
-    database_path = "./src/can_database.sqlite"
+    database_path = "./can_database.sqlite"
     datafile_path = None
 
     parser = cli_message_reader()

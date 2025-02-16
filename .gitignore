@@ -6,5 +6,7 @@ dist
 build
 main.spec
 venv
-
+*.sqlite
+*.db
+*.sqlite-journal
 TODO
