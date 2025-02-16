@@ -1,11 +1,12 @@
 from flask import Flask, render_template, jsonify, request
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, emit
 import backend.db_access as db_access
 import backend.DbConnection as dbconnect
 import os
 import time
 from input import consumer, logfileProd
 from functools import partial
+import random
 
 app = Flask(__name__, template_folder='frontend/html', static_folder='frontend/static')
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -50,40 +51,25 @@ def get_motorcommands_data():
         selected_fields = fields.split(',')
         logger_db = dbconnect.DbConnection()
 
-        # Debug print
-        print(f"Fetching data for fields: {selected_fields}")
-
+        # Fetch all data and include timestamps
         query = f"""
         SELECT timeStamp, {', '.join(selected_fields)}
         FROM MotorCommands
         ORDER BY timeStamp ASC
         """
-        
-        # Debug print
-        print(f"Executing query: {query}")
-        
         rows = logger_db.query(query)
-        
-        # Debug print
-        print(f"Retrieved {len(rows) if rows else 0} rows")
 
         if not rows:
-            return jsonify([])
+            return jsonify([])  # Return empty array if no data
 
+        # Format data
         data = [
-            {
-                'timestamp': row['timeStamp'].isoformat() if hasattr(row['timeStamp'], 'isoformat') else row['timeStamp'],
-                **{field: float(row[field]) if row[field] is not None else None for field in selected_fields}
-            }
+            {'timestamp': row['timeStamp'], **{field: row[field] for field in selected_fields}}
             for row in rows
         ]
-        
-        # Debug print
-        print(f"Returning {len(data)} formatted records")
-        
         return jsonify(data)
     except Exception as e:
-        print(f"Error in get_motorcommands_data: {str(e)}")
+        print(f"Error: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -92,6 +78,33 @@ def get_motorcommands_data():
 @socketio.on('connect')
 def handle_connect():
     print("Client connected.")
+
+@socketio.on('subscribe_motor_data')
+def handle_motor_subscription():
+    """Handle real-time motor data subscription with random values"""
+    print("Client subscribed to motor data")
+    
+    try:
+        while True:
+            # Generate random throttle value between 0 and 256
+            throttle = random.randint(0, 256)
+            timestamp = time.time()
+            
+            data = {
+                'timestamp': timestamp,
+                'data': {
+                    'throttle_pedal': throttle
+                }
+            }
+            print(f"Emitting data: {data}")  # Debug log
+            emit('motor_data_update', data)
+            
+            socketio.sleep(0.1)  # Update every 2 seconds
+            
+    except Exception as e:
+        print(f"Error in motor data subscription: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
 
 @socketio.on('disconnect')
 def handle_disconnect():

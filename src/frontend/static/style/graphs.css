@@ -163,3 +163,18 @@ body {
         max-height: 30vh;
     }
 }
+
+.live-update-control {
+    margin-top: 1rem;
+    padding: 0.5rem;
+    border-top: 1px solid #eee;
+    position: sticky;
+    bottom: 0;
+    background: white;
+}
+
+#toggleLiveUpdate {
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+}

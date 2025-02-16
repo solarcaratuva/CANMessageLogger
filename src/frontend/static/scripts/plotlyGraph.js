@@ -1,5 +1,8 @@
 let graphData = {};
 let selectedFields = [];
+let socket = null;
+let isLiveUpdating = false;
+const maxDataPoints = 50; // Maximum number of points to show
 
 const preprocessStepData = (timestamps, values) => {
     const newTimestamps = [];
@@ -172,7 +175,120 @@ const debounce = (func, wait) => {
     };
 };
 
-// Modify the updateGraph function to be debounced
+const initializeWebSocket = () => {
+    socket = io('http://localhost:5050');
+    
+    socket.on('connect', () => {
+        console.log('WebSocket connected successfully');
+    });
+    
+    socket.on('motor_data_update', (data) => {
+        console.log('Received data:', data); // Debug log
+        if (isLiveUpdating) {
+            updateGraphWithLiveData(data);
+        }
+    });
+
+    socket.on('error', (error) => {
+        console.error('Socket error:', error);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Socket disconnected');
+    });
+};
+
+const updateGraphWithLiveData = (newData) => {
+    console.log('Updating graph with:', newData); // Debug log
+    const graphDiv = document.getElementById('graphCanvas');
+    if (!graphDiv.data) {
+        console.log('No graph data found, reinitializing...'); // Debug log
+        initializeGraph();
+        return;
+    }
+
+    try {
+        const value = newData.data.throttle_pedal;
+        console.log('Throttle value:', value); // Debug log
+
+        Plotly.extendTraces('graphCanvas', {
+            x: [[newData.timestamp]],
+            y: [[value]]
+        }, [0])
+        .then(() => {
+            console.log('Trace extended successfully'); // Debug log
+            
+            // Keep only last maxDataPoints
+            if (graphDiv.data[0].x.length > maxDataPoints) {
+                const updateRange = {
+                    x: [graphDiv.data[0].x.slice(-maxDataPoints)],
+                    y: [graphDiv.data[0].y.slice(-maxDataPoints)]
+                };
+                return Plotly.update('graphCanvas', updateRange, {}, [0]);
+            }
+        })
+        .then(() => {
+            // Auto-scroll x-axis
+            const xRange = graphDiv.data[0].x;
+            const minX = xRange[xRange.length - maxDataPoints];
+            const maxX = xRange[xRange.length - 1];
+            
+            return Plotly.relayout('graphCanvas', {
+                'xaxis.range': [minX, maxX]
+            });
+        })
+        .catch(error => {
+            console.error('Error updating plot:', error);
+        });
+    } catch (error) {
+        console.error('Error in updateGraphWithLiveData:', error);
+    }
+};
+
+const initializeGraph = () => {
+    console.log('Initializing graph...'); // Debug log
+    const trace = {
+        x: [],
+        y: [],
+        mode: 'lines',
+        name: 'throttle_pedal',
+        line: { 
+            shape: 'hv',
+            color: '#2ecc71'
+        }
+    };
+
+    const layout = {
+        title: 'Throttle Pedal Live Data',
+        xaxis: {
+            title: 'Timestamp',
+            type: 'linear',
+            gridcolor: '#f0f0f0'
+        },
+        yaxis: {
+            title: 'Throttle Value',
+            gridcolor: '#f0f0f0',
+            range: [0, 256]
+        },
+        showlegend: true,
+        margin: { t: 50, l: 50, r: 20, b: 50 },
+        autosize: true,
+        plot_bgcolor: 'white',
+        paper_bgcolor: 'white'
+    };
+
+    const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false
+    };
+
+    Plotly.newPlot('graphCanvas', [trace], layout, config)
+        .then(() => console.log('Graph initialized successfully'))
+        .catch(error => console.error('Error initializing graph:', error));
+};
+
+// Modify the updateGraphDebounced function
 const updateGraphDebounced = debounce(async () => {
     selectedFields = Array.from(document.querySelectorAll('#field-selector input:checked'))
         .map((checkbox) => checkbox.value);
@@ -181,9 +297,11 @@ const updateGraphDebounced = debounce(async () => {
 
     if (selectedFields.length === 0) {
         renderEmptyGraph();
+        isLiveUpdating = false;
         return;
     }
 
+    // Get initial data
     const data = await fetchFieldData(selectedFields);
     
     if (!data || data.length === 0) {
@@ -192,13 +310,10 @@ const updateGraphDebounced = debounce(async () => {
     }
 
     const traces = selectedFields.map((field) => {
-        console.log(`Creating trace for field: ${field}`);
         const fieldData = data.map(row => ({
-            timestamp: row.timestamp, // Use raw timestamp
+            timestamp: row.timestamp,
             value: row[field]
         }));
-        
-        console.log(`Field data for ${field}:`, fieldData);
 
         return {
             x: fieldData.map(d => d.timestamp),
@@ -213,7 +328,7 @@ const updateGraphDebounced = debounce(async () => {
         title: 'MotorCommands Visualization',
         xaxis: {
             title: 'Timestamp',
-            type: 'linear', // Changed from 'date' to 'linear'
+            type: 'linear',
             gridcolor: '#f0f0f0'
         },
         yaxis: {
@@ -221,13 +336,24 @@ const updateGraphDebounced = debounce(async () => {
             gridcolor: '#f0f0f0'
         },
         showlegend: true,
+        margin: { t: 50, l: 50, r: 20, b: 50 },
+        autosize: true,
         plot_bgcolor: 'white',
         paper_bgcolor: 'white'
     };
 
-    console.log('Plotting traces:', traces);
+    const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['lasso2d', 'select2d']
+    };
+
+    await Plotly.newPlot('graphCanvas', traces, layout, config);
     
-    Plotly.newPlot('graphCanvas', traces, layout);
+    // Start live updates after initial plot
+    isLiveUpdating = true;
+    socket.emit('subscribe_motor_data');
 }, 250);
 
 // Update the populateFieldSelector function
@@ -253,6 +379,26 @@ const populateFieldSelector = async () => {
     // Add elements in the correct order
     container.appendChild(header);
     container.appendChild(fieldSelector);
+    
+    // Create and add the live update button
+    const liveUpdateControl = document.createElement('div');
+    liveUpdateControl.className = 'live-update-control';
+    const toggleButton = document.createElement('button');
+    toggleButton.id = 'toggleLiveUpdate';
+    toggleButton.className = 'btn btn-primary';
+    toggleButton.textContent = 'Start Live Updates';
+    liveUpdateControl.appendChild(toggleButton);
+    container.appendChild(liveUpdateControl);
+    
+    // Add the click handler
+    toggleButton.addEventListener('click', () => {
+        isLiveUpdating = !isLiveUpdating;
+        toggleButton.textContent = isLiveUpdating ? 'Stop Live Updates' : 'Start Live Updates';
+        
+        if (isLiveUpdating) {
+            socket.emit('subscribe_motor_data');
+        }
+    });
     
     // Populate fields
     fields.forEach((field) => {
@@ -310,10 +456,24 @@ const initialize = async () => {
     await populateFieldSelector();
 };
 
-// Initialize with empty graph
+// Initialize WebSocket when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    renderEmptyGraph();
+    console.log('Page loaded, starting initialization...'); // Debug log
+    initializeGraph();
     initialize();
+    initializeWebSocket();
+    
+    const toggleButton = document.getElementById('toggleLiveUpdate');
+    toggleButton.addEventListener('click', () => {
+        isLiveUpdating = !isLiveUpdating;
+        toggleButton.textContent = isLiveUpdating ? 'Stop Live Updates' : 'Start Live Updates';
+        console.log('Live updates:', isLiveUpdating ? 'started' : 'stopped'); // Debug log
+        
+        if (isLiveUpdating) {
+            socket.emit('subscribe_motor_data');
+            console.log('Subscribed to motor data'); // Debug log
+        }
+    });
 });
 
 // Add window resize handler
