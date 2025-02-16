@@ -41,15 +41,10 @@
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div
-      class="collapse navbar-collapse"
-      id="navbarSupportedContent"
-    >
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav mr-auto">
         <li class="nav-item active">
-          <a class="nav-link" href="/"
-            >Debug Dashboard <span class="sr-only">(current)</span></a
-          >
+          <a class="nav-link" href="/">Debug Dashboard <span class="sr-only">(current)</span></a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#">Graphs</a>
@@ -296,7 +291,36 @@
                 <!-- Alerts will be dynamically added here -->
               </div>
             </div>
-            
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Previously Triggered Alerts -->
+  <div class="container-fluid mt-4">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="small-container">
+          <div class="text-container">
+            <h3>Previously Triggered Alerts</h3>
+            <div class="container mt-5">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Alert ID</th>
+                    <th>Triggered Alert ID</th>
+                    <th>Timestamp</th>
+                    <th>CAN Message ID</th>
+                    <th>CAN Message Timestamp</th>
+                    <th>CAN Message Data</th>
+                  </tr>
+                </thead>
+                <tbody id="triggeredAlertsTableBody">
+                  <!-- Table rows will be dynamically added here -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -323,6 +347,50 @@
       .catch((error) => {
         console.error('Error deleting alert:', error);
       });
+    }
+
+    function fetchTriggeredAlerts() {
+      console.log("about to fetch triggered alerts");
+      fetch('/get_triggered_alerts', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          const triggeredAlertsTableBody = document.getElementById('triggeredAlertsTableBody');
+          triggeredAlertsTableBody.innerHTML = ''; // Clear previous rows
+
+          if (data.status === 'success' && data.triggered_alerts.length > 0) {
+            data.triggered_alerts.forEach((alert) => {
+
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td>${alert.alert_id}</td>
+                <td>${alert.id}</td>
+                <td>${alert.timestamp}</td>
+                <td>${alert.can_message_id}</td>
+                <td>${alert.can_message_timestamp}</td>
+                <td>${alert.can_message_data}</td>
+              `;
+              triggeredAlertsTableBody.appendChild(row);
+            });
+          } else {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td colspan="6">
+                <div class="alert alert-info" role="alert">
+                  No triggered alerts found.
+                </div>
+              </td>
+            `;
+            triggeredAlertsTableBody.appendChild(row);
+          }
+        })
+        .catch((error) => {
+          console.error('Error fetching triggered alerts:', error);
+        });
     }
 
     function fetchAlerts() {
@@ -406,14 +474,18 @@
       .catch((error) => {
         console.error('Error fetching alerts:', error);
       });
-  }
+    }
 
-    // Fetch alerts on page load
-    document.addEventListener('DOMContentLoaded', fetchAlerts);
+    // Fetch alerts and triggered alerts on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchAlerts();
+      fetchTriggeredAlerts();
+    });
+
     let selectedField = null;
-    let selectedFieldType = null; //bool, int, or double for now
+    let selectedFieldType = null; // bool, int, or double for now
 
-    //Show modal when "Add Alert" button click
+    // Show modal when "Add Alert" button is clicked
     document.getElementById("addAlertBtn").addEventListener("click", function () {
       // Reset step displays
       document.getElementById("step1").style.display = "block";
@@ -443,16 +515,14 @@
       })
       .then((response) => response.json())
       .then((data) => {
-
         for (const [category, fields] of Object.entries(data.message)) {
-          
-          //Create a category label
+          // Create a category label
           const categoryLabel = document.createElement("h5");
           categoryLabel.classList.add("mt-3");
           categoryLabel.innerText = category;
           radioGroup.appendChild(categoryLabel);
 
-          //Fields under this category
+          // Fields under this category
           for (const [fieldKey, fieldLabel] of Object.entries(fields)) {
             const radioContainer = document.createElement("div");
             radioContainer.className = "form-check";
@@ -481,8 +551,7 @@
       });
     });
 
-
-    //Next button: move from Step 1 to Step 2
+    // Next button: move from Step 1 to Step 2
     document.getElementById("nextBtn").addEventListener("click", function () {
       const selectedRadio = document.querySelector('input[name="alertType"]:checked');
       if (!selectedRadio) {
@@ -500,7 +569,7 @@
       document.getElementById("backBtn").style.display = "inline-block";
       document.getElementById("submitBtn").style.display = "inline-block";
 
-      //Show or hide the bool/numeric panels
+      // Show or hide the bool/numeric panels
       if (selectedFieldType === "bool") {
         document.getElementById("boolOptions").style.display = "block";
         document.getElementById("numericOptions").style.display = "none";
@@ -508,13 +577,13 @@
         document.getElementById("boolOptions").style.display = "none";
         document.getElementById("numericOptions").style.display = "block";
       } else {
-        //Hide both if unknown type?? idk
+        // Hide both if unknown type
         document.getElementById("boolOptions").style.display = "none";
         document.getElementById("numericOptions").style.display = "none";
       }
     });
 
-    //Back
+    // Back button: return to Step 1
     document.getElementById("backBtn").addEventListener("click", function () {
       document.getElementById("step2").style.display = "none";
       document.getElementById("step1").style.display = "block";
@@ -523,7 +592,7 @@
       document.getElementById("submitBtn").style.display = "none";
     });
 
-    //Submit
+    // Submit button: send alert data to the server
     document.getElementById("submitBtn").addEventListener("click", function () {
       const alertName = document.getElementById("alertName").value.trim();
       if (!alertName) {
@@ -544,7 +613,6 @@
           return;
         }
         alertData.value = boolVal.value;
-
       } else if (selectedFieldType === "int" || selectedFieldType === "double") {
         const comparisons = [];
 
@@ -581,7 +649,7 @@
 
       console.log("Final alert data:", alertData);
 
-      //Where we can send the alert later
+      // Send the alert data to the server
       fetch("/create_alert", {
         method: "POST",
         headers: {
@@ -596,6 +664,21 @@
       })
       .catch(error => {
         console.error("Error creating alert:", error);
+      });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('About to connect to socketio...');
+      const socket = io.connect('http://' + document.domain + ':' + location.port);
+
+      socket.on('connect', () => {
+        console.log('SocketIO: Connected to server!');
+      });
+
+      socket.on('big_popup_event', (data) => {
+        console.log('Received big_popup_event:', data);
+        // Display the popup message
+        alert(data.message);
       });
     });
   </script>

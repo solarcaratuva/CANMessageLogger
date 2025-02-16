@@ -114,6 +114,19 @@ class DbConnection:
 
         self.cur.execute(sql_alerts)
 
+        sql_triggered_alerts = '''
+                                CREATE TABLE IF NOT EXISTS TriggeredAlerts (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                alert_id INTEGER NOT NULL,
+                                timestamp INTEGER NOT NULL,
+                                can_message_id INT NOT NULL,
+                                can_message_data BYTEA NOT NULL,
+                                can_message_timestamp INTEGER NOT NULL
+                                );
+                                '''
+        
+        self.cur.execute(sql_triggered_alerts)
+
         # create table for each can_message_name
         for can_msg_type, signal_types_dict in can_msg_signals.items():
             columns = ', '.join([f'{signal_name} INTEGER' for signal_name in signal_types_dict.keys()])
@@ -140,6 +153,44 @@ class DbConnection:
         """
         global DB_path
         DB_path = path
+    
+    def add_triggered_alert(self, alert_id, timestamp, can_message_id, can_message_data, can_message_timestamp):
+        try:
+            print(alert_id, type(alert_id))
+            print(timestamp, type(timestamp))
+            connection = self.conn
+            cursor = connection.cursor()
+
+            cursor.execute('''
+                INSERT INTO TriggeredAlerts (alert_id, timestamp, can_message_id, can_message_data, can_message_timestamp)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (alert_id, timestamp, can_message_id, can_message_data, can_message_timestamp))
+
+            connection.commit()
+            new_id = cursor.lastrowid
+            print(f"Created triggered alert with ID {new_id}")
+            return new_id
+        
+        except sqlite3.Error as e:
+            print(f"Database error inserting triggered alert: {e}")
+            return None
+    
+    def fetch_triggered_alerts(self):
+        try:
+            connection = self.conn
+            cursor = connection.cursor()
+
+            cursor.execute('''
+                SELECT * FROM TriggeredAlerts
+            ''')
+
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+        
+        except sqlite3.Error as e:
+            print(f"Database error fetching triggered alerts: {e}")
+            return None
+
 
     def create_alert(self, alert_data):
         """

@@ -14,6 +14,8 @@ from functools import partial
 app = Flask(__name__, template_folder='frontend/html', static_folder='frontend/static')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+alertChecker.set_socketio(socketio)
+
 # List to store messages to display on the front end
 message_list = []
 
@@ -55,9 +57,10 @@ def create_alert():
     global alert_definitions
 
     logger_db = dbconnect.DbConnection()
-    data = request.json
-
-    
+    data = request.json 
+    socketio.emit('big_popup_event', {
+    'message': 'Something triggered! Take action!'
+})
 
     alert_id = logger_db.create_alert(data)
     print("created the alert: ", data, alert_id)
@@ -77,6 +80,7 @@ def get_alerts():
         logger_db = dbconnect.DbConnection()
         query = "SELECT * FROM Alerts"
         alerts = logger_db.query(query)
+        print("fetching alerts from within python app.py: ", alerts, "\n\n\n", type(alerts))
         return jsonify({"status": "success", "alerts": alerts}), 200
     except Exception as e:
         print(f"Error fetching alerts: {e}")
@@ -88,6 +92,20 @@ def delete_alert():
     logger_db = dbconnect.DbConnection()
     logger_db.delete_alert(alert_id)
     return jsonify({"status": "success", "message": "Alert deleted"}), 200
+
+@app.route('/get_triggered_alerts', methods=['GET'])
+def get_triggered_alerts():
+    logger_db = dbconnect.DbConnection()
+    query = "SELECT * FROM TriggeredAlerts"
+    triggered_alerts = logger_db.query(query)
+    
+    # Convert any bytes in can_message_data to a hex string
+    for alert in triggered_alerts:
+        if 'can_message_data' in alert and isinstance(alert['can_message_data'], bytes):
+            alert['can_message_data'] = alert['can_message_data'].hex()
+    
+    print("triggered alerts from within python app.py: ", triggered_alerts, "\n\n\n", type(triggered_alerts))
+    return jsonify({"status": "success", "triggered_alerts": triggered_alerts}), 200
 
 
 
