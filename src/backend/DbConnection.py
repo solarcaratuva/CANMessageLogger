@@ -2,6 +2,7 @@ import sqlite3
 from backend.DBCs import DBCs  # need to have DBCs.py in same directory! (this is the wrapper file we made for generating DBCs)
 import backend.CanMessage as CanMessage  # our own CanMessage Object
 import json
+import traceback
 
 # Before initializing any DbConnection objects, must run setup_the_db_path(path : str)
 DB_path = None  # static, i.e. shared with all DbConnection Objects
@@ -156,8 +157,8 @@ class DbConnection:
     
     def add_triggered_alert(self, alert_id, timestamp, can_message_id, can_message_data, can_message_timestamp):
         try:
-            print(alert_id, type(alert_id))
-            print(timestamp, type(timestamp))
+            print("ADDING AN ALERT TO PREV TRIGGERED ALERTS")
+            print(traceback.print_stack())
             connection = self.conn
             cursor = connection.cursor()
 

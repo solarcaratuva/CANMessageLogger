@@ -104,7 +104,7 @@ def get_triggered_alerts():
         if 'can_message_data' in alert and isinstance(alert['can_message_data'], bytes):
             alert['can_message_data'] = alert['can_message_data'].hex()
     
-    print("triggered alerts from within python app.py: ", triggered_alerts, "\n\n\n", type(triggered_alerts))
+    print("fetching triggered alerts from within python app.py: ")
     return jsonify({"status": "success", "triggered_alerts": triggered_alerts}), 200
 
 
@@ -198,12 +198,14 @@ def start_message_processing():
     logger_db = dbconnect.DbConnection()
     logger_db.setup_the_tables()
 
+
+    print("about to start background task within app.py to process logfile live")
     socketio.start_background_task(target=partial(logfileProd.process_logfile_live, "message_testing.txt")) #CHANGE THIS BACK
-    socketio.start_background_task(target=consumer.process_data_live)  # If it doesn't take arguments
+    # socketio.start_background_task(target=consumer.process_data_live)  # If it doesn't take arguments # CHANGE THIS BACK
 
     table_names = logger_db.get_table_names()  # Placeholder for your table names
 
 
 if __name__ == '__main__':
     socketio.start_background_task(target=start_message_processing)
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=False) # CHANGE THIS BACK? having debug=True will cause duplciate runs of start_background_task which results in adding 2 alerts for every 1 trigger

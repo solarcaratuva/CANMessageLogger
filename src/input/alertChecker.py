@@ -22,8 +22,8 @@ def fetchActiveAlerts():
     """
     logger_db = dbconnect.DbConnection()
     query = "SELECT * FROM Alerts"
+    print("fetching alerts from inside fetchActiveAlerts")
     alerts = logger_db.query(query)
-    print("ALERTS THAT GOT FETCHED: ", alerts)
     return alerts
 
 def checkAlertsAgainstCanMsg(can_message): #can_message is the cm_tup from logfileProd.py
@@ -78,50 +78,74 @@ def checkAlertsAgainstCanMsg(can_message): #can_message is the cm_tup from logfi
                 if (signal in decodedMessage.sigDict):
                     decoded_val = int(decodedMessage.sigDict[signal])
                     comp_val = int(comparison['value'])
-                    
-                    # Evaluate each comparison
+                    conditionMet = False
                     if comparison['operator'] == '<':
                         if decoded_val < comp_val:
-                            # ALERT TRIGGERED
-                            print(f"ALERT TRIGGERED: {alert}")
-                            logger_db.add_triggered_alert(alert['id'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
-                            if socketio_instance:
-                                print("EMITTING SOCKET")
-                                socketio_instance.emit('big_popup_event', {
-                                    'message': f"INT Alert {alert['name']} triggered: {decoded_val} < {comp_val}"
-                                })
+                            conditionMet = True
 
                     elif comparison['operator'] == '>':
                         if decoded_val > comp_val:
-                            # ALERT TRIGGERED
-                            print(f"ALERT TRIGGERED: {alert}")
-                            logger_db.add_triggered_alert(alert['id'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
-                            if socketio_instance:
-                                print("EMITTING SOCKET")
-                                socketio_instance.emit('big_popup_event', {
-                                    'message': f"INT Alert {alert['name']} triggered: {decoded_val} > {comp_val}"
-                                })
+                            conditionMet = True
 
                     elif comparison['operator'] == '=':
                         if decoded_val == comp_val:
-                            # ALERT TRIGGERED
-                            print(f"ALERT TRIGGERED: {alert}")
-                            logger_db.add_triggered_alert(alert['id'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
-                            if socketio_instance:
-                                print("EMITTING SOCKET")
-                                
-                                socketio_instance.emit('big_popup_event', {
-                                    'message': f"INT Alert {alert['name']} triggered: {decoded_val} == {comp_val}"
-                                })
+                            conditionMet = True
 
                     elif comparison['operator'] == '!=':
                         if decoded_val != comp_val:
                             # ALERT TRIGGERED
-                            print(f"ALERT TRIGGERED: {alert}")
-                            logger_db.add_triggered_alert(alert['id'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
-                            if socketio_instance:
-                                print("EMITTING SOCKET")
-                                socketio_instance.emit('big_popup_event', {
-                                    'message': f"INT Alert {alert['name']} triggered: {decoded_val} != {comp_val}"
-                                })
+                            conditionMet = True
+
+                    logger_db.add_triggered_alert(alert['id'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
+                    if socketio_instance:
+                        print("EMITTING SOCKET")
+                        socketio_instance.emit('big_popup_event', {
+                            'message': f"INT Alert {alert['name']} triggered: {decoded_val} != {comp_val}"
+                        })
+                    
+                    # Evaluate each comparison
+                    # if comparison['operator'] == '<':
+                    #     if decoded_val < comp_val:
+                    #         # ALERT TRIGGERED
+                    #         print(f"ALERT TRIGGERED: {alert}")
+                    #         logger_db.add_triggered_alert(alert['id'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
+                    #         if socketio_instance:
+                    #             print("EMITTING SOCKET")
+                    #             socketio_instance.emit('big_popup_event', {
+                    #                 'message': f"INT Alert {alert['name']} triggered: {decoded_val} < {comp_val}"
+                    #             })
+
+                    # elif comparison['operator'] == '>':
+                    #     if decoded_val > comp_val:
+                    #         # ALERT TRIGGERED
+                    #         print(f"ALERT TRIGGERED: {alert}")
+                    #         logger_db.add_triggered_alert(alert['id'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
+                    #         if socketio_instance:
+                    #             print("EMITTING SOCKET")
+                    #             socketio_instance.emit('big_popup_event', {
+                    #                 'message': f"INT Alert {alert['name']} triggered: {decoded_val} > {comp_val}"
+                    #             })
+
+                    # elif comparison['operator'] == '=':
+                    #     if decoded_val == comp_val:
+                    #         # ALERT TRIGGERED
+                    #         print(f"ALERT TRIGGERED: {alert}")
+                    #         logger_db.add_triggered_alert(alert['id'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
+                    #         if socketio_instance:
+                    #             print("EMITTING SOCKET")
+                                
+                    #             socketio_instance.emit('big_popup_event', {
+                    #                 'message': f"INT Alert {alert['name']} triggered: {decoded_val} == {comp_val}"
+                    #             })
+
+                    # elif comparison['operator'] == '!=':
+                    #     if decoded_val != comp_val:
+                    #         # ALERT TRIGGERED
+                    #         print(f"ALERT TRIGGERED: {alert}")
+                    #         logger_db.add_triggered_alert(alert['id'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
+                    #         if socketio_instance:
+                    #             print("EMITTING SOCKET")
+                    #             socketio_instance.emit('big_popup_event', {
+                    #                 'message': f"INT Alert {alert['name']} triggered: {decoded_val} != {comp_val}"
+                    #             })
            

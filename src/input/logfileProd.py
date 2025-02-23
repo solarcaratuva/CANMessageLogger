@@ -57,6 +57,7 @@ def process_logfile(path_to_log_file: str) -> None:
         for line in file:
             cm_tup = parse_line(line)
             if cm_tup is not None:  # if the line from log file followed the format, add to queue
+                print("going to call add to queue from within PROCESS_LOGFILE")
                 queueHandler.add_to_queue_with_instant_checks(cm_tup)
                 # queue.put(cm_tup)
 
@@ -66,6 +67,7 @@ def process_logfile_live(path_to_log_file: str) -> None:
         for line in file:
             cm_tup = parse_line(line)
             if cm_tup is not None:  # if the line from log file followed the format, add to queue
+                print("going to call add to queue from within PROCESS_LOGFILE_LIVE")
                 queueHandler.add_to_queue_with_instant_checks(cm_tup)
                 # queue.put(cm_tup)
             time.sleep(LOOP_TIME)
