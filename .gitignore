@@ -10,4 +10,5 @@ venv
 *.db
 *.sqlite-journal
 *.txt
+!requirements.txt
 TODO
