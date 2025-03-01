@@ -3,7 +3,7 @@ from backend.db_connection import DbConnection
 from backend.sockio.socket import socketio, app
 from backend.input import consumer, logfile_producer
 from functools import partial
-from backend.sockio import debug
+from backend.sockio import debug # must be imported to register the socketio event handlers
 
 
 def main():
@@ -60,10 +60,12 @@ def main():
     socketio.run(app, debug=True, allow_unsafe_werkzeug=True)  # to run the sockio io app, .run is blocking! No code below this
 
 
-def cli_message_reader():
+def cli_message_reader() -> argparse.ArgumentParser:
+    """Creates the command line arguments parser for the main function"""
+
     datatype_choices =["past_log", "livelog", "mock_livelog", "db"]
 
-    parser = argparse.ArgumentParser() # not quite sure how to set this in app.py
+    parser = argparse.ArgumentParser() 
     parser.add_argument("logType", choices=datatype_choices, type=str,
                         help=f"The type of database connection you wish to establish. Input must be one of:"
                              f" {', '.join(datatype_choices)}")
