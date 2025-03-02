@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>UVA Solar Car</title>
+
+  <!-- Bootstrap CSS -->
+  <link
+    rel="stylesheet"
+    href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+  />
+
+  <!-- Optional: Your custom stylesheet -->
+  <link rel="stylesheet" href="../static/style/styles.css" />
+
+  <!-- jQuery, Popper, Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">
+      <div class="logo-container">
+        <img src="../static/logo.png" id="logo" alt="Logo" class="navbar-logo" />
+      </div>
+    </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-toggle="collapse"
+      data-target="#navbarSupportedContent"
+      aria-controls="navbarSupportedContent"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="/">Debug Dashboard <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">Graphs</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">Link2</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">Link3</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/alert_manager">Alert Manager</a>
+        </li>
+      </ul>
+
+      <div class="navbar-nav ml-auto">
+        <span class="text-light middleTitle">Debug Dashboard</span>
+      </div>
+    </div>
+  </nav>
+  <!-- End Navbar -->
+
+  <!-- Page Title -->
+  <div class="container mt-4 text-center">
+    <h2>Alert Manager</h2>
+  </div>
+
+  <!-- Add Alert Button -->
+  <div class="container text-center mt-3">
+    <button
+      class="btn btn-primary"
+      id="addAlertBtn"
+      style="background-color: white; color: black; border: 1px solid #ccc; border-radius: 5px;"
+    >
+      Add Alert
+    </button>
+  </div>
+
+  <!-- Modal -->
+  <div
+    class="modal fade"
+    id="addAlertModal"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="addAlertModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <h5 class="modal-title" id="addAlertModalLabel">Add Alert</h5>
+          <button
+            type="button"
+            class="close"
+            data-dismiss="modal"
+            aria-label="Close"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Step 1: Choose Alert Type -->
+          <div id="step1">
+            <form id="alertForm">
+              <div class="form-group">
+                <label for="alertType"><strong>Alert Type:</strong></label>
+                <div id="radioGroup" class="mt-2">
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <div id="step2" style="display: none;">
+            <h5 id="selectedField" class="mb-3"></h5>
+
+            <!-- NAME field -->
+            <div class="form-group">
+              <label for="alertName"><strong>Alert Name</strong></label>
+              <input
+                type="text"
+                class="form-control"
+                id="alertName"
+                placeholder="Enter a descriptive name for this alert"
+              />
+            </div>
+
+            <!-- Boolean-specific options -->
+            <div class="form-group" id="boolOptions" style="display: none;">
+              <label><strong>Choose a value:</strong></label>
+              <div class="form-check">
+                <input
+                  type="radio"
+                  class="form-check-input"
+                  name="boolValue"
+                  id="boolTrue"
+                  value="true"
+                />
+                <label class="form-check-label" for="boolTrue">True</label>
+              </div>
+              <div class="form-check">
+                <input
+                  type="radio"
+                  class="form-check-input"
+                  name="boolValue"
+                  id="boolFalse"
+                  value="false"
+                />
+                <label class="form-check-label" for="boolFalse">False</label>
+              </div>
+            </div>
+
+            <!-- Numeric-specific options -->
+            <div class="form-group" id="numericOptions" style="display: none;">
+              <label><strong>Enter threshold condition(s):</strong></label>
+              
+              <div class="form-row align-items-center mb-2">
+                <div class="col-auto">
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="lessThanCheck"
+                      value="<"
+                    />
+                    <label class="form-check-label" for="lessThanCheck">&lt;</label>
+                  </div>
+                </div>
+                <div class="col">
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="lessThanValue"
+                    placeholder="Value"
+                  />
+                </div>
+              </div>
+
+              <div class="form-row align-items-center mb-2">
+                <div class="col-auto">
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="greaterThanCheck"
+                      value=">"
+                    />
+                    <label class="form-check-label" for="greaterThanCheck">&gt;</label>
+                  </div>
+                </div>
+                <div class="col">
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="greaterThanValue"
+                    placeholder="Value"
+                  />
+                </div>
+              </div>
+
+              <div class="form-row align-items-center mb-2">
+                <div class="col-auto">
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="equalCheck"
+                      value="="
+                    />
+                    <label class="form-check-label" for="equalCheck">=</label>
+                  </div>
+                </div>
+                <div class="col">
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="equalValue"
+                    placeholder="Value"
+                  />
+                </div>
+              </div>
+
+              <div class="form-row align-items-center">
+                <div class="col-auto">
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="notEqualCheck"
+                      value="!="
+                    />
+                    <label class="form-check-label" for="notEqualCheck">!=</label>
+                  </div>
+                </div>
+                <div class="col">
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="notEqualValue"
+                    placeholder="Value"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            id="backBtn"
+            style="display: none;"
+          >
+            Back
+          </button>
+          <button type="button" class="btn btn-primary" id="nextBtn">
+            Next
+          </button>
+          <button
+            type="button"
+            class="btn btn-success"
+            id="submitBtn"
+            style="display: none;"
+          >
+            Submit
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container-fluid mt-4">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="small-container">
+          <div class="text-container">
+            <h3>Active Alerts</h3>
+            <div class="container mt-5">
+              <div id="alertsList" class="row">
+                <!-- Alerts will be dynamically added here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Previously Triggered Alerts -->
+  <div class="container-fluid mt-4">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="small-container">
+          <div class="text-container">
+            <h3>Previously Triggered Alerts</h3>
+            <div class="container mt-5">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Alert ID</th>
+                    <th>Triggered Alert ID</th>
+                    <th>Timestamp</th>
+                    <th>CAN Message ID</th>
+                    <th>CAN Message Timestamp</th>
+                    <th>CAN Message Data</th>
+                  </tr>
+                </thead>
+                <tbody id="triggeredAlertsTableBody">
+                  <!-- Table rows will be dynamically added here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function deleteAlert(alertId) {
+      fetch('/delete_alert', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({"alert_id": alertId}),
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status === 'success') {
+          fetchAlerts();
+        } else {
+          console.error('Error deleting alert:', data.message);
+        }
+      })
+      .catch((error) => {
+        console.error('Error deleting alert:', error);
+      });
+    }
+
+    function fetchTriggeredAlerts() {
+      console.log("about to fetch triggered alerts");
+      fetch('/get_triggered_alerts', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          const triggeredAlertsTableBody = document.getElementById('triggeredAlertsTableBody');
+          triggeredAlertsTableBody.innerHTML = ''; // Clear previous rows
+
+          data.triggered_alerts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+          if (data.status === 'success' && data.triggered_alerts.length > 0) {
+            data.triggered_alerts.forEach((alert) => {
+
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td>${alert.alert_id}</td>
+                <td>${alert.id}</td>
+                <td>${alert.timestamp}</td>
+                <td>${alert.can_message_id}</td>
+                <td>${alert.can_message_timestamp}</td>
+                <td>${alert.can_message_data}</td>
+              `;
+              triggeredAlertsTableBody.appendChild(row);
+            });
+          } else {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td colspan="6">
+                <div class="alert alert-info" role="alert">
+                  No triggered alerts found.
+                </div>
+              </td>
+            `;
+            triggeredAlertsTableBody.appendChild(row);
+          }
+        })
+        .catch((error) => {
+          console.error('Error fetching triggered alerts:', error);
+        });
+    }
+
+    function fetchAlerts() {
+      fetch('/get_alerts', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        const alertsContainer = document.getElementById('alertsList');
+        alertsContainer.innerHTML = ''; // Clear previous alerts
+
+        if (data.status === 'success' && data.alerts.length > 0) {
+          data.alerts.forEach((alert) => {
+            const alertCard = document.createElement('div');
+            alertCard.className = 'col-md-4';
+
+            let comparisons = 'N/A';
+            if (alert.comparisons_json) {
+              try {
+                const parsedComparisons = JSON.parse(alert.comparisons_json);
+                comparisons = parsedComparisons
+                  .map((comp) => `(${comp.operator}, ${comp.value})`)
+                  .join('<br>');
+              } catch (e) {
+                console.error('Error parsing comparisons_json:', e);
+              }
+            }
+
+            const fields = `
+              ${alert.name ? `<p><strong>Name:</strong> ${alert.name}</p>` : ''}
+              ${alert.field ? `<p><strong>Field:</strong> ${alert.field} (${alert.type})</p>` : ''}
+              ${
+                (alert.type === 'int' || alert.type === 'double') && comparisons
+                  ? `<p><strong>Alert Condition(s):</strong><br>${comparisons}</p>`
+                  : ''
+              }
+              ${
+                alert.type === 'bool' && alert.bool_value
+                  ? `<p><strong>Alert Condition(s):</strong> ${alert.bool_value}</p>`
+                  : ''
+              }
+            `;
+
+            alertCard.innerHTML = `
+              <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                  <h5 class="card-title">${alert.name || 'Untitled Alert'}
+                    <div class="container text-right mt-3">
+                      <button
+                        class="btn btn-warning"
+                        id="deleteAlertBtn"
+                        style="background-color: red; color: white; border: 1px solid #ccc; border-radius: 5px;"
+                        onclick="deleteAlert('${alert.id}')"
+                      >
+                        Delete
+                      </button>
+                    </div>  
+                  </h5>
+                </div>
+                <div class="card-body">
+                  ${fields}
+                </div>
+              </div>
+            `;
+
+            alertsContainer.appendChild(alertCard);
+          });
+        } else {
+          alertsContainer.innerHTML = `
+            <div class="col-md-12">
+              <div class="alert alert-info" role="alert">
+                No active alerts found.
+              </div>
+            </div>
+          `;
+        }
+      })
+      .catch((error) => {
+        console.error('Error fetching alerts:', error);
+      });
+    }
+
+    // Fetch alerts and triggered alerts on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchAlerts();
+      fetchTriggeredAlerts();
+    });
+
+    let selectedField = null;
+    let selectedFieldType = null; // bool, int, or double for now
+
+    // Show modal when "Add Alert" button is clicked
+    document.getElementById("addAlertBtn").addEventListener("click", function () {
+      // Reset step displays
+      document.getElementById("step1").style.display = "block";
+      document.getElementById("step2").style.display = "none";
+      document.getElementById("backBtn").style.display = "none";
+      document.getElementById("submitBtn").style.display = "none";
+      document.getElementById("nextBtn").style.display = "inline-block";
+      document.getElementById("boolOptions").style.display = "none";
+      document.getElementById("numericOptions").style.display = "none";
+
+      // Clear selected stuff
+      document.getElementById("alertName").value = "";
+      
+      // IMPORTANT: Only clear out the #radioGroup
+      const radioGroup = document.getElementById("radioGroup");
+      radioGroup.innerHTML = "";  // do not overwrite the entire formGroup
+
+      // Show the modal
+      $("#addAlertModal").modal("show");
+
+      // Fetch parsed DBC fields from the server
+      fetch("/parse_dbc_fields", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        for (const [category, fields] of Object.entries(data.message)) {
+          // Create a category label
+          const categoryLabel = document.createElement("h5");
+          categoryLabel.classList.add("mt-3");
+          categoryLabel.innerText = category;
+          radioGroup.appendChild(categoryLabel);
+
+          // Fields under this category
+          for (const [fieldKey, fieldLabel] of Object.entries(fields)) {
+            const radioContainer = document.createElement("div");
+            radioContainer.className = "form-check";
+
+            const radio = document.createElement("input");
+            radio.type = "radio";
+            radio.className = "form-check-input";
+            radio.id = fieldKey;
+            radio.value = fieldKey;
+            radio.name = "alertType";
+            radio.dataset.type = fieldLabel; 
+
+            const label = document.createElement("label");
+            label.className = "form-check-label";
+            label.htmlFor = fieldKey;
+            label.innerText = `${fieldKey} (${fieldLabel})`;
+
+            radioContainer.appendChild(radio);
+            radioContainer.appendChild(label);
+            radioGroup.appendChild(radioContainer);
+          }
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching DBC fields:", error);
+      });
+    });
+
+    // Next button: move from Step 1 to Step 2
+    document.getElementById("nextBtn").addEventListener("click", function () {
+      const selectedRadio = document.querySelector('input[name="alertType"]:checked');
+      if (!selectedRadio) {
+        alert("Please select an alert type.");
+        return;
+      }
+      selectedField = selectedRadio.value;
+      selectedFieldType = selectedRadio.dataset.type;
+
+      // Update UI
+      document.getElementById("selectedField").innerText = `Selected Field: ${selectedField}`;
+      document.getElementById("step1").style.display = "none";
+      document.getElementById("step2").style.display = "block";
+      document.getElementById("nextBtn").style.display = "none";
+      document.getElementById("backBtn").style.display = "inline-block";
+      document.getElementById("submitBtn").style.display = "inline-block";
+
+      // Show or hide the bool/numeric panels
+      if (selectedFieldType === "bool") {
+        document.getElementById("boolOptions").style.display = "block";
+        document.getElementById("numericOptions").style.display = "none";
+      } else if (selectedFieldType === "int" || selectedFieldType === "double") {
+        document.getElementById("boolOptions").style.display = "none";
+        document.getElementById("numericOptions").style.display = "block";
+      } else {
+        // Hide both if unknown type
+        document.getElementById("boolOptions").style.display = "none";
+        document.getElementById("numericOptions").style.display = "none";
+      }
+    });
+
+    // Back button: return to Step 1
+    document.getElementById("backBtn").addEventListener("click", function () {
+      document.getElementById("step2").style.display = "none";
+      document.getElementById("step1").style.display = "block";
+      document.getElementById("nextBtn").style.display = "inline-block";
+      document.getElementById("backBtn").style.display = "none";
+      document.getElementById("submitBtn").style.display = "none";
+    });
+
+    // Submit button: send alert data to the server
+    document.getElementById("submitBtn").addEventListener("click", function () {
+      const alertName = document.getElementById("alertName").value.trim();
+      if (!alertName) {
+        alert("Please provide a name for this alert.");
+        return;
+      }
+
+      let alertData = {
+        name: alertName,
+        field: selectedField,
+        type: selectedFieldType
+      };
+
+      if (selectedFieldType === "bool") {
+        const boolVal = document.querySelector('input[name="boolValue"]:checked');
+        if (!boolVal) {
+          alert("Please select True or False.");
+          return;
+        }
+        alertData.value = boolVal.value;
+      } else if (selectedFieldType === "int" || selectedFieldType === "double") {
+        const comparisons = [];
+
+        const ltCheck = document.getElementById("lessThanCheck");
+        const ltValue = document.getElementById("lessThanValue");
+        if (ltCheck.checked && ltValue.value !== "") {
+          comparisons.push({ operator: "<", value: ltValue.value });
+        }
+
+        const gtCheck = document.getElementById("greaterThanCheck");
+        const gtValue = document.getElementById("greaterThanValue");
+        if (gtCheck.checked && gtValue.value !== "") {
+          comparisons.push({ operator: ">", value: gtValue.value });
+        }
+
+        const eqCheck = document.getElementById("equalCheck");
+        const eqValue = document.getElementById("equalValue");
+        if (eqCheck.checked && eqValue.value !== "") {
+          comparisons.push({ operator: "=", value: eqValue.value });
+        }
+
+        const neCheck = document.getElementById("notEqualCheck");
+        const neValue = document.getElementById("notEqualValue");
+        if (neCheck.checked && neValue.value !== "") {
+          comparisons.push({ operator: "!=", value: neValue.value });
+        }
+
+        if (comparisons.length === 0) {
+          alert("Please select at least one comparison and enter a numeric value.");
+          return;
+        }
+        alertData.comparisons = comparisons;
+      }
+
+      console.log("Final alert data:", alertData);
+
+      // Send the alert data to the server
+      fetch("/create_alert", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(alertData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log("Alert created successfully:", data);
+        $("#addAlertModal").modal("hide");
+      })
+      .catch(error => {
+        console.error("Error creating alert:", error);
+      });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('About to connect to socketio...');
+      const socket = io.connect('http://' + document.domain + ':' + location.port);
+
+      socket.on('connect', () => {
+        console.log('SocketIO: Connected to server!');
+      });
+
+      socket.on('big_popup_event', (data) => {
+        console.log('Received big_popup_event:', data);
+        // Display the popup message
+        alert(data.message);
+      });
+    });
+  </script>
+
+</body>
+</html>

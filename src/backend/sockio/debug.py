@@ -127,3 +127,4 @@ def get_latest_message_batch():
         })
     else:
         return jsonify({'message': 'No new messages'})
+
