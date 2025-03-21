@@ -77,12 +77,17 @@ def get_latest_message_batch():
                 if row:
                     timestamp = row[0]['timeStamp']
                     del row[0]['timeStamp']
+                    # print("Time diff:", time_diff)
+                    # print("last consume time", consumer.last_consume_time)
+                    # print("data timestamp", timestamp)
+                    # print("start consume time", consumer.start_consume_time)
+
                     message_dict = row[0]
 
                     message_batch.append({'table_name': table_name, 'data': message_dict,
                                           'timestamp': timestamp})  # Append to batch list
                 else:
-                    timestamp = 0
+                    timestamp = -1
                     message_dict = {}
 
                     message_batch.append({'table_name': table_name, 'data': message_dict,
