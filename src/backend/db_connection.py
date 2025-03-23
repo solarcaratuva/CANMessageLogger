@@ -123,7 +123,9 @@ class DbConnection:
                 timestamp INTEGER NOT NULL,
                 can_message_id INT NOT NULL,
                 can_message_data BYTEA NOT NULL,
-                can_message_timestamp INTEGER NOT NULL
+                can_message_timestamp INTEGER NOT NULL,
+                signal TEXT NOT NULL,
+                fail_cause TEXT NOT NULL
             );
         '''
         self.cur.execute(sql_triggered_alerts)
@@ -159,7 +161,7 @@ class DbConnection:
         DbConnection.DB_path = path
         print("Just set DB_path to: ", DbConnection.DB_path)
     
-    def add_triggered_alert(self, alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp):
+    def add_triggered_alert(self, alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause):
         try:
             print("ADDING AN ALERT TO PREV TRIGGERED ALERTS")
             # print(traceback.print_stack())
@@ -167,9 +169,9 @@ class DbConnection:
             cursor = connection.cursor()
 
             cursor.execute('''
-                INSERT INTO TriggeredAlerts (alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp))
+                INSERT INTO TriggeredAlerts (alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause))
 
             connection.commit()
             new_id = cursor.lastrowid
@@ -178,7 +180,7 @@ class DbConnection:
         
         except sqlite3.Error as e:
             print(f"Database error inserting triggered alert: {e}")
-            print(alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp)
+            print(alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause)
             return None
     
     def fetch_triggered_alerts(self):

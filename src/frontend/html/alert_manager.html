@@ -396,13 +396,12 @@
               <table class="table table-bordered table-striped">
                 <thead class="thead-dark">
                   <tr>
-                    <th>Alert Category</th>
+                    <th>Alert Number</th>
+                    <th>Triggered Item</th>
+                    <th>Value</th>
+                    <th>CAN Message ID</th>
+                    <th>CAN Data</th>
                     <th>Timestamp</th>
-                    <th>Alert ID</th>
-                    <th>Triggered Alert ID</th>
-                    <th>CAN Msg ID</th>
-                    <th>CAN Msg Timestamp</th>
-                    <th>CAN Msg Data</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -412,13 +411,12 @@
             tableHtml += `
               <tr class="history-item">
                 <!-- 'alert_category' must come from the server after you do a JOIN on your DB side -->
-                <td>${alert.category || ''}</td>
-                <td>${new Date(alert.timestamp).toLocaleString()}</td>
                 <td>${alert.alert_id}</td>
-                <td>${alert.id}</td>
-                <td>${alert.can_message_id}</td>
-                <td>${alert.can_message_timestamp}</td>
+                <td>${alert.signal}</td>
+                <td>${alert.fail_cause}</td>
+                <td>${alert.category + "(" + alert.can_message_id+ ")" ||''}</td>
                 <td>${alert.can_message_data}</td>
+                <td>${alert.timestamp}</td>
               </tr>
             `;
           });

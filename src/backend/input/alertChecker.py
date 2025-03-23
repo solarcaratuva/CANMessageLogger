@@ -61,7 +61,8 @@ def checkAlertsAgainstCanMsg(can_message): #can_message is the cm_tup from logfi
                 print("value from the decoded can", decodedMessage.sigDict[signal], type(decodedMessage.sigDict[signal]))
                 print(f"ALERT TRIGGERED: {alert}")
 
-                logger_db.add_triggered_alert(alert['id'], category, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
+                fail_cause = f"BOOL Alert {alert['name']} triggered: {decodedMessage.sigDict[signal]} == {bool_value}"
+                logger_db.add_triggered_alert(alert['id'], category, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp, signal, fail_cause)
 
                 if socketio_instance:
                     print("EMITTING SOCKET")
@@ -98,7 +99,8 @@ def checkAlertsAgainstCanMsg(can_message): #can_message is the cm_tup from logfi
                             # ALERT TRIGGERED
                             conditionMet = True
 
-                    logger_db.add_triggered_alert(alert['id'], category, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
+                    fail_cause = f"{decoded_val} {comparison['operator']} {comp_val}"
+                    logger_db.add_triggered_alert(alert['id'], category, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp, signal, fail_cause)
                     if socketio_instance:
                         print("EMITTING SOCKET")
                         socketio_instance.emit('big_popup_event', {
