@@ -385,8 +385,13 @@
 
         if (data.status === 'success' && data.triggered_alerts.length > 0) {
           // Sort so most recent is first
+          // data.triggered_alerts.sort(
+          //   (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+          // );
+
+          //Sort so most recent according to can_message_timestamp is first
           data.triggered_alerts.sort(
-            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+            (a, b) => new Date(b.can_message_timestamp) - new Date(a.can_message_timestamp)
           );
 
           // Build a table with one row per triggered alert
@@ -407,16 +412,17 @@
                 <tbody>
           `;
 
+          console.log("INSIDE FETCH");
+
           data.triggered_alerts.forEach((alert) => {
             tableHtml += `
               <tr class="history-item">
-                <!-- 'alert_category' must come from the server after you do a JOIN on your DB side -->
                 <td>${alert.alert_id}</td>
                 <td>${alert.signal}</td>
                 <td>${alert.fail_cause}</td>
                 <td>${alert.category + "(" + alert.can_message_id+ ")" ||''}</td>
                 <td>${alert.can_message_data}</td>
-                <td>${alert.timestamp}</td>
+                <td>${alert.can_message_timestamp}</td>
               </tr>
             `;
           });
