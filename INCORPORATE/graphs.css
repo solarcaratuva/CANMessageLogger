@@ -1,0 +1,180 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    padding-top: 56px; /* Height of Bootstrap navbar */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: white;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Make navbar fixed */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+}
+
+/* Container styles */
+.wide-container {
+    padding: 1rem;
+}
+
+.container-fluid {
+    height: calc(100vh - 120px); /* Subtract navbar height + padding */
+    padding: 1rem;
+}
+
+.large-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 100%;
+    padding: 1rem;
+}
+
+.small-container {
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    height: calc(100vh - 150px);
+    margin-bottom: 1rem;
+}
+
+.small-container h5 {
+    margin: 0;
+    padding: 0;
+    font-size: 1.1rem;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.control-header {
+    margin-bottom: 1rem;
+}
+
+.control-header h5 {
+    margin: 0;
+    padding: 0;
+}
+
+#field-selector {
+    flex: 1;
+    padding-right: 10px;
+    overflow-y: auto;
+}
+
+#field-selector div {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+#field-selector label {
+    display: inline-block;
+    margin-left: 8px;
+}
+
+#field-selector input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+/* Text container */
+.text-container {
+    padding: 0;
+}
+
+.text-container h5 {
+    display: none; /* Hide any duplicate headers */
+}
+
+/* Logo container */
+.logo-container {
+    height: 40px;
+    display: flex;
+    align-items: center;
+}
+
+.navbar-logo {
+    height: 100%;
+    width: auto;
+}
+
+/* Search box styling */
+.search-container {
+    margin-top: auto;
+    padding: 0.5rem;
+    border-top: 1px solid #eee;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container-fluid {
+        height: auto;
+    }
+    
+    #graphCanvas {
+        height: 50vh;
+    }
+    
+    #field-selector {
+        max-height: 30vh;
+    }
+}
+
+.live-update-control {
+    margin-top: 1rem;
+    padding: 0.5rem;
+    border-top: 1px solid #eee;
+    position: sticky;
+    bottom: 0;
+    background: white;
+}
+
+#toggleLiveUpdate {
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+}

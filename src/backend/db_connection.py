@@ -1,24 +1,64 @@
 import sqlite3
 from backend.dbcs import DBCs  # need to have dbcs.py in same directory! (this is the wrapper file we made for generating DBCs)
 from backend.can_message import CanMessage  # our own CanMessage Object
+import threading
+import time
 
 # Before initializing any DbConnection objects, must run setup_the_db_path(path : str)
 
+# Add a connection lock
+_connection_lock = threading.RLock()
 
 class DbConnection:
     DB_path = None  # static, i.e. shared with all DbConnection Objects
 
     def __init__(self):
-        #print("The database path is: ", DbConnection.DB_path)
-        self.conn = sqlite3.connect(DbConnection.DB_path)
-        self.conn.row_factory = sqlite3.Row
-        self.cur = self.conn.cursor()
-
-    def __del__(self):
-        if hasattr(self,'cur') and self.cur:
-            self.cur.close()
-        if  hasattr(self,'conn') and self.conn:
-            self.conn.close()
+        """
+        Initialize a new database connection
+        """
+        self.__setup_connection()
+        
+    def __setup_connection(self):
+        """
+        Set up the database connection with proper timeout settings
+        """
+        # Use a lock to prevent concurrent connection creation
+        with _connection_lock:
+            # Close any existing connection first
+            self.__close_connection()
+            
+            # Connect with timeout and retry logic
+            max_retries = 5
+            retry_count = 0
+            
+            while retry_count < max_retries:
+                try:
+                    self.conn = sqlite3.connect(DbConnection.DB_path, timeout=20.0, check_same_thread=False)
+                    self.conn.row_factory = sqlite3.Row
+                    self.cur = self.conn.cursor()
+                    return
+                except sqlite3.OperationalError as e:
+                    if "database is locked" in str(e):
+                        retry_count += 1
+                        print(f"Database locked, retrying ({retry_count}/{max_retries})...")
+                        time.sleep(0.5)  # Wait before retrying
+                    else:
+                        raise
+            
+            # If we get here, we've exceeded max retries
+            raise sqlite3.OperationalError("Could not connect to database after multiple attempts - database is locked")
+    
+    def __close_connection(self):
+        """
+        Safely close the database connection
+        """
+        try:
+            if hasattr(self, 'conn') and self.conn:
+                if hasattr(self, 'cur') and self.cur:
+                    self.cur.close()
+                self.conn.close()
+        except Exception as e:
+            print(f"Error closing database connection: {e}")
 
     def __db_insert_message(self, can_msg: CanMessage) -> None:
         """
@@ -68,28 +108,51 @@ class DbConnection:
 
         self.conn.commit()
 
-    def add_batch_can_msg(self, can_msg_list: list[CanMessage]) -> None:
+    def add_batch_can_msg(self, list_can_msg):
         """
-        Add a batch (list) of CanMessage objects to the connection's database
-
-        @param can_msg_list: The list of CanMessage objects to be added to database
-        @return: None, adds all CanMessage objects to connection's database
+        Add a batch of CAN messages to the database with connection retry logic
         """
-        for can_msg in can_msg_list:
-            self.__db_insert_message(can_msg)  # helper function defined above
+        with _connection_lock:
+            try:
+                for can_msg in list_can_msg:
+                    self.__db_insert_message(can_msg)
+                self.conn.commit()
+            except sqlite3.OperationalError as e:
+                if "database is locked" in str(e):
+                    # Reconnect and retry
+                    print("Database locked during batch add, reconnecting...")
+                    self.__setup_connection()
+                    # Retry the batch
+                    for can_msg in list_can_msg:
+                        self.__db_insert_message(can_msg)
+                    self.conn.commit()
+                else:
+                    raise
 
-        self.conn.commit()
-
-    def query(self, query: str) -> list[dict]:
+    def query(self, sql, params=None):
         """
-        Execute a single SQL query and returns what the SQL query returns as a list of dictionaries
-
-        @param query: The query to execute as a String
-        @return: list of dictionaries, each dictionary represents a single CANmessage and signals/values as key/values
+        Execute a query with connection retry logic
         """
-        self.cur.execute(query)
-        rows = self.cur.fetchall()
-        return [dict(row) for row in rows]  # list[ 'can_msg_1' is dict{signal: val,signal: val,signal: val}, ...]
+        with _connection_lock:
+            try:
+                if params:
+                    self.cur.execute(sql, params)
+                else:
+                    self.cur.execute(sql)
+                return [dict(row) for row in self.cur.fetchall()]
+            except sqlite3.OperationalError as e:
+                if "database is locked" in str(e):
+                    # Reconnect and retry
+                    print("Database locked during query, reconnecting...")
+                    self.__setup_connection()
+                    # Retry the query
+                    if params:
+                        self.cur.execute(sql, params)
+                    else:
+                        self.cur.execute(sql)
+                    return [dict(row) for row in self.cur.fetchall()]
+                else:
+                    raise
 
     def setup_the_tables(self) -> None:
         """
