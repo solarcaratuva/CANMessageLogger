@@ -2,7 +2,7 @@
 
 # from CANMessageLogger.src.backend import CanMessage as CanMessage
 from backend.db_connection import DbConnection as dbconnect
-from backend.can_message import CanMessage as CanMessage
+from backend.can_message import decode_message
 import json
 import time
 from datetime import datetime
@@ -35,7 +35,7 @@ def checkAlertsAgainstCanMsg(can_message): #can_message is the cm_tup from logfi
     can_message_id = can_message[0]
     can_message_data = can_message[1]
     can_message_timestamp = can_message[2]
-    decodedMessage = CanMessage.decode_message(can_message_id, can_message_data, can_message_timestamp)
+    decodedMessage = decode_message(can_message_id, can_message_data, can_message_timestamp)
     
 
     if decodedMessage is None:

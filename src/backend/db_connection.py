@@ -160,7 +160,7 @@ class DbConnection:
     def add_triggered_alert(self, alert_id, timestamp, can_message_id, can_message_data, can_message_timestamp):
         try:
             print("ADDING AN ALERT TO PREV TRIGGERED ALERTS")
-            print(traceback.print_stack())
+            # print(traceback.print_stack())
             connection = self.conn
             cursor = connection.cursor()
 
@@ -217,6 +217,8 @@ class DbConnection:
             name = alert_data.get('name')
             field = alert_data.get('field')
             type_ = alert_data.get('type')
+
+            print("AERT DATA WHEN CREATING", alert_data)
 
             bool_value = None
             comparisons_json = None

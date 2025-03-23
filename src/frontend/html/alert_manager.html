@@ -19,6 +19,44 @@
   <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  
+  <style>
+    /* You can keep or remove/modify your existing styles as desired */
+    .alert-card {
+      margin-bottom: 10px;
+      border-left: 3px solid #007bff;
+    }
+    
+    .history-item {
+      transition: background-color 0.2s;
+    }
+    
+    .history-item:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .section-header {
+      border-bottom: 2px solid #dee2e6;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .alert-section {
+      height: 500px;
+      overflow-y: auto;
+    }
+    
+    .bg-dark-blue {
+      background-color: #1a237e;
+    }
+    
+    .delete-btn {
+      background-color: #dc3545;
+      border: none;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+    }
+  </style>
 </head>
 
 <body>
@@ -67,20 +105,45 @@
   </nav>
   <!-- End Navbar -->
 
-  <!-- Page Title -->
-  <div class="container mt-4 text-center">
-    <h2>Alert Manager</h2>
-  </div>
-
-  <!-- Add Alert Button -->
-  <div class="container text-center mt-3">
-    <button
-      class="btn btn-primary"
-      id="addAlertBtn"
-      style="background-color: white; color: black; border: 1px solid #ccc; border-radius: 5px;"
-    >
-      Add Alert
-    </button>
+  <!-- Page Title & Add Alert Button -->
+  <div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2>Alert Manager</h2>
+      <button
+        class="btn btn-primary"
+        id="addAlertBtn"
+      >
+        <i class="fa fa-plus mr-2"></i> Add Alert
+      </button>
+    </div>
+    
+    
+    <!-- Main Content - Side by Side Boxes -->
+    <div class="row">
+      <!-- Active Alerts Box -->
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Active Alerts</h4>
+          </div>
+          <div class="card-body alert-section" id="activeAlertsContainer">
+            <!-- Will be populated dynamically -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- Alert History Box -->
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-secondary text-white">
+            <h4 class="mb-0">Alert History</h4>
+          </div>
+          <div class="card-body alert-section" id="alertHistoryContainer">
+            <!-- All triggered alerts go here in a single table -->
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Modal -->
@@ -95,11 +158,11 @@
     <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
 
-        <div class="modal-header">
+        <div class="modal-header bg-primary text-white">
           <h5 class="modal-title" id="addAlertModalLabel">Add Alert</h5>
           <button
             type="button"
-            class="close"
+            class="close text-white"
             data-dismiss="modal"
             aria-label="Close"
           >
@@ -114,13 +177,14 @@
               <div class="form-group">
                 <label for="alertType"><strong>Alert Type:</strong></label>
                 <div id="radioGroup" class="mt-2">
+                  <!-- Will be populated dynamically -->
                 </div>
               </div>
             </form>
           </div>
 
           <div id="step2" style="display: none;">
-            <h5 id="selectedField" class="mb-3"></h5>
+            <h5 id="selectedField" class="mb-3 p-2 bg-light"></h5>
 
             <!-- NAME field -->
             <div class="form-group">
@@ -279,54 +343,6 @@
     </div>
   </div>
 
-  <!-- Main Content -->
-  <div class="container-fluid mt-4">
-    <div class="row">
-      <div class="col-md-12">
-        <div class="small-container">
-          <div class="text-container">
-            <h3>Active Alerts</h3>
-            <div class="container mt-5">
-              <div id="alertsList" class="row">
-                <!-- Alerts will be dynamically added here -->
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Previously Triggered Alerts -->
-  <div class="container-fluid mt-4">
-    <div class="row">
-      <div class="col-md-12">
-        <div class="small-container">
-          <div class="text-container">
-            <h3>Previously Triggered Alerts</h3>
-            <div class="container mt-5">
-              <table class="table table-striped">
-                <thead>
-                  <tr>
-                    <th>Alert ID</th>
-                    <th>Triggered Alert ID</th>
-                    <th>Timestamp</th>
-                    <th>CAN Message ID</th>
-                    <th>CAN Message Timestamp</th>
-                    <th>CAN Message Data</th>
-                  </tr>
-                </thead>
-                <tbody id="triggeredAlertsTableBody">
-                  <!-- Table rows will be dynamically added here -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script>
     function deleteAlert(alertId) {
       fetch('/delete_alert', {
@@ -349,8 +365,8 @@
       });
     }
 
+    // Modified to display all triggered alerts in one table
     function fetchTriggeredAlerts() {
-      console.log("about to fetch triggered alerts");
       fetch('/get_triggered_alerts', {
         method: 'GET',
         headers: {
@@ -359,35 +375,58 @@
       })
         .then((response) => response.json())
         .then((data) => {
-          const triggeredAlertsTableBody = document.getElementById('triggeredAlertsTableBody');
-          triggeredAlertsTableBody.innerHTML = ''; // Clear previous rows
-
-          data.triggered_alerts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          const alertHistoryContainer = document.getElementById('alertHistoryContainer');
+          alertHistoryContainer.innerHTML = ''; // Clear previous content
 
           if (data.status === 'success' && data.triggered_alerts.length > 0) {
-            data.triggered_alerts.forEach((alert) => {
+            // Sort so most recent is first
+            data.triggered_alerts.sort(
+              (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+            );
 
-              const row = document.createElement('tr');
-              row.innerHTML = `
-                <td>${alert.alert_id}</td>
-                <td>${alert.id}</td>
-                <td>${alert.timestamp}</td>
-                <td>${alert.can_message_id}</td>
-                <td>${alert.can_message_timestamp}</td>
-                <td>${alert.can_message_data}</td>
-              `;
-              triggeredAlertsTableBody.appendChild(row);
-            });
-          } else {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-              <td colspan="6">
-                <div class="alert alert-info" role="alert">
-                  No triggered alerts found.
-                </div>
-              </td>
+            // Build a table with one row per triggered alert
+            let tableHtml = `
+              <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                  <thead class="thead-dark">
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>Alert ID</th>
+                      <th>Triggered Alert ID</th>
+                      <th>CAN Msg ID</th>
+                      <th>CAN Msg Timestamp</th>
+                      <th>CAN Msg Data</th>
+                    </tr>
+                  </thead>
+                  <tbody>
             `;
-            triggeredAlertsTableBody.appendChild(row);
+
+            data.triggered_alerts.forEach((alert) => {
+              tableHtml += `
+                <tr class="history-item">
+                  <td>${new Date(alert.timestamp).toLocaleString()}</td>
+                  <td>${alert.alert_id}</td>
+                  <td>${alert.id}</td>
+                  <td>${alert.can_message_id}</td>
+                  <td>${alert.can_message_timestamp}</td>
+                  <td>${alert.can_message_data}</td>
+                </tr>
+              `;
+            });
+
+            tableHtml += `
+                  </tbody>
+                </table>
+              </div>
+            `;
+            alertHistoryContainer.innerHTML = tableHtml;
+          } else {
+            // If no triggered alerts
+            alertHistoryContainer.innerHTML = `
+              <div class="alert alert-info" role="alert">
+                No alerts have been triggered yet.
+              </div>
+            `;
           }
         })
         .catch((error) => {
@@ -404,71 +443,49 @@
       })
       .then((response) => response.json())
       .then((data) => {
-        const alertsContainer = document.getElementById('alertsList');
-        alertsContainer.innerHTML = ''; // Clear previous alerts
+        const activeAlertsContainer = document.getElementById('activeAlertsContainer');
+        activeAlertsContainer.innerHTML = ''; // Clear previous alerts
 
         if (data.status === 'success' && data.alerts.length > 0) {
           data.alerts.forEach((alert) => {
-            const alertCard = document.createElement('div');
-            alertCard.className = 'col-md-4';
-
             let comparisons = 'N/A';
             if (alert.comparisons_json) {
               try {
                 const parsedComparisons = JSON.parse(alert.comparisons_json);
                 comparisons = parsedComparisons
-                  .map((comp) => `(${comp.operator}, ${comp.value})`)
-                  .join('<br>');
+                  .map((comp) => `${comp.operator} ${comp.value}`)
+                  .join(', ');
               } catch (e) {
                 console.error('Error parsing comparisons_json:', e);
               }
             }
 
-            const fields = `
-              ${alert.name ? `<p><strong>Name:</strong> ${alert.name}</p>` : ''}
-              ${alert.field ? `<p><strong>Field:</strong> ${alert.field} (${alert.type})</p>` : ''}
-              ${
-                (alert.type === 'int' || alert.type === 'double') && comparisons
-                  ? `<p><strong>Alert Condition(s):</strong><br>${comparisons}</p>`
-                  : ''
-              }
-              ${
-                alert.type === 'bool' && alert.bool_value
-                  ? `<p><strong>Alert Condition(s):</strong> ${alert.bool_value}</p>`
-                  : ''
-              }
-            `;
-
+            const alertCard = document.createElement('div');
+            alertCard.className = 'alert-card p-3 mb-2';
+            
             alertCard.innerHTML = `
-              <div class="card mb-3">
-                <div class="card-header bg-primary text-white">
-                  <h5 class="card-title">${alert.name || 'Untitled Alert'}
-                    <div class="container text-right mt-3">
-                      <button
-                        class="btn btn-warning"
-                        id="deleteAlertBtn"
-                        style="background-color: red; color: white; border: 1px solid #ccc; border-radius: 5px;"
-                        onclick="deleteAlert('${alert.id}')"
-                      >
-                        Delete
-                      </button>
-                    </div>  
-                  </h5>
-                </div>
-                <div class="card-body">
-                  ${fields}
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">${alert.name || 'Untitled Alert'}</h5>
+                <button class="btn btn-sm btn-danger delete-btn" onclick="deleteAlert('${alert.id}')">
+                  Delete
+                </button>
+              </div>
+              <div class="row">
+                <div class="col-md-12">
+                  <p class="mb-1"><strong>Field:</strong> ${alert.field} (${alert.type})</p>
+                  <p class="mb-0"><strong>Condition:</strong> 
+                    ${alert.type === 'bool' ? alert.bool_value : comparisons}
+                  </p>
                 </div>
               </div>
             `;
-
-            alertsContainer.appendChild(alertCard);
+            
+            activeAlertsContainer.appendChild(alertCard);
           });
         } else {
-          alertsContainer.innerHTML = `
-            <div class="col-md-12">
-              <div class="alert alert-info" role="alert">
-                No active alerts found.
-              </div>
+          activeAlertsContainer.innerHTML = `
+            <div class="alert alert-info" role="alert">
+              No active alerts found.
             </div>
           `;
         }
@@ -501,9 +518,9 @@
       // Clear selected stuff
       document.getElementById("alertName").value = "";
       
-      // IMPORTANT: Only clear out the #radioGroup
+      // Clear out the #radioGroup
       const radioGroup = document.getElementById("radioGroup");
-      radioGroup.innerHTML = "";  // do not overwrite the entire formGroup
+      radioGroup.innerHTML = "";  
 
       // Show the modal
       $("#addAlertModal").modal("show");
@@ -562,6 +579,8 @@
       }
       selectedField = selectedRadio.value;
       selectedFieldType = selectedRadio.dataset.type;
+      console.log("selectedFIELD: ", selectedField);
+      console.log("selectedFieldType: ", selectedFieldType);
 
       // Update UI
       document.getElementById("selectedField").innerText = `Selected Field: ${selectedField}`;
@@ -579,7 +598,6 @@
         document.getElementById("boolOptions").style.display = "none";
         document.getElementById("numericOptions").style.display = "block";
       } else {
-        // Hide both if unknown type
         document.getElementById("boolOptions").style.display = "none";
         document.getElementById("numericOptions").style.display = "none";
       }
@@ -649,8 +667,6 @@
         alertData.comparisons = comparisons;
       }
 
-      console.log("Final alert data:", alertData);
-
       // Send the alert data to the server
       fetch("/create_alert", {
         method: "POST",
@@ -663,26 +679,31 @@
       .then(data => {
         console.log("Alert created successfully:", data);
         $("#addAlertModal").modal("hide");
+        fetchAlerts(); // Refresh the alerts display
       })
       .catch(error => {
         console.error("Error creating alert:", error);
       });
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log('About to connect to socketio...');
-      const socket = io.connect('http://' + document.domain + ':' + location.port);
+    // Optional: auto-refresh every 30s
+    setInterval(() => {
+      fetchAlerts();
+      fetchTriggeredAlerts();
+    }, 30000); 
 
-      socket.on('connect', () => {
-        console.log('SocketIO: Connected to server!');
-      });
-
-      socket.on('big_popup_event', (data) => {
-        console.log('Received big_popup_event:', data);
-        // Display the popup message
-        alert(data.message);
-      });
-    });
+    // Optional: handle socket events if in use
+    // document.addEventListener('DOMContentLoaded', () => {
+    //   const socket = io.connect('http://' + document.domain + ':' + location.port);
+    //   socket.on('connect', () => {
+    //     console.log('SocketIO: Connected to server!');
+    //   });
+    //   socket.on('big_popup_event', (data) => {
+    //     console.log('Received big_popup_event:', data);
+    //     fetchAlerts();
+    //     fetchTriggeredAlerts();
+    //   });
+    // });
   </script>
 
 </body>

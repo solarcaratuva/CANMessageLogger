@@ -20,6 +20,7 @@ def process_data() -> None:
     @return: Nothing, it will just add all CAN messages from the queue into the database
     """
     #print(f"DB_path in process_data: {DbConnection.DB_path}")
+    print("process_data")
     db_conn = DbConnection()
     list_can_messages = []
     while True:

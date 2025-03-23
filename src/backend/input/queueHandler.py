@@ -1,5 +1,5 @@
-from input.consumer import queue
-from input import alertChecker
+from backend.input.consumer import queue
+from backend.input import alertChecker
 
 def add_to_queue_with_instant_checks(cm_tup) -> None:
     #FIRST: run through the alerts checker
