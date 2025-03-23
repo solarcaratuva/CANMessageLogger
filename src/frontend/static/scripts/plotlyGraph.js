@@ -144,12 +144,16 @@ const renderPlotlyGraph = (timestamps, datasets) => {
         name: dataset.label
     }));
 
-    // Create a more appropriate title based on the selected fields
+    // Get all checked checkboxes to create a meaningful title
+    const checkedCheckboxes = Array.from(document.querySelectorAll('.field-checkbox:checked'));
     let titleText;
-    if (selectedFields.length === 1) {
-        titleText = `MotorCommands.${selectedFields[0]} Real-time Data`;
+    
+    if (checkedCheckboxes.length === 0) {
+        titleText = 'CAN Message Visualization';
+    } else if (checkedCheckboxes.length === 1) {
+        titleText = checkedCheckboxes[0].dataset.fullField + ' Real-time Data';
     } else {
-        titleText = `MotorCommands - ${selectedFields.length} Fields Selected`;
+        titleText = `${checkedCheckboxes.length} Fields Selected`;
     }
 
     const layout = {
@@ -218,18 +222,7 @@ const renderEmptyGraph = () => {
         plot_bgcolor: 'white',
         paper_bgcolor: 'white',
         annotations: [{
-            text: '1. Select a table from the dropdown menu',
-            showarrow: false,
-            font: {
-                size: 16,
-                color: '#666'
-            },
-            xref: 'paper',
-            yref: 'paper',
-            x: 0.5,
-            y: 0.6
-        }, {
-            text: '2. Choose one or more fields to visualize',
+            text: 'Select one or more fields from the list to visualize data',
             showarrow: false,
             font: {
                 size: 16,
@@ -239,17 +232,6 @@ const renderEmptyGraph = () => {
             yref: 'paper',
             x: 0.5,
             y: 0.5
-        }, {
-            text: '3. Optionally enable auto-updates to see real-time data',
-            showarrow: false,
-            font: {
-                size: 16,
-                color: '#666'
-            },
-            xref: 'paper',
-            yref: 'paper',
-            x: 0.5,
-            y: 0.4
         }]
     };
 
@@ -288,23 +270,22 @@ const updateGraphWithLiveData = (newData) => {
         const timestamp = newData.timestamp;
         const dataTable = newData.table;
         
-        // Only process data from MotorCommands table
-        if (dataTable !== 'MotorCommands') {
-            return;
-        }
-        
         // Extract all values from the data object
         Object.entries(newData.data).forEach(([field, value]) => {
-            // Get the field name without table prefix
-            const fieldName = field.split('.').pop();
+            // Get the field name without table prefix (it will be something like "MotorCommands.throttle")
+            const parts = field.split('.');
+            const fieldName = parts[parts.length - 1];
+            const tableName = dataTable;
             
-            // Process any field that's in our selectedFields array
-            if (selectedFields.includes(fieldName)) {
-                // Create/use a standardized field name
-                const standardizedField = `MotorCommands.${fieldName}`;
-                
-                // Find the index of this field in our data
-                const traceIndex = findOrCreateTrace(graphDiv, standardizedField, value);
+            // Create the standardized full field name (table.field)
+            const fullFieldName = `${tableName}.${fieldName}`;
+            
+            // Check if this field is selected by searching the checkbox with this data attribute
+            const matchingCheckbox = document.querySelector(`input[data-full-field="${fullFieldName}"]`);
+            
+            if (matchingCheckbox && matchingCheckbox.checked) {
+                // Find or create the trace for this field
+                const traceIndex = findOrCreateTrace(graphDiv, fullFieldName, value);
                 
                 if (traceIndex >= 0) {
                     // Update the trace with new data
@@ -361,40 +342,26 @@ const findOrCreateTrace = (graphDiv, field, value) => {
         return -1;
     }
     
-    // Standardize field name to always use the full "MotorCommands.throttle" format
-    const standardizedField = field.includes('.') ? field : `MotorCommands.${field}`;
-    
-    // Try to find the field in existing traces - check both formats
-    let traceIndex = graphDiv.data.findIndex(trace => 
-        trace.name === standardizedField || 
-        (trace.name === 'throttle' && standardizedField === 'MotorCommands.throttle') ||
-        (trace.name === 'MotorCommands.throttle' && standardizedField === 'throttle')
-    );
+    // Try to find the field in existing traces by exact name match
+    let traceIndex = graphDiv.data.findIndex(trace => trace.name === field);
     
     if (traceIndex >= 0) {
-        // If we found a trace with the non-standardized name, update it
-        if (graphDiv.data[traceIndex].name !== standardizedField) {
-            Plotly.restyle('graphCanvas', {
-                name: [standardizedField]
-            }, [traceIndex]);
-        }
         return traceIndex;
     }
     
-    // Only create new traces if we specifically want this field
-    // Check if this is a selected field
-    const fieldNameWithoutTable = field.split('.').pop();
-    if (!selectedFields.includes(fieldNameWithoutTable) && !isLiveUpdating) {
+    // If field is not found, check if the checkbox for this field is checked
+    const matchingCheckbox = document.querySelector(`input[data-full-field="${field}"]`);
+    if (!matchingCheckbox || !matchingCheckbox.checked) {
         return -1;
     }
     
-    // If field is not found, create a new trace
+    // If field is not found but checkbox is checked, create a new trace
     const newTrace = {
         x: [],
         y: [],
         mode: 'lines',
         line: { shape: 'hv' },
-        name: standardizedField
+        name: field
     };
     
     // Add the new trace to the plot
@@ -406,17 +373,40 @@ const findOrCreateTrace = (graphDiv, field, value) => {
 
 const initializeGraph = () => {
     console.log('Initializing graph...'); // Debug log
-    const trace = {
+    
+    // Get all checked checkboxes to determine initial traces
+    const checkedCheckboxes = Array.from(document.querySelectorAll('.field-checkbox:checked'));
+    
+    // Default trace if no checkbox is selected
+    const traces = checkedCheckboxes.length === 0 ? [
+        {
+            x: [],
+            y: [],
+            mode: 'lines',
+            line: { shape: 'hv' },
+            name: 'No data selected'
+        }
+    ] : checkedCheckboxes.map(checkbox => ({
         x: [],
         y: [],
         mode: 'lines',
         line: { shape: 'hv' },
-        name: 'MotorCommands.throttle'  // Use consistent naming
-    };
+        name: checkbox.dataset.fullField
+    }));
+
+    // Title based on selection
+    let titleText;
+    if (checkedCheckboxes.length === 0) {
+        titleText = 'CAN Message Visualization';
+    } else if (checkedCheckboxes.length === 1) {
+        titleText = checkedCheckboxes[0].dataset.fullField + ' Real-time Data';
+    } else {
+        titleText = `${checkedCheckboxes.length} Fields Selected`;
+    }
 
     const layout = {
         title: {
-            text: 'MotorCommands.throttle Real-time Data',
+            text: titleText,
             font: {
                 size: 24,
                 color: '#2c3e50'
@@ -428,7 +418,7 @@ const initializeGraph = () => {
             gridcolor: '#f0f0f0'
         },
         yaxis: {
-            title: 'Throttle Value',
+            title: 'Value',
             showgrid: true,
             gridcolor: '#f0f0f0'
         },
@@ -445,10 +435,10 @@ const initializeGraph = () => {
         displaylogo: false
     };
 
-    Plotly.newPlot('graphCanvas', [trace], layout, config);
+    Plotly.newPlot('graphCanvas', traces, layout, config);
 };
 
-const populateTableSelector = async () => {
+const populateAllFields = async () => {
     const fieldSelector = document.getElementById('field-selector');
     if (!fieldSelector) {
         console.error('Field selector element not found');
@@ -468,200 +458,168 @@ const populateTableSelector = async () => {
             return;
         }
         
-        // Create table selection dropdown
-        const tableSelector = document.createElement('div');
-        tableSelector.className = 'table-selector';
-        
-        const tableLabel = document.createElement('label');
-        tableLabel.textContent = 'Select Table:';
-        tableLabel.htmlFor = 'table-select';
-        
-        const tableSelect = document.createElement('select');
-        tableSelect.id = 'table-select';
-        tableSelect.className = 'form-control mb-3';
-        
-        // Add default option
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = '-- Select a Table --';
-        tableSelect.appendChild(defaultOption);
-        
-        // Add options for each table
-        tables.forEach(table => {
-            const option = document.createElement('option');
-            option.value = table;
-            option.textContent = table;
-            tableSelect.appendChild(option);
-        });
-        
-        // Add change event listener
-        tableSelect.addEventListener('change', async (event) => {
-            selectedTable = event.target.value;
-            if (selectedTable) {
-                await populateFieldsForTable(selectedTable);
-            } else {
-                // Clear fields if no table is selected
-                const fieldsContainer = document.getElementById('fields-container');
-                if (fieldsContainer) {
-                    fieldsContainer.innerHTML = '';
-                }
-                selectedFields = [];
-            }
-        });
-        
-        tableSelector.appendChild(tableLabel);
-        tableSelector.appendChild(tableSelect);
-        
-        // Create container for fields
-        const fieldsContainer = document.createElement('div');
-        fieldsContainer.id = 'fields-container';
-        
-        // Append to field selector
-        fieldSelector.appendChild(tableSelector);
-        fieldSelector.appendChild(fieldsContainer);
-        
-    } catch (error) {
-        console.error('Error populating table selector:', error);
-        fieldSelector.innerHTML = `<p>Error loading tables: ${error.message}</p>`;
-    }
-};
-
-const populateFieldsForTable = async (tableName) => {
-    const fieldsContainer = document.getElementById('fields-container');
-    if (!fieldsContainer) {
-        console.error('Fields container not found');
-        return;
-    }
-    
-    // Clear existing fields
-    fieldsContainer.innerHTML = '';
-    selectedFields = [];
-    
-    try {
-        // Fetch fields for the selected table
-        const fields = await fetchFields(tableName);
-        
-        if (!fields || fields.length === 0) {
-            fieldsContainer.innerHTML = '<p>No fields available for this table</p>';
-            return;
-        }
+        // Create a header for the fields section
+        const fieldsHeader = document.createElement('h5');
+        fieldsHeader.textContent = 'Select Fields to Display:';
+        fieldsHeader.className = 'mb-3';
+        fieldSelector.appendChild(fieldsHeader);
         
         // Add search box
-        addSearchBox(fieldsContainer);
+        const searchContainer = document.createElement('div');
+        searchContainer.className = 'search-container mb-3';
         
-        // Group fields by prefix (assumes naming convention like "prefix_fieldname")
-        const groupedFields = {};
-        fields.forEach(field => {
-            const parts = field.split('_');
-            const prefix = parts.length > 1 ? parts[0] : 'Other';
-            
-            if (!groupedFields[prefix]) {
-                groupedFields[prefix] = [];
-            }
-            groupedFields[prefix].push(field);
-        });
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.id = 'fieldSearch';
+        searchInput.className = 'form-control';
+        searchInput.placeholder = 'Search fields...';
         
-        // Create a container for the checkboxes
+        searchContainer.appendChild(searchInput);
+        fieldSelector.appendChild(searchContainer);
+        
+        // Create container for all checkboxes
         const checkboxesContainer = document.createElement('div');
-        checkboxesContainer.className = 'field-checkboxes';
+        checkboxesContainer.className = 'all-fields-container';
+        checkboxesContainer.style.maxHeight = '400px';
+        checkboxesContainer.style.overflowY = 'auto';
         
-        // Display grouped fields
-        Object.entries(groupedFields).forEach(([group, groupFields]) => {
-            const groupDiv = document.createElement('div');
-            groupDiv.className = 'field-group';
+        // Fetch all fields from all tables and populate them
+        let allFields = [];
+        
+        for (const table of tables) {
+            const fields = await fetchFields(table);
             
-            const groupTitle = document.createElement('div');
-            groupTitle.className = 'field-group-title';
-            groupTitle.textContent = group;
-            groupDiv.appendChild(groupTitle);
-            
-            // Create label for "Select All" in this group
-            const selectAllContainer = document.createElement('div');
-            selectAllContainer.className = 'checkbox-container select-all-container';
-            
-            const selectAllCheckbox = document.createElement('input');
-            selectAllCheckbox.type = 'checkbox';
-            selectAllCheckbox.id = `select-all-${group}`;
-            selectAllCheckbox.className = 'select-all-checkbox';
-            
-            const selectAllLabel = document.createElement('label');
-            selectAllLabel.htmlFor = `select-all-${group}`;
-            selectAllLabel.textContent = 'Select All';
-            
-            selectAllContainer.appendChild(selectAllCheckbox);
-            selectAllContainer.appendChild(selectAllLabel);
-            groupDiv.appendChild(selectAllContainer);
-            
-            // Add event listener for select all checkbox
-            selectAllCheckbox.addEventListener('change', (event) => {
-                const isChecked = event.target.checked;
-                const checkboxes = groupDiv.querySelectorAll('.field-checkbox');
-                
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = isChecked;
-                    
-                    // Manually trigger change event for each checkbox
-                    const changeEvent = new Event('change', { bubbles: true });
-                    checkbox.dispatchEvent(changeEvent);
+            // Add table name to each field
+            fields.forEach(field => {
+                allFields.push({
+                    table: table,
+                    field: field,
+                    fullName: `${table}.${field}`
                 });
             });
+        }
+        
+        // Sort fields alphabetically
+        allFields.sort((a, b) => a.fullName.localeCompare(b.fullName));
+        
+        // Create checkboxes for each field
+        allFields.forEach(fieldInfo => {
+            const checkboxContainer = document.createElement('div');
+            checkboxContainer.className = 'checkbox-container';
             
-            groupFields.forEach(field => {
-                const checkboxContainer = document.createElement('div');
-                checkboxContainer.className = 'checkbox-container';
-                
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.id = `field-${tableName}-${field}`;
-                checkbox.className = 'field-checkbox';
-                checkbox.value = field;
-                checkbox.dataset.group = group;
-                checkbox.dataset.fullField = `${tableName}.${field}`;
-                
-                // Add event listener for selection
-                checkbox.addEventListener('change', handleFieldSelection);
-                
-                const label = document.createElement('label');
-                label.htmlFor = `field-${tableName}-${field}`;
-                label.textContent = field.replace(`${group}_`, '');
-                
-                checkboxContainer.appendChild(checkbox);
-                checkboxContainer.appendChild(label);
-                groupDiv.appendChild(checkboxContainer);
-            });
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `field-${fieldInfo.table}-${fieldInfo.field}`;
+            checkbox.className = 'field-checkbox';
+            checkbox.value = fieldInfo.field;
+            checkbox.dataset.table = fieldInfo.table;
+            checkbox.dataset.fullField = fieldInfo.fullName;
             
-            checkboxesContainer.appendChild(groupDiv);
+            // Check if this is the throttle field from MotorCommands to select by default
+            if (fieldInfo.table === 'MotorCommands' && fieldInfo.field === 'throttle') {
+                checkbox.checked = true;
+                selectedTable = 'MotorCommands';
+                selectedFields = ['throttle'];
+            }
+            
+            // Add event listener for selection
+            checkbox.addEventListener('change', handleFieldSelection);
+            
+            const label = document.createElement('label');
+            label.htmlFor = `field-${fieldInfo.table}-${fieldInfo.field}`;
+            label.textContent = fieldInfo.fullName;
+            
+            checkboxContainer.appendChild(checkbox);
+            checkboxContainer.appendChild(label);
+            checkboxesContainer.appendChild(checkboxContainer);
         });
         
-        fieldsContainer.appendChild(checkboxesContainer);
+        fieldSelector.appendChild(checkboxesContainer);
+        
+        // Add event listener for search
+        searchInput.addEventListener('input', (event) => {
+            const searchTerm = event.target.value.toLowerCase();
+            const checkboxContainers = checkboxesContainer.querySelectorAll('.checkbox-container');
+            
+            checkboxContainers.forEach(container => {
+                const label = container.querySelector('label');
+                const fieldName = label.textContent.toLowerCase();
+                
+                if (fieldName.includes(searchTerm)) {
+                    container.style.display = 'flex';
+                } else {
+                    container.style.display = 'none';
+                }
+            });
+        });
+        
+        // If throttle is selected by default, initialize the graph
+        if (selectedFields.includes('throttle') && selectedTable === 'MotorCommands') {
+            initializeGraph();
+            toggleLiveUpdates();
+        }
         
     } catch (error) {
-        console.error('Error populating fields for table:', error);
-        fieldsContainer.innerHTML = `<p>Error loading fields: ${error.message}</p>`;
+        console.error('Error populating fields:', error);
+        fieldSelector.innerHTML = `<p>Error loading fields: ${error.message}</p>`;
     }
 };
 
+// Modified field selection handler
 const handleFieldSelection = debounce(async (event) => {
     const checkbox = event.target;
     const field = checkbox.value;
-    const fullField = checkbox.dataset.fullField || `${selectedTable}.${field}`;
+    const table = checkbox.dataset.table;
+    const fullField = checkbox.dataset.fullField;
     
     if (checkbox.checked) {
+        // Add this field's checkbox data to our tracking
         if (!selectedFields.includes(field)) {
-            selectedFields.push(field);
+            // Set selected table if this is the first field selected
+            if (selectedFields.length === 0) {
+                selectedTable = table;
+            }
+            
+            // If this field is from the current selected table, add it
+            if (table === selectedTable) {
+                selectedFields.push(field);
+            } else {
+                // If field is from a different table and we have fields
+                // already selected, uncheck it and alert the user
+                if (selectedFields.length > 0) {
+                    checkbox.checked = false;
+                    alert('Please select fields from only one table at a time.');
+                    return;
+                } else {
+                    // If no fields yet selected, set this as the selected table
+                    selectedTable = table;
+                    selectedFields.push(field);
+                }
+            }
         }
     } else {
+        // Remove this field if it's in the array
         selectedFields = selectedFields.filter(f => f !== field);
+        
+        // If no fields left, clear selected table
+        if (selectedFields.length === 0) {
+            selectedTable = '';
+        }
     }
     
+    console.log('Selected table:', selectedTable, 'Selected fields:', selectedFields);
+    
+    // Only update the graph if we have selected fields from a table
     if (selectedFields.length > 0 && selectedTable) {
         try {
+            // Fetch new data for the currently selected fields
             const data = await fetchFieldData(selectedTable, selectedFields);
             processAndDisplayData(data);
         } catch (error) {
             console.error('Error fetching selected field data:', error);
         }
     } else {
+        // If no fields selected, show empty graph
         renderEmptyGraph();
     }
 }, 300);
@@ -695,49 +653,8 @@ const processAndDisplayData = (data) => {
     // Use the first dataset's processed timestamps (they should all be the same)
     const processedTimestamps = datasets[0].processed_timestamps;
     
+    // Create a completely new plot (this avoids issues with Plotly's update mechanism)
     renderPlotlyGraph(processedTimestamps, datasets);
-};
-
-const addSearchBox = (container) => {
-    const searchContainer = document.createElement('div');
-    searchContainer.className = 'search-container';
-    
-    const searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.id = 'fieldSearch';
-    searchInput.className = 'form-control mb-3';
-    searchInput.placeholder = 'Search fields...';
-    searchInput.addEventListener('input', filterFields);
-    
-    searchContainer.appendChild(searchInput);
-    container.appendChild(searchContainer);
-};
-
-const filterFields = (event) => {
-    const searchTerm = event.target.value.toLowerCase();
-    const checkboxes = document.querySelectorAll('.field-checkbox');
-    const groups = document.querySelectorAll('.field-group');
-    
-    groups.forEach(group => {
-        let hasVisibleFields = false;
-        const groupFields = group.querySelectorAll('.checkbox-container:not(.select-all-container)');
-        
-        groupFields.forEach(container => {
-            const checkbox = container.querySelector('input');
-            const label = container.querySelector('label');
-            const fieldName = checkbox.value.toLowerCase();
-            
-            if (fieldName.includes(searchTerm)) {
-                container.style.display = 'flex';
-                hasVisibleFields = true;
-            } else {
-                container.style.display = 'none';
-            }
-        });
-        
-        // Show/hide the group based on whether it has visible fields
-        group.style.display = hasVisibleFields ? 'block' : 'none';
-    });
 };
 
 const toggleLiveUpdates = () => {
@@ -801,56 +718,33 @@ const initialize = async () => {
     selectedFields = [];
     selectedTable = '';
     
-    // Populate the table and field selectors
-    await populateTableSelector();
+    // Set initial state for auto-updates
+    isLiveUpdating = true;
     
-    // Default to MotorCommands table and throttle field
-    try {
-        // Get the dropdown element
-        const tableSelect = document.getElementById('table-select');
-        if (tableSelect) {
-            // Find the MotorCommands option and select it
-            for (let i = 0; i < tableSelect.options.length; i++) {
-                if (tableSelect.options[i].value === 'MotorCommands') {
-                    tableSelect.selectedIndex = i;
-                    selectedTable = 'MotorCommands';
-                    
-                    // Populate fields for the selected table
-                    await populateFieldsForTable('MotorCommands');
-                    
-                    // After fields are populated, select the throttle field
-                    setTimeout(() => {
-                        const throttleCheckbox = document.getElementById('field-MotorCommands-throttle');
-                        if (throttleCheckbox) {
-                            throttleCheckbox.checked = true;
-                            
-                            // Add throttle to selected fields
-                            selectedFields = ['throttle'];
-                            
-                            // Initialize the graph with the proper layout
-                            initializeGraph();
-                            
-                            // Start auto-updates immediately (this will fetch data)
-                            toggleLiveUpdates();
-                        } else {
-                            console.log('Throttle field checkbox not found');
-                        }
-                    }, 500); // Give the fields time to populate
-                    
-                    break;
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error setting default selection:', error);
-        renderEmptyGraph();
-    }
-    
-    // Set up the toggle button - set to active state initially since we'll turn it on automatically
+    // Set up the toggle button
     const toggleButton = document.getElementById('toggleLiveUpdate');
+    const statusIndicator = document.getElementById('updateStatus');
+    const statusText = document.getElementById('updateStatusText');
+    
     if (toggleButton) {
         toggleButton.addEventListener('click', toggleLiveUpdates);
+        toggleButton.textContent = 'Stop Auto Updates';
+        toggleButton.classList.remove('btn-primary');
+        toggleButton.classList.add('btn-danger');
     }
+    
+    if (statusIndicator && statusText) {
+        statusIndicator.classList.remove('status-inactive');
+        statusIndicator.classList.add('status-active');
+        statusText.textContent = 'Active';
+    }
+    
+    // Populate all fields from all tables
+    await populateAllFields();
+    
+    // Start auto-updates
+    updateInterval = setInterval(fetchLatestMessages, updateFrequency);
+    fetchLatestMessages(); // Immediate first fetch
 };
 
 // Initialize everything when the DOM is loaded
