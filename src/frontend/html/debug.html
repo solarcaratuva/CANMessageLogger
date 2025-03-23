@@ -1,48 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../static/style/styles.css">
-    <title>UVA Solar Car</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
-</head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-            <a class="navbar-brand" href="#">
-                <div class="logo-container">
-                    <img src="../static/logo.png" id="logo" alt="Logo" class="navbar-logo">
-                </div>
-            </a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+{% extends './generic.html' %}
 
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav mr-auto">
-                    <li class="nav-item active">
-                        <a class="nav-link" href="#">Debug Dashboard<span class="sr-only">(current)</span></a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Graphs</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Link2</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Link3</a>
-                    </li>
-                </ul>
-
-                <div class="navbar-nav ml-auto">
-                    <span class="text-light middleTitle">Debug Dashboard</span>
-                </div>
-            </div>
-        </nav>
-    </header>
+{% block content %}
     <div>
         <div class="wide-container text-center mt-4">
             <h2>Error Messages!</h2>
@@ -96,6 +54,7 @@ const maxMessagesPerTable = 1; // Change this value to control how many messages
 // Object to store messages for different tables
 let checkedTables = ["MotorCommands", "DashboardCommands"];
 let tableMessages = {};
+let lastReceivedTime = {};
 let lastMessageTime = {};
 console.log('test');
 
@@ -131,6 +90,7 @@ function fetchLatestMessages() {
             console.error('Error fetching latest messages:', error);
         });
 }
+let startTime = Date.now();
 
 // Call the function to fetch table names once at the beginning
 fetchTableNames();
@@ -226,17 +186,27 @@ function updateVisibleTables(selectedTables) {
 // Display messages in the main container
 let hasInitializedVisibleTables = false; // Track if updateVisibleTables has been called once
 
+let lastTimeStamp = {};
+
 function displayMessage(data, checkedTables) {
     const messageContainer = document.getElementById('messageContainer');
     const tableName = data.table_name; // Get the table name from the data
+    const timestamp = data.timestamp;
 
-    // Handle timestamp correctly
-    let currentTimestamp = data.timestamp === 0 ? null : new Date(data.timestamp);
+    if (timestamp === -1){
+        return;
+    }
 
+    if (lastTimeStamp[tableName] !== timestamp) {
+        // If it's a new timestamp, update the lastTimeStamp for this table
+        lastTimeStamp[tableName] = timestamp;
+        lastReceivedTime[tableName] = Date.now();
+    }
+    
+    
     // If the table name does not exist in the tableMessages object, create an entry
     if (!tableMessages[tableName]) {
         tableMessages[tableName] = []; // Initialize an array for this table's messages
-        lastMessageTime[tableName] = currentTimestamp; // Set initial last message time
         
         // Create a new Bootstrap card for this table
         const card = document.createElement('div');
@@ -257,15 +227,8 @@ function displayMessage(data, checkedTables) {
         messageContainer.appendChild(card); // Append the card to the main message container
     }
 
-    // Calculate time since last message
-    let timeSinceLastMessage = "N/A";
-    if (currentTimestamp && lastMessageTime[tableName]) {
-        timeSinceLastMessage = Math.floor((currentTimestamp - lastMessageTime[tableName]) / 1000) + " seconds";
-    }
 
-    lastMessageTime[tableName] = currentTimestamp; // Update last message time only if valid
 
-    // Store the received message in the array for this specific table
     tableMessages[tableName].push(data);
 
     // If the number of messages exceeds the limit, remove the oldest message
@@ -283,13 +246,21 @@ function displayMessage(data, checkedTables) {
         for (const key in msg.data) {
             messageContent.push(`${key}: ${msg.data[key]}`);
         }
-        const timeSinceLastLine = `Time Since Last Message: ${timeSinceLastMessage}`;
-        const newMessageText = `${timeSinceLastLine}\n${messageContent.join('\n')}`;
+        const timeElapsedSpan = document.createElement('span');
+        timeElapsedSpan.className = 'time-elapsed';
+        timeElapsedSpan.dataset.table = tableName;
+        if (data.timestamp !== lastTimeStamp[tableName]) {
+            timeElapsedSpan.innerText = "Just now"; // Display "Just now" if the timestamp is the same
+        } else {
+            const secondsAgo = Math.floor((Date.now() - lastReceivedTime[tableName]) / 1000);
+            timeElapsedSpan.innerText = `${secondsAgo} seconds ago`;
+        }
 
-        // Create a new div for the message
         const newMessageDiv = document.createElement('div');
-        newMessageDiv.innerText = newMessageText; // Display time since last message and data
-        newMessageDiv.classList.add('message', 'mb-2'); // Optional: Add classes for styling
+        newMessageDiv.appendChild(timeElapsedSpan);
+        newMessageDiv.appendChild(document.createElement('br'));
+        newMessageDiv.appendChild(document.createTextNode(messageContent.join('\n')));
+        newMessageDiv.classList.add('message', 'mb-2');
 
         // Append the new message to the appropriate card body
         cardBody.appendChild(newMessageDiv);
@@ -302,6 +273,23 @@ function displayMessage(data, checkedTables) {
     loadTableData(checkedTables);
 }
 
+function updateElapsedTime() {
+    const now = Date.now();
+    document.querySelectorAll('.time-elapsed').forEach((element) => {
+        const tableName = element.dataset.table;
+        if (lastReceivedTime[tableName]) {
+            const secondsAgo = Math.floor((now - lastReceivedTime[tableName]) / 1000);
+            if (secondsAgo < 60) {
+                element.innerText = `${secondsAgo} seconds ago`;
+            } else {
+                const minutesAgo = Math.floor(secondsAgo / 60);
+                element.innerText = `${minutesAgo} minutes ago`;
+            }
+        }
+    });
+}
+
+setInterval(updateElapsedTime, 1000);
 
 
 function filterCheckboxes() {
@@ -319,5 +307,4 @@ function filterCheckboxes() {
 }
 
     </script>
-</body>
-</html>
+    {% endblock %}

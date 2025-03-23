@@ -109,19 +109,21 @@ def get_latest_message_batch():
                         column_list = ', '.join(column_names)
                         row = logger_db.query(f"SELECT {column_list} FROM {table_name} ORDER BY timeStamp DESC LIMIT 1;")
 
-                        if row:
-                            timestamp = row[0]['timeStamp']
-                            del row[0]['timeStamp']
-                            message_dict = row[0]
+                if row:
+                    timestamp = row[0]['timeStamp']
+                    del row[0]['timeStamp']
+                    # print("Time diff:", time_diff)
+                    # print("last consume time", consumer.last_consume_time)
+                    # print("data timestamp", timestamp)
+                    # print("start consume time", consumer.start_consume_time)
 
-                            message_batch.append({'table_name': table_name, 'data': message_dict,
-                                                'timestamp': timestamp})  # Append to batch list
-                            
-                            # Use the queue instead of direct emission
-                            emit_can_message_data(table_name, timestamp, message_dict)
-                        else:
-                            timestamp = 0
-                            message_dict = {}
+                    message_dict = row[0]
+
+                    message_batch.append({'table_name': table_name, 'data': message_dict,
+                                          'timestamp': timestamp})  # Append to batch list
+                else:
+                    timestamp = -1
+                    message_dict = {}
 
                             message_batch.append({'table_name': table_name, 'data': message_dict,
                                                 'timestamp': timestamp})  # Append to batch list

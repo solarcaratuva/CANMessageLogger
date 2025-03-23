@@ -5,7 +5,7 @@ from backend.db_connection import DbConnection
 
 queue = queue.Queue()
 
-LOOP_TIME = 0.0001
+LOOP_TIME = 0.1
 
 # Logic for live data processing
 last_consume_time = None  # the last time the consumer consumed data
