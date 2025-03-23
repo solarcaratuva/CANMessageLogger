@@ -24,6 +24,10 @@ def index():
 def alert_manager():
     return render_template('alert_manager.html')
 
+@app.route('/link2')
+def link2():
+    return render_template('link2.html')
+
 @app.route('/parse_dbc_fields', methods=['POST'])
 def parse_dbc_fields():
     """
