@@ -253,8 +253,10 @@ function displayMessage(data, checkedTables) {
         }
 
         const newMessageDiv = document.createElement('div');
-        newMessageDiv.appendChild(timeElapsedSpan);
-        newMessageDiv.appendChild(document.createElement('br'));
+        if (timestamp !== -1){
+            newMessageDiv.appendChild(timeElapsedSpan);
+            newMessageDiv.appendChild(document.createElement('br'));
+        }
         if (timestamp === -1){
             messageContent.push("No Messages Received")
             newMessageDiv.appendChild(document.createTextNode(messageContent.join('\n')));
