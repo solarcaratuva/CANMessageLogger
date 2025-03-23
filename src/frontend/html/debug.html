@@ -150,17 +150,17 @@ function populateCheckboxes(tableNames, defaultCheckedTables = []) {
 // Load table data based on selected checkboxes
 function loadTableData() {
     const form = document.getElementById('table-names-form');
-    const selectedTables = [];
+    const checkedTables = [];
 
     // Get selected table names from the form
     form.querySelectorAll('input[name="tableName"]:checked').forEach((checkbox) => {
-        selectedTables.push(checkbox.value);
+        checkedTables.push(checkbox.value);
     });
 
     // Emit event to the server to request data for selected tables (if needed)
-    if (selectedTables.length > 0) {
+    if (checkedTables.length > 0) {
         // Hide non-selected tables and show only selected ones
-        updateVisibleTables(selectedTables);
+        updateVisibleTables(checkedTables);
     } else {
         // If no checkboxes are selected, show all tables
         updateVisibleTables(null);
@@ -193,11 +193,7 @@ function displayMessage(data, checkedTables) {
     const tableName = data.table_name; // Get the table name from the data
     const timestamp = data.timestamp;
 
-    if (timestamp === -1){
-        return;
-    }
-
-    if (lastTimeStamp[tableName] !== timestamp) {
+    if (!lastReceivedTime[tableName] || lastTimeStamp[tableName] !== timestamp) {
         // If it's a new timestamp, update the lastTimeStamp for this table
         lastTimeStamp[tableName] = timestamp;
         lastReceivedTime[tableName] = Date.now();
@@ -227,8 +223,6 @@ function displayMessage(data, checkedTables) {
         messageContainer.appendChild(card); // Append the card to the main message container
     }
 
-
-
     tableMessages[tableName].push(data);
 
     // If the number of messages exceeds the limit, remove the oldest message
@@ -250,15 +244,27 @@ function displayMessage(data, checkedTables) {
         timeElapsedSpan.className = 'time-elapsed';
         timeElapsedSpan.dataset.table = tableName;
         if (data.timestamp !== lastTimeStamp[tableName]) {
-            timeElapsedSpan.innerText = "Just now"; // Display "Just now" if the timestamp is the same
+            timeElapsedSpan.innerText = "Just now";
         } else {
             const secondsAgo = Math.floor((Date.now() - lastReceivedTime[tableName]) / 1000);
-            timeElapsedSpan.innerText = `${secondsAgo} seconds ago`;
+            if (secondsAgo < 60) {
+                timeElapsedSpan.innerText = `${secondsAgo} seconds ago`;
+            } else {
+                const minutesAgo = Math.floor(secondsAgo / 60);
+                timeElapsedSpan.innerText = `${minutesAgo} minutes ago`;
+            }
         }
 
         const newMessageDiv = document.createElement('div');
         newMessageDiv.appendChild(timeElapsedSpan);
         newMessageDiv.appendChild(document.createElement('br'));
+        if (timestamp === -1){
+            messageContent.push("No Messages Received")
+            newMessageDiv.appendChild(document.createTextNode(messageContent.join('\n')));
+            newMessageDiv.classList.add('message', 'mb-2');
+            cardBody.appendChild(newMessageDiv);
+            return;
+        }
         newMessageDiv.appendChild(document.createTextNode(messageContent.join('\n')));
         newMessageDiv.classList.add('message', 'mb-2');
 
