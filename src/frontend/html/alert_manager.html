@@ -344,6 +344,11 @@
   </div>
 
   <script>
+    // ------------- NEW Variables to store category -------------
+    let selectedField = null;
+    let selectedFieldType = null;
+    let selectedCategory = null;
+
     function deleteAlert(alertId) {
       fetch('/delete_alert', {
         method: 'POST',
@@ -365,7 +370,7 @@
       });
     }
 
-    // Modified to display all triggered alerts in one table
+    // Modified to display all triggered alerts in one table, with "Alert Category"
     function fetchTriggeredAlerts() {
       fetch('/get_triggered_alerts', {
         method: 'GET',
@@ -373,67 +378,72 @@
           'Content-Type': 'application/json',
         },
       })
-        .then((response) => response.json())
-        .then((data) => {
-          const alertHistoryContainer = document.getElementById('alertHistoryContainer');
-          alertHistoryContainer.innerHTML = ''; // Clear previous content
+      .then((response) => response.json())
+      .then((data) => {
+        const alertHistoryContainer = document.getElementById('alertHistoryContainer');
+        alertHistoryContainer.innerHTML = ''; // Clear previous content
 
-          if (data.status === 'success' && data.triggered_alerts.length > 0) {
-            // Sort so most recent is first
-            data.triggered_alerts.sort(
-              (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-            );
+        if (data.status === 'success' && data.triggered_alerts.length > 0) {
+          // Sort so most recent is first
+          data.triggered_alerts.sort(
+            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+          );
 
-            // Build a table with one row per triggered alert
-            let tableHtml = `
-              <div class="table-responsive">
-                <table class="table table-bordered table-striped">
-                  <thead class="thead-dark">
-                    <tr>
-                      <th>Timestamp</th>
-                      <th>Alert ID</th>
-                      <th>Triggered Alert ID</th>
-                      <th>CAN Msg ID</th>
-                      <th>CAN Msg Timestamp</th>
-                      <th>CAN Msg Data</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-            `;
+          // Build a table with one row per triggered alert
+          // now including an "Alert Category" column
+          let tableHtml = `
+            <div class="table-responsive">
+              <table class="table table-bordered table-striped">
+                <thead class="thead-dark">
+                  <tr>
+                    <th>Alert Category</th>
+                    <th>Timestamp</th>
+                    <th>Alert ID</th>
+                    <th>Triggered Alert ID</th>
+                    <th>CAN Msg ID</th>
+                    <th>CAN Msg Timestamp</th>
+                    <th>CAN Msg Data</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
 
-            data.triggered_alerts.forEach((alert) => {
-              tableHtml += `
-                <tr class="history-item">
-                  <td>${new Date(alert.timestamp).toLocaleString()}</td>
-                  <td>${alert.alert_id}</td>
-                  <td>${alert.id}</td>
-                  <td>${alert.can_message_id}</td>
-                  <td>${alert.can_message_timestamp}</td>
-                  <td>${alert.can_message_data}</td>
-                </tr>
-              `;
-            });
-
+          data.triggered_alerts.forEach((alert) => {
             tableHtml += `
-                  </tbody>
-                </table>
-              </div>
+              <tr class="history-item">
+                <!-- 'alert_category' must come from the server after you do a JOIN on your DB side -->
+                <td>${alert.category || ''}</td>
+                <td>${new Date(alert.timestamp).toLocaleString()}</td>
+                <td>${alert.alert_id}</td>
+                <td>${alert.id}</td>
+                <td>${alert.can_message_id}</td>
+                <td>${alert.can_message_timestamp}</td>
+                <td>${alert.can_message_data}</td>
+              </tr>
             `;
-            alertHistoryContainer.innerHTML = tableHtml;
-          } else {
-            // If no triggered alerts
-            alertHistoryContainer.innerHTML = `
-              <div class="alert alert-info" role="alert">
-                No alerts have been triggered yet.
-              </div>
-            `;
-          }
-        })
-        .catch((error) => {
-          console.error('Error fetching triggered alerts:', error);
-        });
+          });
+
+          tableHtml += `
+                </tbody>
+              </table>
+            </div>
+          `;
+          alertHistoryContainer.innerHTML = tableHtml;
+        } else {
+          // If no triggered alerts
+          alertHistoryContainer.innerHTML = `
+            <div class="alert alert-info" role="alert">
+              No alerts have been triggered yet.
+            </div>
+          `;
+        }
+      })
+      .catch((error) => {
+        console.error('Error fetching triggered alerts:', error);
+      });
     }
 
+    // Show "Category" for each active alert
     function fetchAlerts() {
       fetch('/get_alerts', {
         method: 'GET',
@@ -472,6 +482,7 @@
               </div>
               <div class="row">
                 <div class="col-md-12">
+                  <p class="mb-1"><strong>Category:</strong> ${alert.category || ''}</p>
                   <p class="mb-1"><strong>Field:</strong> ${alert.field} (${alert.type})</p>
                   <p class="mb-0"><strong>Condition:</strong> 
                     ${alert.type === 'bool' ? alert.bool_value : comparisons}
@@ -501,9 +512,6 @@
       fetchTriggeredAlerts();
     });
 
-    let selectedField = null;
-    let selectedFieldType = null; // bool, int, or double for now
-
     // Show modal when "Add Alert" button is clicked
     document.getElementById("addAlertBtn").addEventListener("click", function () {
       // Reset step displays
@@ -516,6 +524,9 @@
       document.getElementById("numericOptions").style.display = "none";
 
       // Clear selected stuff
+      selectedField = null;
+      selectedFieldType = null;
+      selectedCategory = null;
       document.getElementById("alertName").value = "";
       
       // Clear out the #radioGroup
@@ -534,8 +545,11 @@
       })
       .then((response) => response.json())
       .then((data) => {
+        // data.message is something like: 
+        // { "Battery": { "batteryVoltage": "double", ... }, "Motor": {...}, etc. }
+        // We'll create a radio button for each field, storing the category in dataset.category
         for (const [category, fields] of Object.entries(data.message)) {
-          // Create a category label
+          // Create a category label in the modal
           const categoryLabel = document.createElement("h5");
           categoryLabel.classList.add("mt-3");
           categoryLabel.innerText = category;
@@ -552,7 +566,8 @@
             radio.id = fieldKey;
             radio.value = fieldKey;
             radio.name = "alertType";
-            radio.dataset.type = fieldLabel; 
+            radio.dataset.type = fieldLabel;
+            radio.dataset.category = category; // <--- store the category
 
             const label = document.createElement("label");
             label.className = "form-check-label";
@@ -579,10 +594,8 @@
       }
       selectedField = selectedRadio.value;
       selectedFieldType = selectedRadio.dataset.type;
-      console.log("selectedFIELD: ", selectedField);
-      console.log("selectedFieldType: ", selectedFieldType);
+      selectedCategory = selectedRadio.dataset.category;  // <--- capture the category
 
-      // Update UI
       document.getElementById("selectedField").innerText = `Selected Field: ${selectedField}`;
       document.getElementById("step1").style.display = "none";
       document.getElementById("step2").style.display = "block";
@@ -612,7 +625,7 @@
       document.getElementById("submitBtn").style.display = "none";
     });
 
-    // Submit button: send alert data to the server
+    // Submit button: send alert data to the server, including category
     document.getElementById("submitBtn").addEventListener("click", function () {
       const alertName = document.getElementById("alertName").value.trim();
       if (!alertName) {
@@ -623,7 +636,8 @@
       let alertData = {
         name: alertName,
         field: selectedField,
-        type: selectedFieldType
+        type: selectedFieldType,
+        category: selectedCategory  // <--- important
       };
 
       if (selectedFieldType === "bool") {
@@ -686,11 +700,11 @@
       });
     });
 
-    // Optional: auto-refresh every 30s
+    // Optional: auto-refresh every 30 seconds
     setInterval(() => {
       fetchAlerts();
       fetchTriggeredAlerts();
-    }, 30000); 
+    }, 30000);
 
     // Optional: handle socket events if in use
     // document.addEventListener('DOMContentLoaded', () => {

@@ -47,6 +47,8 @@ def checkAlertsAgainstCanMsg(can_message): #can_message is the cm_tup from logfi
         print(f"Alert viewing: {alert}")
         signal = alert['field']
         alertType = alert['type']
+        category = alert['category']
+        # print(f"Signal: {signal}, Alert Type: {alertType}, Category: {category}")
 
         
 
@@ -59,7 +61,7 @@ def checkAlertsAgainstCanMsg(can_message): #can_message is the cm_tup from logfi
                 print("value from the decoded can", decodedMessage.sigDict[signal], type(decodedMessage.sigDict[signal]))
                 print(f"ALERT TRIGGERED: {alert}")
 
-                logger_db.add_triggered_alert(alert['id'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
+                logger_db.add_triggered_alert(alert['id'], category, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
 
                 if socketio_instance:
                     print("EMITTING SOCKET")
@@ -96,7 +98,7 @@ def checkAlertsAgainstCanMsg(can_message): #can_message is the cm_tup from logfi
                             # ALERT TRIGGERED
                             conditionMet = True
 
-                    logger_db.add_triggered_alert(alert['id'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
+                    logger_db.add_triggered_alert(alert['id'], category, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp)
                     if socketio_instance:
                         print("EMITTING SOCKET")
                         socketio_instance.emit('big_popup_event', {
