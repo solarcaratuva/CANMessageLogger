@@ -7,9 +7,90 @@
     <title>UVA Solar Car</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
     <script src="../static/scripts/plotlyGraph.js" defer></script>
+    <style>
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #eee;
+            padding: 15px 20px;
+            font-weight: bold;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .select-all-container {
+            border-bottom: 1px solid #eee;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            font-weight: bold;
+        }
+        .field-group {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .field-group-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #343a40;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 5px;
+        }
+        .checkbox-container:hover {
+            background-color: #eee;
+            border-radius: 4px;
+        }
+        .field-checkbox {
+            margin-right: 10px;
+        }
+        .form-control {
+            border-radius: 6px;
+        }
+        .btn-control {
+            border-radius: 6px;
+            padding: 8px 15px;
+            font-weight: 500;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-active {
+            background-color: #28a745;
+            box-shadow: 0 0 5px #28a745;
+            animation: pulse 2s infinite;
+        }
+        .status-inactive {
+            background-color: #dc3545;
+        }
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 6px rgba(40, 167, 69, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+            }
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -48,7 +129,8 @@
 
     <div>
         <div class="wide-container text-center mt-4">
-            <h2>MotorCommands Visualization</h2>
+            <h2>CAN Message Visualization</h2>
+            <p class="text-muted">Automatically tracking MotorCommands data. You can select multiple fields to compare their values.</p>
         </div>
 
         <div class="container-fluid mt-4">
@@ -62,15 +144,30 @@
 
                 <!-- Right smaller containers -->
                 <div class="col-md-4">
-                    <div class="small-container">
-                        <div class="text-container">
-                            <h5>Controls</h5>
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            Data Selection
+                        </div>
+                        <div class="card-body">
                             <div id="field-selector">
-                                <!-- Dynamically Populated Checkboxes -->
+                                <!-- Dynamically Populated Fields -->
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>Auto Update</span>
+                            <div>
+                                <span class="status-indicator status-active" id="updateStatus"></span>
+                                <span id="updateStatusText">Active</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-3">Auto-update is enabled - showing real-time MotorCommands.throttle data.</p>
                             <div class="live-update-control">
-                                <button id="toggleLiveUpdate" class="btn btn-primary">
-                                    Start Live Updates
+                                <button id="toggleLiveUpdate" class="btn btn-danger btn-control btn-block">
+                                    Stop Auto Updates
                                 </button>
                             </div>
                         </div>
