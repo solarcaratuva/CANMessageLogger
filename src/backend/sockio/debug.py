@@ -2,7 +2,7 @@ from main import socketio, app  # the socketio app
 from backend.db_connection import DbConnection as dbconnect
 from flask import render_template, jsonify
 
-message_list = []
+message_list = list()
 
 @app.route('/get_table_names', methods=['GET'])
 def get_table_names():
@@ -34,7 +34,6 @@ def get_latest_message_batch():
             continue
         if table_name == "TriggeredAlerts":
             continue
-
 
         columns = logger_db.query(f"PRAGMA table_info({table_name});")
         column_names = [col['name'] for col in columns if col['name'].lower() != 'count']
