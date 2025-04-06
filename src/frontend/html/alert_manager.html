@@ -335,17 +335,26 @@
         `;
 
         data.triggered_alerts.forEach((alert) => {
+          const operatorMatch = alert.fail_cause.match(/(.*?)(\s*(?:!=|=|<|>)\s*)(.*)/);
+          let formattedFailCause = alert.fail_cause;
+
+          if (operatorMatch) {
+            const [, left, operator, right] = operatorMatch;
+            formattedFailCause = `<b>${left.trim()}</b>${operator}${right.trim()}`;
+          }
+
           tableHtml += `
             <tr class="history-item">
               <td>${alert.alert_id}</td>
               <td>${alert.signal}</td>
-              <td>${alert.fail_cause}</td>
-              <td>${alert.category + "(" + alert.can_message_id+ ")" || ''}</td>
+              <td>${formattedFailCause}</td>
+              <td>${alert.category + " (" + alert.can_message_id+ ")" || ''}</td>
               <td>${alert.can_message_data}</td>
               <td>${alert.can_message_timestamp}</td>
             </tr>
           `;
         });
+
 
         tableHtml += `
               </tbody>
