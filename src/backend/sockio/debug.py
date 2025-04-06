@@ -25,6 +25,7 @@ def get_latest_message_batch():
 
     tables = logger_db.query("SELECT name FROM sqlite_master WHERE type='table';")
 
+    # add tables here to ignore when getting latest message batch
     for table in tables:
         table_name = table['name']
         if table_name == "sqlite_sequence":
