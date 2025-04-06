@@ -29,6 +29,11 @@ def get_latest_message_batch():
         table_name = table['name']
         if table_name == "sqlite_sequence":
             continue
+        if table_name == "Alerts":
+            continue
+        if table_name == "TriggeredAlerts":
+            continue
+
 
         columns = logger_db.query(f"PRAGMA table_info({table_name});")
         column_names = [col['name'] for col in columns if col['name'].lower() != 'count']
