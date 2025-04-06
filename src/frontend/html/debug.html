@@ -90,37 +90,40 @@ function populateCheckboxes(tableNames, defaultCheckedTables = []) {
     checkboxContainer.innerHTML = '';
     checkedTables = [];
 
-    tableNames.forEach((tableName) => {
-        if (tableName === "sqlite_sequence") {
-            return;
-        }   
-        if (!document.getElementById('checkbox_' + tableName)) {
-            const checkboxWrapper = document.createElement('div');
-            checkboxWrapper.className = 'checkbox-wrapper';
+    for (let i = 0; i < tableNames.length; i++) {
+    const tableName = tableNames[i];
+    if (tableName === "sqlite_sequence" || tableName === "Alerts" || tableName === "TriggeredAlerts") {
+        continue;
+    }
 
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.name = 'tableName';
-            checkbox.value = tableName;
-            checkbox.id = 'checkbox_' + tableName;
+    if (!document.getElementById('checkbox_' + tableName)) {
+        const checkboxWrapper = document.createElement('div');
+        checkboxWrapper.className = 'checkbox-wrapper';
 
-            checkbox.checked = defaultCheckedTables.includes(tableName);
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.name = 'tableName';
+        checkbox.value = tableName;
+        checkbox.id = 'checkbox_' + tableName;
 
-            const label = document.createElement('label');
-            label.htmlFor = checkbox.id;
-            label.appendChild(document.createTextNode(tableName));
+        checkbox.checked = defaultCheckedTables.includes(tableName);
 
-            checkboxWrapper.appendChild(checkbox);
-            checkboxWrapper.appendChild(label);
-            checkboxContainer.appendChild(checkboxWrapper);
+        const label = document.createElement('label');
+        label.htmlFor = checkbox.id;
+        label.appendChild(document.createTextNode(tableName));
 
-            checkbox.addEventListener('change', loadTableData);
-            if(checkbox.checked){
-                checkedTables.push(tableName);
-                console.log("Table Name: " + tableName);
-            }
+        checkboxWrapper.appendChild(checkbox);
+        checkboxWrapper.appendChild(label);
+        checkboxContainer.appendChild(checkboxWrapper);
+
+        checkbox.addEventListener('change', loadTableData);
+        if (checkbox.checked) {
+            checkedTables.push(tableName);
+            console.log("Table Name: " + tableName);
         }
-    });
+    }
+}
+
     const defaultCheckedCheckboxes = document.querySelectorAll(
         'input[name="tableName"]:checked'
     );

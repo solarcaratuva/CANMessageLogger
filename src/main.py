@@ -8,10 +8,10 @@ from backend.sockio import debug # must be imported to register the socketio eve
 
 def main():
     database_path = "./can_database.sqlite"
+
     datafile_path = None
 
     parser = cli_message_reader()
-
     args = parser.parse_args()
 
     if args.inputFile:
@@ -19,6 +19,14 @@ def main():
 
     if args.outputDB:
         database_path = args.outputDB[0]
+
+    if args.logType == "db":
+        if not args.inputFile:
+            parser.error("The '--inputFile' option is required when 'db' is provided.")
+        if not (args.inputFile[0].endswith(".db")) and not (args.inputFile[0].endswith(".sqlite")):
+            parser.error("Need to specify a .db or .sqlite file")
+
+            database_path = args.inputFile[0]
 
     # need to call .set_up_tables and .setup_database_path here!! (before running threads)
     DbConnection.setup_the_db_path(database_path)
@@ -48,14 +56,6 @@ def main():
 
             socketio.start_background_task(target=consumer.process_data_live)
             socketio.start_background_task(target=partial(logfile_producer.process_logfile_live, datafile_path))
-
-        case "db":
-            if not args.inputFile:
-                parser.error("The '--inputFile' option is required when 'db' is provided.")
-            if not (args.inputFile[0].endswith(".db")) and not (args.inputFile[0].endswith(".sqlite")):
-                parser.error("Need to specify a .db or .sqlite file")
-
-            database_path = args.inputFile[0]
 
     socketio.run(app, debug=True, allow_unsafe_werkzeug=True)  # to run the sockio io app, .run is blocking! No code below this
 
