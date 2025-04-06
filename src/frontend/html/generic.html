@@ -9,8 +9,6 @@
     <link rel="stylesheet" href="../static/style/styles.css">
     <title>UVA Solar Car</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <!-- Include other head elements here -->
 </head>
 <header>
@@ -20,39 +18,102 @@
                 <img src="../static/logo.png" id="logo" alt="Logo" class="navbar-logo">
             </div>
         </a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+                aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
+                <!-- Example nav links, update as needed -->
                 <li class="nav-item active">
-                    <a class="nav-link" href="#">Debug Dashboard<span class="sr-only">(current)</span></a>
+                    <a class="nav-link" href="/">Debug Dashboard<span class="sr-only">(current)</span></a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#">Graphs</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Link2</a>
+                    <a class="nav-link" href="/link2">Link2</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#">Link3</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/alert_manager">Alert Manager</a>
+                </li>
             </ul>
-
             <div class="navbar-nav ml-auto">
                 <span class="text-light middleTitle">Debug Dashboard</span>
             </div>
-
         </div>
     </nav>
 </header>
+
 <body>
+
     <div class="wide-container text-center mt-4">
         <h2>Error Messages!</h2>
+        <div id="latestAlert" class="alert alert-info text-left mx-auto" style="display: inline-block; max-width: 95%; white-space: nowrap; overflow-x: auto;">
+            Loading most recent alert...
+        </div>
     </div>
+
     {% block content %}
-    <!-- Default content can go here -->
+    <!-- Default page content can go here -->
     {% endblock %}
+
+    <!-- jQuery + Socket.IO (include this near the end of the body if you want to use them in your scripts) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        (function() {
+            const latestAlertDiv = document.getElementById("latestAlert");
+            const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+        
+            function fetchMostRecentAlert() {
+                fetch('/get_triggered_alerts')
+                    .then(resp => resp.json())
+                    .then(data => {
+                        if (data.status === 'success' && data.triggered_alerts.length > 0) {
+                            let triggered = data.triggered_alerts.sort((a, b) =>
+                                new Date(b.can_message_timestamp) - new Date(a.can_message_timestamp)
+                            );
+                            let latest = triggered[0];
+                            let alertMsg = `
+                                <strong>Alert #${latest.alert_id}</strong> — ${latest.signal} | 
+                                <strong>Value:</strong> ${latest.fail_cause} | 
+                                <strong>CAN Msg ID:</strong> ${latest.category} (${latest.can_message_id}) | 
+                                <strong>CAN Data:</strong> ${latest.can_message_data} | 
+                                <strong>Timestamp:</strong> ${latest.can_message_timestamp}
+                            `;
+                            latestAlertDiv.innerHTML = alertMsg;
+                            latestAlertDiv.classList.remove('alert-info');
+                            latestAlertDiv.classList.add('alert-danger');
+                        } else {
+                            latestAlertDiv.textContent = "No errors currently.";
+                            latestAlertDiv.classList.remove('alert-danger');
+                            latestAlertDiv.classList.add('alert-info');
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Error fetching triggered alerts:", err);
+                        latestAlertDiv.textContent = "Error fetching triggered alerts.";
+                    });
+            }
+        
+            document.addEventListener('DOMContentLoaded', fetchMostRecentAlert);
+            setInterval(fetchMostRecentAlert, 30000);
+        
+            socket.on('big_popup_event', function(data) {
+                console.log("Received big_popup_event:", data);
+                fetchMostRecentAlert();
+            });
+        })();
+    </script>
+
 </body>
 </html>

@@ -1,4 +1,5 @@
 from backend.input.consumer import queue, start_consume_time
+from backend.input import queueHandler
 import time
 
 import re
@@ -54,7 +55,8 @@ def process_logfile(path_to_log_file: str) -> None:
         for line in file:
             cm_tup = parse_line(line)
             if cm_tup is not None:  # if the line from log file followed the format, add to queue
-                queue.put(cm_tup)
+                queueHandler.add_to_queue_with_instant_checks(cm_tup)
+                #queue.put(cm_tup)
 
 
 # Emphasize: For this function TimeStamp is NOT taken from logfile, it is system time (see sys_cm_tuple)
@@ -65,6 +67,7 @@ def process_logfile_live(path_to_log_file: str) -> None:
             cm_tup = parse_line(line)
             if cm_tup is not None:  # if the line from log file followed the format, add to queue
                 sys_cm_tup = (cm_tup[0], cm_tup[1], time.perf_counter() - start_consume_time)  # from the System Time
-                queue.put(sys_cm_tup)
+                queueHandler.add_to_queue_with_instant_checks(cm_tup)
+                #queue.put(sys_cm_tup)
             time.sleep(LOOP_TIME)
 
