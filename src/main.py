@@ -4,6 +4,8 @@ from backend.sockio.socket import socketio, app
 from backend.input import consumer, logfile_producer, monitor_live_log
 from functools import partial
 from backend.sockio import debug # must be imported to register the socketio event handlers
+from backend.functions import gitPull
+
 import time
 import os
 def main():
@@ -19,6 +21,11 @@ def main():
 
     parser = cli_message_reader()
     args = parser.parse_args()
+
+    success, message = gitPull(args.set_dbc_branch)
+    print("[GIT]", message)
+    if not success:
+        print("[GIT ERROR] Continuing anyway...")
 
     if args.inputFile:
         datafile_path = args.inputFile[0]
