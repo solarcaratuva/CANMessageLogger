@@ -1,7 +1,7 @@
 import argparse
 from backend.db_connection import DbConnection
 from backend.sockio.socket import socketio, app
-from backend.input import consumer, logfile_producer
+from backend.input import consumer, logfile_producer, monitor_live_log
 from functools import partial
 from backend.sockio import debug # must be imported to register the socketio event handlers
 import time
@@ -51,8 +51,8 @@ def main():
             consumer.process_data()
 
         case "livelog":
-            pass
-            # NOT IMPLEMENTED YET
+            socketio.start_background_task(target=consumer.process_data_live)
+            socketio.start_background_task(target=monitor_live_log.listen_to_serial)
 
         case "mock_livelog":
             if not args.inputFile:
@@ -62,6 +62,7 @@ def main():
 
             socketio.start_background_task(target=consumer.process_data_live)
             socketio.start_background_task(target=partial(logfile_producer.process_logfile_live, datafile_path))
+        
 
     socketio.run(app, debug=False, allow_unsafe_werkzeug=True)  # to run the sockio io app, .run is blocking! No code below this
 
