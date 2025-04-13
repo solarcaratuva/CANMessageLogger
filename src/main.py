@@ -4,10 +4,16 @@ from backend.sockio.socket import socketio, app
 from backend.input import consumer, logfile_producer
 from functools import partial
 from backend.sockio import debug # must be imported to register the socketio event handlers
-
-
+import time
+import os
 def main():
-    database_path = "./can_database.sqlite"
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+
+    newpath = './CANDatabases' 
+    if not os.path.exists(newpath):
+        os.makedirs(newpath)
+    # timestamp: year,month,day,hour,minute,second
+    database_path = f"./CANDatabases/can_database_{timestamp}.sqlite"
 
     datafile_path = None
 
@@ -57,7 +63,7 @@ def main():
             socketio.start_background_task(target=consumer.process_data_live)
             socketio.start_background_task(target=partial(logfile_producer.process_logfile_live, datafile_path))
 
-    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)  # to run the sockio io app, .run is blocking! No code below this
+    socketio.run(app, debug=False, allow_unsafe_werkzeug=True)  # to run the sockio io app, .run is blocking! No code below this
 
 
 def cli_message_reader() -> argparse.ArgumentParser:

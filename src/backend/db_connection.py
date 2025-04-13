@@ -7,7 +7,7 @@ import json
 
 
 class DbConnection:
-    DB_path = None  # static, i.e. shared with all DbConnection Objects
+    DB_path = "./CANDatabases"  # static, i.e. shared with all DbConnection Objects
 
     def __init__(self):
         #print("The database path is: ", DbConnection.DB_path)
