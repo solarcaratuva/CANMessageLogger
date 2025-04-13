@@ -3,7 +3,7 @@ from serial import Serial
 import serial.tools.list_ports
 import time
 from backend.input.consumer import queue
-from logfile_producer import parse_line
+from backend.input.logfile_producer import parse_line
 
 def get_correct_port() -> str:
     ports = serial.tools.list_ports.comports()
