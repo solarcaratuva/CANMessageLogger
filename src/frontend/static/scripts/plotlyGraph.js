@@ -11,6 +11,11 @@ const updateFrequency = 500; // How often to check for updates (in ms)
 // Keep track of the last timestamp we've seen for each table
 let lastTimestamps = {};
 
+// Variables to hold zoom state
+let isZoomed = false;
+let zoomStartValue = null;
+let zoomEndValue = null;
+
 const preprocessStepData = (timestamps, values) => {
     const newTimestamps = [];
     const newValues = [];
@@ -330,6 +335,13 @@ const updateGraphWithLiveData = (newData) => {
                     });
                 }
             }
+        }
+
+        // Ensure that the x-axis range is preserved if zoomed in
+        if (isZoomed) {
+            Plotly.relayout('graphCanvas', {
+                'xaxis.range': [zoomStartValue, zoomEndValue]
+            });
         }
     } catch (error) {
         console.error('Error in updateGraphWithLiveData:', error);
@@ -753,4 +765,34 @@ document.addEventListener('DOMContentLoaded', initialize);
 // Add window resize handler
 window.addEventListener('resize', () => {
     Plotly.Plots.resize('graphCanvas');
+});
+
+// Event listener for the Apply Zoom button
+document.getElementById('applyZoom').addEventListener('click', () => {
+    zoomStartValue = parseFloat(document.getElementById('zoomStart').value);
+    zoomEndValue = parseFloat(document.getElementById('zoomEnd').value);
+
+    // Check that the inputs are valid numbers and that start is less than end
+    if (!isNaN(zoomStartValue) && !isNaN(zoomEndValue) && zoomStartValue < zoomEndValue) {
+        Plotly.relayout('graphCanvas', {
+            'xaxis.range': [zoomStartValue, zoomEndValue],
+            'xaxis.autorange': false
+        });
+        isZoomed = true; // Set zoom state to true
+        console.log(`Zoom applied from ${zoomStartValue} to ${zoomEndValue}`);
+    } else {
+        alert("Please enter valid start and end times where the start is less than the end.");
+    }
+});
+
+// Event listener for the Reset Zoom button
+document.getElementById('resetZoom').addEventListener('click', () => {
+    // Reset x-axis to auto range so new data will be visible
+    Plotly.relayout('graphCanvas', {'xaxis.autorange': true});
+    isZoomed = false; // Reset zoom state
+    zoomStartValue = null; // Clear stored values
+    zoomEndValue = null;
+    document.getElementById('zoomStart').value = "";
+    document.getElementById('zoomEnd').value = "";
+    console.log("Zoom reset");
 });
