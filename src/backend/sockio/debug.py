@@ -1,4 +1,4 @@
-from main import socketio, app  # the socketio app
+from backend.sockio.socket import socketio, app  # the socketio app
 from backend.db_connection import DbConnection as dbconnect
 from flask import render_template, jsonify
 

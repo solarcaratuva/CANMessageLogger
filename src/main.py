@@ -1,13 +1,16 @@
 import argparse
-from backend.db_connection import DbConnection
-from backend.sockio.socket import socketio, app
-from backend.input import consumer, logfile_producer, monitor_live_log
-from functools import partial
-from backend.sockio import debug # must be imported to register the socketio event handlers
 from backend.functions import gitPull
-
 import time
 import os
+from backend import config
+def setup_socketio():
+    from backend.sockio.socket import socketio, app
+    from backend.sockio import debug  # must be imported to register the socketio event handlers
+    from backend.db_connection import DbConnection
+    from backend.input import consumer, logfile_producer, monitor_live_log
+    from functools import partial
+    return socketio, app, debug, DbConnection, consumer, logfile_producer, monitor_live_log, partial
+
 def main():
     timestamp = time.strftime("%Y%m%d_%H%M%S")
 
@@ -22,10 +25,15 @@ def main():
     parser = cli_message_reader()
     args = parser.parse_args()
 
-    success, message = gitPull(args.set_dbc_branch)
+    can_messages_config = config.REPO_CONFIG["submodules"]["CAN-messages"]
+    submodule_path = os.path.relpath(can_messages_config["path"])
+
+    success, message = gitPull(args.set_dbc_branch, submodule_path=submodule_path)
     print("[GIT]", message)
     if not success:
         print("[GIT ERROR] Continuing anyway...")
+
+    socketio, app, debug, DbConnection, consumer, logfile_producer, monitor_live_log, partial = setup_socketio()
 
     if args.inputFile:
         datafile_path = args.inputFile[0]
