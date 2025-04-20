@@ -183,6 +183,7 @@ class DbConnection:
             print(alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause)
             return None
     
+    
     def fetch_triggered_alerts(self):
         try:
             connection = self.conn
