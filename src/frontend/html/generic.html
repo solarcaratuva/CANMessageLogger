@@ -10,49 +10,73 @@
     <title>UVA Solar Car</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <!-- Include other head elements here -->
-</head>
-<header>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="#">
-            <div class="logo-container">
-                <img src="../static/logo.png" id="logo" alt="Logo" class="navbar-logo">
-            </div>
-        </a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
-                aria-controls="navbarSupportedContent" aria-expanded="false"
-                aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    
+        body.alert-active {
+            background: #fff3cd  !important;
+            background-image: none !important;
+        }
 
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav mr-auto">
-                <!-- Example nav links, update as needed -->
-                <li class="nav-item active">
-                    <a class="nav-link" href="/">Debug Dashboard<span class="sr-only">(current)</span></a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Graphs</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/link2">Link2</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Link3</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/alert_manager">Alert Manager</a>
-                </li>
-            </ul>
-            <div class="navbar-nav ml-auto">
-                <span class="text-light middleTitle">Debug Dashboard</span>
-            </div>
-        </div>
-    </nav>
-</header>
+        .wide-container.alert-highlight {
+            background-color: #eed202 !important; 
+            border: 1px solid #ffeeba;
+            border-radius: 8px;
+            padding: 20px;
+        }
+    </style>
+    
+    
+    
+</head>
+
 
 <body>
 
-    <div class="wide-container text-center mt-4">
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <a class="navbar-brand" href="#">
+                <div class="logo-container">
+                    <img src="../static/logo.png" id="logo" alt="Logo" class="navbar-logo">
+                </div>
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+                    aria-controls="navbarSupportedContent" aria-expanded="false"
+                    aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+    
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <!-- Example nav links, update as needed -->
+                    <li class="nav-item active">
+                        <a class="nav-link" href="/">Debug Dashboard<span class="sr-only">(current)</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Graphs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/link2">Link2</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Link3</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/alert_manager">Alert Manager</a>
+                    </li>
+                </ul>
+                <div class="navbar-nav ml-auto">
+                    <span class="text-light middleTitle">Debug Dashboard</span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div id="errorCard" class="wide-container text-center mt-4">
         <h2>Error Messages!</h2>
         <div id="latestAlert" class="alert alert-info text-left mx-auto" style="display: inline-block; max-width: 95%; white-space: nowrap; overflow-x: auto;">
             Loading most recent alert...
@@ -70,6 +94,8 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <script>
+    const errorCard = document.getElementById("errorCard");
+
         (function() {
             const latestAlertDiv = document.getElementById("latestAlert");
             const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
@@ -90,20 +116,44 @@
                                 <strong>CAN Data:</strong> ${latest.can_message_data} | 
                                 <strong>Timestamp:</strong> ${latest.can_message_timestamp}
                             `;
-                            latestAlertDiv.innerHTML = alertMsg;
+                            latestAlertDiv.innerHTML = `
+                                ${alertMsg}
+                                <button class="btn btn-sm btn-outline-dark float-right ml-3" id="clearAlertBtn">Clear</button>
+                            `;
                             latestAlertDiv.classList.remove('alert-info');
                             latestAlertDiv.classList.add('alert-danger');
+                            document.body.classList.add('alert-active');
+                            errorCard.classList.add('alert-highlight');
+
+
+                            document.getElementById('clearAlertBtn').addEventListener('click', () => {
+                                // Optional: notify server to clear
+                                // fetch('/clear_latest_alert', { method: 'POST' });
+
+                                latestAlertDiv.textContent = "No errors currently.";
+                                latestAlertDiv.classList.remove('alert-danger');
+                                latestAlertDiv.classList.add('alert-info');
+                                document.body.classList.remove('alert-active');
+                                errorCard.classList.remove('alert-highlight');
+
+                            });
+
                         } else {
                             latestAlertDiv.textContent = "No errors currently.";
                             latestAlertDiv.classList.remove('alert-danger');
                             latestAlertDiv.classList.add('alert-info');
+                            document.body.classList.remove('alert-active');
+                            errorCard.classList.remove('alert-highlight');
+
                         }
                     })
                     .catch(err => {
                         console.error("Error fetching triggered alerts:", err);
                         latestAlertDiv.textContent = "Error fetching triggered alerts.";
+                        document.body.classList.remove('alert-active');
                     });
             }
+
         
             document.addEventListener('DOMContentLoaded', fetchMostRecentAlert);
             setInterval(fetchMostRecentAlert, 30000);

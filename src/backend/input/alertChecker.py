@@ -30,6 +30,7 @@ def checkAlertsAgainstCanMsg(can_message): #can_message is the cm_tup from logfi
     """
     Checks the given CAN message against all active alerts
     """
+    
     logger_db = dbconnect()
     time.sleep(5)
     can_message_id = can_message[0]

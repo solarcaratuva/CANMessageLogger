@@ -98,7 +98,7 @@ def get_triggered_alerts():
     
     # Convert any bytes in can_message_data to a hex string
     for alert in triggered_alerts:
-        print("ALERT THAT GOT FETCHED: ", alert)
+        # print("ALERT THAT GOT FETCHED: ", alert)
         if 'can_message_data' in alert and isinstance(alert['can_message_data'], bytes):
             alert['can_message_data'] = alert['can_message_data'].hex()
     

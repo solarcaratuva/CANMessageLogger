@@ -163,7 +163,7 @@ class DbConnection:
     
     def add_triggered_alert(self, alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause):
         try:
-            print("ADDING AN ALERT TO PREV TRIGGERED ALERTS")
+            print("ADDING AN ALERT TO PREV TRIGGERED ALERTS", alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause)
             # print(traceback.print_stack())
             connection = self.conn
             cursor = connection.cursor()
