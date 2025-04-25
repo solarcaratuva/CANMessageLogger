@@ -120,7 +120,19 @@
                             let triggered = data.triggered_alerts.sort((a, b) =>
                                 new Date(b.can_message_timestamp) - new Date(a.can_message_timestamp)
                             );
+
                             let latest = triggered[0];
+                            let clearedId = localStorage.getItem("cleared_alert_id");
+
+                            if (clearedId && parseInt(clearedId) === latest.alert_id) {
+                                // Skip showing this alert
+                                latestAlertDiv.textContent = "No errors currently.";
+                                latestAlertDiv.classList.remove('alert-danger');
+                                latestAlertDiv.classList.add('alert-info');
+                                document.body.classList.remove('alert-active', 'alert-active-red');
+                                errorCard.classList.remove('alert-highlight', 'alert-critical');
+                                return;
+                            }
                             // Check if the alert value is "AUTO FAULT"
                             const isAutoFault = latest.fail_cause.trim().toUpperCase() === "AUTO FAULT";
 
@@ -150,6 +162,8 @@
 
 
                             document.getElementById('clearAlertBtn').addEventListener('click', () => {
+                                localStorage.setItem("cleared_alert_id", latest.alert_id); 
+
                                 latestAlertDiv.textContent = "No errors currently.";
                                 latestAlertDiv.classList.remove('alert-danger');
                                 latestAlertDiv.classList.add('alert-info');
@@ -157,6 +171,7 @@
                                 document.body.classList.remove('alert-active', 'alert-active-red');
                                 errorCard.classList.remove('alert-highlight', 'alert-critical');
                             });
+
 
 
                         } else {
