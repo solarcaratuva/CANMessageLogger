@@ -127,9 +127,13 @@ function loadTableData() {
 
 function updateVisibleTables(selected) {
     const allCards = messageContainer.querySelectorAll('.card');
+
+    // If no checkboxes are checked, show all tables
+    const showAll = !selected || selected.length === 0;
+
     allCards.forEach(card => {
         const tableName = card.id.replace('card_', '');
-        card.style.display = (!selected || selected.includes(tableName)) ? 'block' : 'none';
+        card.style.display = showAll || selected.includes(tableName) ? 'block' : 'none';
     });
 }
 
