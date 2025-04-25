@@ -122,10 +122,10 @@
                             );
 
                             let latest = triggered[0];
-                            let clearedId = localStorage.getItem("cleared_alert_id");
+                            let clearedTriggerId = localStorage.getItem("cleared_trigger_id");
 
-                            if (clearedId && parseInt(clearedId) === latest.alert_id) {
-                                // Skip showing this alert
+                            if (clearedTriggerId && parseInt(clearedTriggerId) === latest.id) {
+                                // Skip showing this exact trigger instance
                                 latestAlertDiv.textContent = "No errors currently.";
                                 latestAlertDiv.classList.remove('alert-danger');
                                 latestAlertDiv.classList.add('alert-info');
@@ -133,6 +133,7 @@
                                 errorCard.classList.remove('alert-highlight', 'alert-critical');
                                 return;
                             }
+
                             // Check if the alert value is "AUTO FAULT"
                             const isAutoFault = latest.fail_cause.trim().toUpperCase() === "AUTO FAULT";
 
@@ -162,7 +163,7 @@
 
 
                             document.getElementById('clearAlertBtn').addEventListener('click', () => {
-                                localStorage.setItem("cleared_alert_id", latest.alert_id); 
+                                localStorage.setItem("cleared_trigger_id", latest.id); 
 
                                 latestAlertDiv.textContent = "No errors currently.";
                                 latestAlertDiv.classList.remove('alert-danger');
@@ -171,6 +172,7 @@
                                 document.body.classList.remove('alert-active', 'alert-active-red');
                                 errorCard.classList.remove('alert-highlight', 'alert-critical');
                             });
+
 
 
 
@@ -193,6 +195,32 @@
                     });
             }
 
+            function fetchAlerts() {
+                fetch('/get_alerts')
+                    .then(resp => resp.json())
+                    .then(data => {
+                        const container = document.getElementById('alertHistoryContainer'); 
+                        if (!container) return; // maybe this page doesn't have the table
+
+                        container.innerHTML = ''; // Clear existing
+
+                        if (data.status === 'success' && data.alerts.length > 0) {
+                            let html = '<ul>';
+                            data.alerts.forEach(alert => {
+                                html += `<li>${alert.name} — ${alert.field}</li>`;
+                            });
+                            html += '</ul>';
+                            container.innerHTML = html;
+                        } else {
+                            container.innerHTML = '<div>No alerts found.</div>';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error fetching alerts:', err);
+                    });
+            }
+
+
         
             document.addEventListener('DOMContentLoaded', fetchMostRecentAlert);
             setInterval(fetchMostRecentAlert, 30000);
@@ -200,6 +228,9 @@
             socket.on('big_popup_event', function(data) {
                 console.log("Received big_popup_event:", data);
                 fetchMostRecentAlert();
+                if (typeof fetchTriggeredAlerts === "function") {
+                    fetchTriggeredAlerts(); 
+                }
             });
         })();
     </script>
