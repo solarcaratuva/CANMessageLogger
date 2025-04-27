@@ -21,7 +21,7 @@ def get_table_names():
 def get_latest_message_batch():
     print("latest message check")
     logger_db = dbconnect()
-    message_batch = []
+    message_batch = list()
 
     tables = logger_db.query("SELECT name FROM sqlite_master WHERE type='table';")
 
@@ -49,7 +49,7 @@ def get_latest_message_batch():
             message_data = row[0]
         else:
             timestamp = -1
-            message_data = {}
+            message_data = dict()
 
         message_batch.append({
             'table_name': table_name,

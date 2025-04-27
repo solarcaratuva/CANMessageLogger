@@ -10,8 +10,8 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 alertChecker.set_socketio(socketio)
 # List to store messages to display on the front end
-message_list = []
-alert_definitions = {} # {1: alert1, 2: alert2, 3: alert3, ...}
+message_list = list()
+alert_definitions = dict() # {1: alert1, 2: alert2, 3: alert3, ...}
 alertsCreated = 0
 
 

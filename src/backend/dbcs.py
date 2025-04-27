@@ -10,7 +10,7 @@ DBCs = [ct.db.load_file(f"./resources/CAN-messages/{file}") for file in dbc_file
 # Function in our code depend on these definitions/configurations to get information on each type of can message.
 
 def get_messages_from_dbc(dbc_file: str):
-    res = {}
+    res = dict()
     dbc: can.Database = ct.database.load_file(dbc_file)
     for message in dbc.messages:
         res[message.name] = {}
