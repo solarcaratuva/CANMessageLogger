@@ -113,6 +113,7 @@
             const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
         
             function fetchMostRecentAlert() {
+                console.log("Fetching most recent alert...");
                 fetch('/get_triggered_alerts')
                     .then(resp => resp.json())
                     .then(data => {
@@ -123,9 +124,12 @@
 
                             let latest = triggered[0];
                             let clearedTriggerId = localStorage.getItem("cleared_trigger_id");
+                            console.log("Latest alert:", latest);
+                            console.log("Cleared trigger ID:", clearedTriggerId);
+                            
 
                             if (clearedTriggerId && parseInt(clearedTriggerId) === latest.id) {
-                                // Skip showing this exact trigger instance
+                                console.log("Alert cleared, not displaying.");
                                 latestAlertDiv.textContent = "No errors currently.";
                                 latestAlertDiv.classList.remove('alert-danger');
                                 latestAlertDiv.classList.add('alert-info');
@@ -134,7 +138,11 @@
                                 return;
                             }
 
-                            // Check if the alert value is "AUTO FAULT"
+                            // 🔥 FIRST clear everything
+                            document.body.classList.remove('alert-active', 'alert-active-red');
+                            errorCard.classList.remove('alert-highlight', 'alert-critical');
+
+                            // 🔥 THEN correctly assign style based on alert type
                             const isAutoFault = latest.fail_cause.trim().toUpperCase() === "AUTO FAULT";
 
                             if (isAutoFault) {
@@ -145,6 +153,7 @@
                                 errorCard.classList.add('alert-highlight');
                             }
 
+                            // Update the latest alert content
                             let alertMsg = `
                                 <strong>Alert #${latest.alert_id}</strong> — ${latest.signal} | 
                                 <strong>Value:</strong> ${latest.fail_cause} | 
@@ -158,12 +167,9 @@
                             `;
                             latestAlertDiv.classList.remove('alert-info');
                             latestAlertDiv.classList.add('alert-danger');
-                            document.body.classList.add('alert-active');
-                            errorCard.classList.add('alert-highlight');
-
 
                             document.getElementById('clearAlertBtn').addEventListener('click', () => {
-                                localStorage.setItem("cleared_trigger_id", latest.id); 
+                                localStorage.setItem("cleared_trigger_id", latest.id);
 
                                 latestAlertDiv.textContent = "No errors currently.";
                                 latestAlertDiv.classList.remove('alert-danger');
@@ -173,17 +179,12 @@
                                 errorCard.classList.remove('alert-highlight', 'alert-critical');
                             });
 
-
-
-
                         } else {
                             latestAlertDiv.textContent = "No errors currently.";
                             latestAlertDiv.classList.remove('alert-danger');
                             latestAlertDiv.classList.add('alert-info');
                             document.body.classList.remove('alert-active', 'alert-active-red');
                             errorCard.classList.remove('alert-highlight', 'alert-critical');
-
-
                         }
                     })
                     .catch(err => {
@@ -191,9 +192,9 @@
                         latestAlertDiv.textContent = "Error fetching triggered alerts.";
                         document.body.classList.remove('alert-active', 'alert-active-red');
                         errorCard.classList.remove('alert-highlight', 'alert-critical');
-
                     });
             }
+
 
             function fetchAlerts() {
                 fetch('/get_alerts')
@@ -222,7 +223,33 @@
 
 
         
-            document.addEventListener('DOMContentLoaded', fetchMostRecentAlert);
+            document.addEventListener('DOMContentLoaded', function() {
+                const clearedTriggerId = localStorage.getItem("cleared_trigger_id");
+                if (clearedTriggerId) {
+                    console.log("Checking cleared trigger ID validity...");
+                    fetch('/get_triggered_alerts')
+                        .then(resp => resp.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                const exists = data.triggered_alerts.some(alert => alert.id === parseInt(clearedTriggerId));
+                                if (!exists) {
+                                    console.log("Old cleared ID no longer valid. Clearing localStorage.");
+                                    localStorage.removeItem("cleared_trigger_id");
+                                }
+                            }
+                        })
+                        .then(() => {
+                            fetchMostRecentAlert(); // Always call fetch after check
+                        })
+                        .catch(err => {
+                            console.error("Error checking cleared trigger ID:", err);
+                            fetchMostRecentAlert(); // Fetch anyway even if error
+                        });
+                } else {
+                    fetchMostRecentAlert(); // No cleared ID to check, fetch immediately
+                }
+            });
+
             setInterval(fetchMostRecentAlert, 30000);
         
             socket.on('big_popup_event', function(data) {
