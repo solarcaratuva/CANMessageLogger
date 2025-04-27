@@ -106,6 +106,8 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <script>
+    let faultActive = false;
+
     const errorCard = document.getElementById("errorCard");
 
         (function() {
@@ -138,16 +140,22 @@
                                 return;
                             }
 
-                            // 🔥 FIRST clear everything
+                            
+                            const isAutoFault = latest.fail_cause.trim().toUpperCase() === "AUTO FAULT";
+
+                            if (faultActive && clearedTriggerId !== latest.id.toString()) {
+                                console.log("Fault active - blocking alert card update.");
+                                return; 
+                            }
+
                             document.body.classList.remove('alert-active', 'alert-active-red');
                             errorCard.classList.remove('alert-highlight', 'alert-critical');
 
-                            // 🔥 THEN correctly assign style based on alert type
-                            const isAutoFault = latest.fail_cause.trim().toUpperCase() === "AUTO FAULT";
 
                             if (isAutoFault) {
                                 document.body.classList.add('alert-active-red');
                                 errorCard.classList.add('alert-critical');
+                                faultActive = true;
                             } else {
                                 document.body.classList.add('alert-active');
                                 errorCard.classList.add('alert-highlight');
@@ -170,6 +178,7 @@
 
                             document.getElementById('clearAlertBtn').addEventListener('click', () => {
                                 localStorage.setItem("cleared_trigger_id", latest.id);
+                                console.log("Clearing alert with ID:", latest.id);
 
                                 latestAlertDiv.textContent = "No errors currently.";
                                 latestAlertDiv.classList.remove('alert-danger');
@@ -180,6 +189,7 @@
                             });
 
                         } else {
+                            console.log("last else no alerts")
                             latestAlertDiv.textContent = "No errors currently.";
                             latestAlertDiv.classList.remove('alert-danger');
                             latestAlertDiv.classList.add('alert-info');
