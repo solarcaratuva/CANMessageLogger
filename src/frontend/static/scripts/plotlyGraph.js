@@ -11,10 +11,22 @@ const updateFrequency = 500; // How often to check for updates (in ms)
 // Keep track of the last timestamp we've seen for each table
 let lastTimestamps = {};
 
+// Flag to indicate we're showing full historical data without compression
+let showingFullHistory = false;
+let initialHistoricalDataCount = 0; // Store initial data count when loading history
+let currentMaxTimestamp = 0; // Track the most recent timestamp seen so far
+
 // Variables to hold zoom state
 let isZoomed = false;
 let zoomStartValue = null;
 let zoomEndValue = null;
+// New variables for zoom with scroll feature
+let isZoomScrollActive = false;
+let zoomWindowSize = null; // Size of the zoom window in ms
+let scrollStepSize = 500; // How much to move the window on each update (ms - 0.5 seconds)
+
+// Function to convert milliseconds to seconds for display
+const msToSeconds = (ms) => ms / 1000;
 
 const preprocessStepData = (timestamps, values) => {
     const newTimestamps = [];
@@ -58,11 +70,17 @@ const fetchFields = async (table) => {
     }
 };
 
-// Fetch data for specific fields from a specific table
-const fetchFieldData = async (table, fields) => {
+// Fetch data for specific fields from a specific table with an option to get all data
+const fetchFieldData = async (table, fields, getFullHistory = false) => {
     try {
-        const url = `/api/table-data?table=${table}&fields=${fields.join(',')}`;
-        console.log('Fetching data for table:', table, 'fields:', fields); // Debug log
+        let url = `/api/table-data?table=${table}&fields=${fields.join(',')}`;
+        
+        // If requesting full history, add a parameter to indicate no limit
+        if (getFullHistory) {
+            url += '&full=true';
+        }
+        
+        console.log('Fetching data for table:', table, 'fields:', fields, 'full history:', getFullHistory); // Debug log
         
         const response = await fetch(url);
         if (!response.ok) {
@@ -70,7 +88,7 @@ const fetchFieldData = async (table, fields) => {
         }
         
         const data = await response.json();
-        console.log('Received data:', data); // Debug log
+        console.log(`Received ${data.length} data points`); // Debug log
         
         if (!data || data.length === 0) {
             console.log('No data received from API');
@@ -140,13 +158,14 @@ const processLatestMessages = (messages) => {
 // Render the graph using Plotly with step function
 const renderPlotlyGraph = (timestamps, datasets) => {
     const traces = datasets.map((dataset) => ({
-        x: timestamps,
+        x: timestamps.map(msToSeconds),  // Convert ms to seconds for display
         y: dataset.data,
         mode: 'lines',
         line: {
             shape: 'hv'
         },
-        name: dataset.label
+        name: dataset.label,
+        connectgaps: false // Don't connect gaps in the data
     }));
 
     // Get all checked checkboxes to create a meaningful title
@@ -170,7 +189,7 @@ const renderPlotlyGraph = (timestamps, datasets) => {
             }
         },
         xaxis: { 
-            title: 'Timestamp',
+            title: 'Time (seconds)',  // Changed unit label to seconds
             showgrid: true,
             type: 'linear',
             gridcolor: '#f0f0f0'
@@ -210,7 +229,7 @@ const renderEmptyGraph = () => {
             }
         },
         xaxis: { 
-            title: 'Timestamp',
+            title: 'Time (seconds)',  // Changed to seconds
             showgrid: true,
             type: 'linear',
             gridcolor: '#f0f0f0'
@@ -275,6 +294,18 @@ const updateGraphWithLiveData = (newData) => {
         const timestamp = newData.timestamp;
         const dataTable = newData.table;
         
+        // Only update if the timestamp is newer than what we've seen
+        // This prevents older data from being added after we've already seen newer data
+        if (timestamp < currentMaxTimestamp && showingFullHistory) {
+            console.log(`Skipping older data point (${timestamp} < ${currentMaxTimestamp})`);
+            return;
+        }
+        
+        // Update our current max timestamp if this is newer
+        if (timestamp > currentMaxTimestamp) {
+            currentMaxTimestamp = timestamp;
+        }
+        
         // Extract all values from the data object
         Object.entries(newData.data).forEach(([field, value]) => {
             // Get the field name without table prefix (it will be something like "MotorCommands.throttle")
@@ -293,19 +324,39 @@ const updateGraphWithLiveData = (newData) => {
                 const traceIndex = findOrCreateTrace(graphDiv, fullFieldName, value);
                 
                 if (traceIndex >= 0) {
-                    // Update the trace with new data
+                    // Update the trace with new data (convert to seconds for display)
                     Plotly.extendTraces('graphCanvas', {
-                        x: [[timestamp]],
+                        x: [[msToSeconds(timestamp)]],
                         y: [[value]]
                     }, [traceIndex]);
                 }
             }
         });
         
-        // Keep only last maxDataPoints for each trace
+        // Always limit new points regardless of full history mode
+        // This prevents the graph from getting too large with live data
         if (graphDiv.data) {
+            const MAX_LIVE_POINTS = 100; // Maximum points to add after initial load
+            
             graphDiv.data.forEach((trace, traceIndex) => {
-                if (trace.x && trace.x.length > maxDataPoints) {
+                // If we're in full history mode, check if we've exceeded the maximum 
+                // number of points since loading the full history
+                if (showingFullHistory) {
+                    // Get the current number of points
+                    const totalPoints = trace.x.length;
+                    
+                    // If we've added too many new points, start trimming
+                    if (totalPoints > initialHistoricalDataCount + MAX_LIVE_POINTS) {
+                        // Keep all the historical points plus the most recent MAX_LIVE_POINTS
+                        const updateRange = {
+                            x: [trace.x.slice(0, initialHistoricalDataCount).concat(trace.x.slice(-(MAX_LIVE_POINTS)))],
+                            y: [trace.y.slice(0, initialHistoricalDataCount).concat(trace.y.slice(-(MAX_LIVE_POINTS)))]
+                        };
+                        Plotly.update('graphCanvas', updateRange, {}, [traceIndex]);
+                    }
+                }
+                // If not in full history mode, just limit to maxDataPoints
+                else if (trace.x && trace.x.length > maxDataPoints) {
                     const updateRange = {
                         x: [trace.x.slice(-maxDataPoints)],
                         y: [trace.y.slice(-maxDataPoints)]
@@ -313,8 +364,11 @@ const updateGraphWithLiveData = (newData) => {
                     Plotly.update('graphCanvas', updateRange, {}, [traceIndex]);
                 }
             });
-            
-            // Auto-scroll x-axis to show only the most recent data - this ensures we see updates in real-time
+        }
+        
+        // Auto-scroll x-axis to show only the most recent data - this ensures we see updates in real-time
+        // Only do this if zoom scroll is not active and the graph is not manually zoomed
+        if (!isZoomScrollActive && !isZoomed) {
             if (graphDiv.data.length > 0 && graphDiv.data[0].x && graphDiv.data[0].x.length > 0) {
                 const timeValues = [];
                 graphDiv.data.forEach(trace => {
@@ -326,25 +380,29 @@ const updateGraphWithLiveData = (newData) => {
                 if (timeValues.length > 0) {
                     // Calculate visible window (show only recent data)
                     const maxX = Math.max(...timeValues);
-                    // Show the last 5 seconds of data (or less if we don't have that much)
-                    const minX = Math.max(maxX - 5000, Math.min(...timeValues));
                     
-                    Plotly.relayout('graphCanvas', {
-                        'xaxis.range': [minX, maxX],
-                        'xaxis.autorange': false
-                    });
+                    // If showing full history, keep the entire graph visible initially
+                    if (showingFullHistory) {
+                        const minX = Math.min(...timeValues);
+                        Plotly.relayout('graphCanvas', {
+                            'xaxis.range': [minX, maxX],
+                            'xaxis.autorange': false
+                        });
+                    } else {
+                        // Show the last 5 seconds of data (or less if we don't have that much)
+                        const minX = Math.max(maxX - 5, Math.min(...timeValues));  // 5 seconds window
+                        
+                        Plotly.relayout('graphCanvas', {
+                            'xaxis.range': [minX, maxX],
+                            'xaxis.autorange': false
+                        });
+                    }
                 }
             }
         }
-
-        // Ensure that the x-axis range is preserved if zoomed in
-        if (isZoomed) {
-            Plotly.relayout('graphCanvas', {
-                'xaxis.range': [zoomStartValue, zoomEndValue]
-            });
-        }
+        
     } catch (error) {
-        console.error('Error in updateGraphWithLiveData:', error);
+        console.error('Error updating graph with live data:', error);
     }
 };
 
@@ -367,20 +425,61 @@ const findOrCreateTrace = (graphDiv, field, value) => {
         return -1;
     }
     
-    // If field is not found but checkbox is checked, create a new trace
+    // Extract table and field name from the full field name
+    const [tableName, fieldName] = field.split('.');
+    
+    // Create an empty trace as a placeholder with connect gaps disabled
     const newTrace = {
         x: [],
         y: [],
         mode: 'lines',
         line: { shape: 'hv' },
-        name: field
+        name: field,
+        connectgaps: false // Don't connect gaps in the data
     };
     
     // Add the new trace to the plot
     Plotly.addTraces('graphCanvas', newTrace);
+    const newTraceIndex = graphDiv.data.length - 1;
+    
+    // Fetch historical data for this field if possible and if not already showing full history
+    if (tableName && fieldName && !showingFullHistory) {
+        console.log(`Fetching historical data for ${tableName}.${fieldName}`);
+        
+        // Use a setTimeout to not block the UI
+        setTimeout(async () => {
+            try {
+                const historyData = await fetchFieldData(tableName, [fieldName]);
+                
+                if (historyData && historyData.length > 0) {
+                    console.log(`Adding ${historyData.length} historical points for ${field}`);
+                    
+                    // Extract timestamps and values
+                    const timestamps = historyData.map(item => msToSeconds(item.timestamp));  // Convert to seconds
+                    const values = historyData.map(item => item[fieldName] || 0);
+                    
+                    // Add historical data to the trace
+                    Plotly.extendTraces('graphCanvas', {
+                        x: [timestamps],
+                        y: [values]
+                    }, [newTraceIndex]);
+                    
+                    // Preserve zoom if needed
+                    if (isZoomed) {
+                        Plotly.relayout('graphCanvas', {
+                            'xaxis.range': [zoomStartValue, zoomEndValue],
+                            'xaxis.autorange': false
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error(`Error fetching historical data for ${field}:`, error);
+            }
+        }, 10);
+    }
     
     // Return the index of the newly added trace
-    return graphDiv.data.length - 1;
+    return newTraceIndex;
 };
 
 const initializeGraph = () => {
@@ -396,14 +495,16 @@ const initializeGraph = () => {
             y: [],
             mode: 'lines',
             line: { shape: 'hv' },
-            name: 'No data selected'
+            name: 'No data selected',
+            connectgaps: false
         }
     ] : checkedCheckboxes.map(checkbox => ({
         x: [],
         y: [],
         mode: 'lines',
         line: { shape: 'hv' },
-        name: checkbox.dataset.fullField
+        name: checkbox.dataset.fullField,
+        connectgaps: false
     }));
 
     // Title based on selection
@@ -425,7 +526,7 @@ const initializeGraph = () => {
             }
         },
         xaxis: {
-            title: 'Time',
+            title: 'Time (seconds)',  // Changed to seconds
             showgrid: true,
             gridcolor: '#f0f0f0'
         },
@@ -595,6 +696,12 @@ const handleFieldSelection = debounce(async (event) => {
             // If this field is from the current selected table, add it
             if (table === selectedTable) {
                 selectedFields.push(field);
+                
+                // If we now have 2 fields, reset and show full history
+                if (selectedFields.length === 2) {
+                    await resetAndShowFullHistory();
+                    return; // Skip the normal graph update since resetAndShowFullHistory does it
+                }
             } else {
                 // If field is from a different table and we have fields
                 // already selected, uncheck it and alert the user
@@ -613,20 +720,32 @@ const handleFieldSelection = debounce(async (event) => {
         // Remove this field if it's in the array
         selectedFields = selectedFields.filter(f => f !== field);
         
+        // If we're in full history mode but now have less than 2 fields, exit that mode
+        if (showingFullHistory && selectedFields.length < 2) {
+            showingFullHistory = false;
+        }
+        
         // If no fields left, clear selected table
         if (selectedFields.length === 0) {
             selectedTable = '';
+            showingFullHistory = false;
         }
     }
     
-    console.log('Selected table:', selectedTable, 'Selected fields:', selectedFields);
+    console.log('Selected table:', selectedTable, 'Selected fields:', selectedFields, 'Full history:', showingFullHistory);
     
     // Only update the graph if we have selected fields from a table
     if (selectedFields.length > 0 && selectedTable) {
         try {
-            // Fetch new data for the currently selected fields
-            const data = await fetchFieldData(selectedTable, selectedFields);
-            processAndDisplayData(data);
+            // If we're in full history mode or if we've just selected a new field in full history mode,
+            // keep showing full history
+            if (showingFullHistory) {
+                await resetAndShowFullHistory();
+            } else {
+                // Regular graph update with normal data
+                const data = await fetchFieldData(selectedTable, selectedFields);
+                processAndDisplayData(data);
+            }
         } catch (error) {
             console.error('Error fetching selected field data:', error);
         }
@@ -636,18 +755,112 @@ const handleFieldSelection = debounce(async (event) => {
     }
 }, 300);
 
+// Function to thin out dense datasets to improve visualization performance
+const thinOutData = (data, maxPoints = 500) => {
+    if (!data || data.length <= maxPoints) return data;
+    
+    console.log(`Thinning data from ${data.length} points to ~${maxPoints} points`);
+    
+    // Calculate the step size to get approximately maxPoints
+    const step = Math.max(1, Math.floor(data.length / maxPoints));
+    
+    // Create a new array with thinned data
+    // Always keep the first and last points
+    const thinnedData = [data[0]];
+    
+    // Add points at regular intervals
+    for (let i = step; i < data.length - step; i += step) {
+        thinnedData.push(data[i]);
+    }
+    
+    // Always add the last point
+    thinnedData.push(data[data.length - 1]);
+    
+    console.log(`Thinned to ${thinnedData.length} points`);
+    return thinnedData;
+};
+
+// Function to reset and display all historical data when multiple fields are selected
+const resetAndShowFullHistory = async () => {
+    if (!selectedTable || selectedFields.length < 2) {
+        return; // Only proceed if we have multiple fields from the same table
+    }
+    
+    console.log('Resetting graph and showing full historical data for:', selectedFields);
+    
+    try {
+        showingFullHistory = true;
+        
+        // Find the current maximum timestamp to know how far to load history
+        // We'll use this to filter the data to only show points up to now
+        currentMaxTimestamp = 0;
+        
+        // Try to get the latest timestamp from the database as our boundary
+        try {
+            const latestResponse = await fetch('/get_latest_message');
+            const latestData = await latestResponse.json();
+            
+            if (latestData.messages && latestData.messages.length > 0) {
+                // Find the latest timestamp for our selected table
+                const tableMessage = latestData.messages.find(msg => msg.table_name === selectedTable);
+                if (tableMessage) {
+                    currentMaxTimestamp = tableMessage.timestamp;
+                    console.log(`Using latest timestamp as boundary: ${currentMaxTimestamp} (${new Date(currentMaxTimestamp).toISOString()})`);
+                }
+            }
+        } catch (error) {
+            console.error('Error getting latest timestamp:', error);
+            // If we can't get the latest timestamp, we'll use the current time
+            currentMaxTimestamp = Date.now();
+        }
+        
+        // Fetch all historical data without limits
+        const data = await fetchFieldData(selectedTable, selectedFields, true);
+        
+        if (!data || data.length === 0) {
+            console.log('No historical data available');
+            showingFullHistory = false;
+            return;
+        }
+        
+        // Filter data to only include points up to our current max timestamp
+        const filteredData = data.filter(point => point.timestamp <= currentMaxTimestamp);
+        
+        // Thin out the data to improve visualization performance
+        const thinnedData = thinOutData(filteredData, 1000);
+        
+        console.log(`Plotting ${thinnedData.length} historical data points out of ${data.length} total points (up to timestamp ${currentMaxTimestamp})`);
+        initialHistoricalDataCount = thinnedData.length; // Store the count for reference
+        
+        // Create a fresh plot with the filtered historical data
+        processAndDisplayData(thinnedData);
+        
+        // After loading all historical data, we'll continue to get live updates
+        // but we'll limit the new points to avoid overwhelming the browser
+    } catch (error) {
+        console.error('Error showing full historical data:', error);
+        showingFullHistory = false;
+    }
+};
+
 const processAndDisplayData = (data) => {
     if (!data || data.length === 0) {
         renderEmptyGraph();
         return;
     }
     
+    // Thin out the data if it's too dense (only for non-live data)
+    let processedData = data;
+    if (data.length > 1000 && showingFullHistory) {
+        processedData = thinOutData(data, 1000);
+    }
+    
     // Extract timestamps
-    const timestamps = data.map(item => item.timestamp);
+    const timestamps = processedData.map(item => item.timestamp);
     
     // Create datasets for each selected field
     const datasets = selectedFields.map(field => {
-        const values = data.map(item => item[field] || 0);
+        const values = processedData.map(item => item[field] || 0);
         
         // Apply step function preprocessing
         const processed = preprocessStepData(timestamps, values);
@@ -769,8 +982,9 @@ window.addEventListener('resize', () => {
 
 // Event listener for the Apply Zoom button
 document.getElementById('applyZoom').addEventListener('click', () => {
-    zoomStartValue = parseFloat(document.getElementById('zoomStart').value);
-    zoomEndValue = parseFloat(document.getElementById('zoomEnd').value);
+    // Convert the millisecond input values to seconds for the graph
+    zoomStartValue = parseFloat(document.getElementById('zoomStart').value) / 1000;
+    zoomEndValue = parseFloat(document.getElementById('zoomEnd').value) / 1000;
 
     // Check that the inputs are valid numbers and that start is less than end
     if (!isNaN(zoomStartValue) && !isNaN(zoomEndValue) && zoomStartValue < zoomEndValue) {
@@ -779,7 +993,11 @@ document.getElementById('applyZoom').addEventListener('click', () => {
             'xaxis.autorange': false
         });
         isZoomed = true; // Set zoom state to true
-        console.log(`Zoom applied from ${zoomStartValue} to ${zoomEndValue}`);
+        // Make sure zoom scroll is turned off when manually zooming
+        isZoomScrollActive = false;
+        // Update button state
+        updateZoomScrollButtonState();
+        console.log(`Zoom applied from ${zoomStartValue} to ${zoomEndValue} seconds`);
     } else {
         alert("Please enter valid start and end times where the start is less than the end.");
     }
@@ -790,9 +1008,119 @@ document.getElementById('resetZoom').addEventListener('click', () => {
     // Reset x-axis to auto range so new data will be visible
     Plotly.relayout('graphCanvas', {'xaxis.autorange': true});
     isZoomed = false; // Reset zoom state
+    isZoomScrollActive = false; // Turn off zoom scroll
     zoomStartValue = null; // Clear stored values
     zoomEndValue = null;
+    zoomWindowSize = null;
     document.getElementById('zoomStart').value = "";
     document.getElementById('zoomEnd').value = "";
+    
+    // Reset the full history mode if appropriate
+    if (selectedFields.length < 2) {
+        showingFullHistory = false;
+    }
+    
+    // Update button state
+    updateZoomScrollButtonState();
     console.log("Zoom reset");
+});
+
+// Function to toggle zoom with scroll feature
+const toggleZoomScroll = () => {
+    // Get current start and end values from input fields
+    const startInput = document.getElementById('zoomStart');
+    const endInput = document.getElementById('zoomEnd');
+    
+    // Toggle zoom scroll state
+    isZoomScrollActive = !isZoomScrollActive;
+    
+    if (isZoomScrollActive) {
+        // Get start and end values from inputs (and convert to seconds)
+        zoomStartValue = parseFloat(startInput.value) / 1000;
+        zoomEndValue = parseFloat(endInput.value) / 1000;
+        
+        // Validate inputs
+        if (isNaN(zoomStartValue) || isNaN(zoomEndValue) || zoomStartValue >= zoomEndValue) {
+            alert("Please enter valid start and end times where the start is less than the end.");
+            isZoomScrollActive = false;
+            updateZoomScrollButtonState();
+            return;
+        }
+        
+        // Calculate window size for scrolling (in seconds)
+        zoomWindowSize = zoomEndValue - zoomStartValue;
+        
+        // Set zoom state
+        isZoomed = true;
+        
+        // Create an interval to gradually scroll the window
+        if (!updateInterval) {
+            // If no update interval exists, we need to create one
+            updateInterval = setInterval(() => {
+                fetchLatestMessages();
+            }, updateFrequency);
+        }
+        
+        console.log(`Zoom with scroll activated with window size: ${zoomWindowSize} seconds, step size: ${scrollStepSize/1000} seconds`);
+    } else {
+        console.log("Zoom with scroll deactivated");
+        
+        // Keep the current viewport when turning off scroll
+        if (zoomStartValue !== null && zoomEndValue !== null) {
+            Plotly.relayout('graphCanvas', {
+                'xaxis.range': [zoomStartValue, zoomEndValue],
+                'xaxis.autorange': false
+            });
+        }
+    }
+    
+    // Update button state
+    updateZoomScrollButtonState();
+};
+
+// Function to update the zoom scroll button text based on state
+const updateZoomScrollButtonState = () => {
+    const button = document.getElementById('zoomScrollButton');
+    if (isZoomScrollActive) {
+        button.textContent = "Stop Zoom Scroll";
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-danger');
+    } else {
+        button.textContent = "Zoom With Scroll";
+        button.classList.remove('btn-danger');
+        button.classList.add('btn-primary');
+    }
+};
+
+// Event listener for the Zoom With Scroll button
+document.getElementById('zoomScrollButton').addEventListener('click', toggleZoomScroll);
+
+// Add a scroll step size control to the UI
+document.addEventListener('DOMContentLoaded', () => {
+    // Add to initialize function
+    const oldInitialize = initialize;
+    initialize = async () => {
+        await oldInitialize();
+        
+        // Add step size control after the existing zoom controls
+        const zoomCard = document.getElementById('applyZoom').closest('.card-body');
+        if (zoomCard) {
+            const stepSizeGroup = document.createElement('div');
+            stepSizeGroup.className = 'form-group mt-2';
+            stepSizeGroup.innerHTML = `
+                <label for="scrollStepSize">Scroll Step Size (ms):</label>
+                <input type="number" id="scrollStepSize" class="form-control" value="${scrollStepSize}" min="10" max="1000">
+            `;
+            zoomCard.insertBefore(stepSizeGroup, document.getElementById('resetZoom'));
+            
+            // Add event listener for step size change
+            document.getElementById('scrollStepSize').addEventListener('change', (e) => {
+                const newStepSize = parseInt(e.target.value, 10);
+                if (!isNaN(newStepSize) && newStepSize >= 10) {
+                    scrollStepSize = newStepSize;
+                    console.log(`Scroll step size updated to ${scrollStepSize}ms`);
+                }
+            });
+        }
+    };
 });

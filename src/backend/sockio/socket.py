@@ -112,6 +112,7 @@ def get_table_data():
     """
     table_name = request.args.get('table')
     fields = request.args.get('fields')
+    full = request.args.get('full', 'false').lower() == 'true'  # Get full parameter, default to false
     
     if not table_name:
         return jsonify({'error': 'Table name is required'}), 400
@@ -130,8 +131,12 @@ def get_table_data():
         SELECT {', '.join(select_fields)}
         FROM {table_name}
         ORDER BY timeStamp ASC
-        LIMIT 1000
         """
+        
+        # Only add LIMIT if not requesting full history
+        if not full:
+            query += " LIMIT 1000"
+        
         rows = db_conn.query(query)
 
         if not rows:
