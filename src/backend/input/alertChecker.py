@@ -30,16 +30,42 @@ def checkAlertsAgainstCanMsg(can_message): #can_message is the cm_tup from logfi
     """
     Checks the given CAN message against all active alerts
     """
+    
     logger_db = dbconnect()
     time.sleep(5)
     can_message_id = can_message[0]
     can_message_data = can_message[1]
     can_message_timestamp = can_message[2]
     decodedMessage = decode_message(can_message_id, can_message_data, can_message_timestamp)
+    print("DECODED MESSAGE: ", decodedMessage)
+    print("decoded signdict: ", decodedMessage.sigDict)
     
 
     if decodedMessage is None:
         return
+    
+    automatic_faults_json = "faultMessages.json" 
+    with open(automatic_faults_json, "r") as f:
+        data = json.load(f)
+
+    all_faults = [fault for faults in data["automatic_faults"].values() for fault in faults]
+    print("all faults: ", all_faults)
+
+    for fault in all_faults:
+        if (fault in decodedMessage.sigDict and decodedMessage.sigDict[fault] == 1):
+            print(f"Fault {fault} is in the list of automatic faults.")
+            print("ADDING FAULT TO DB")
+            logger_db.add_triggered_alert(-1, "", datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp, fault, "AUTO FAULT")
+
+            if socketio_instance:
+                print("EMITTING SOCKET for AUTO FAULT")
+                socketio_instance.emit('big_popup_event', {
+                    'message': f"Auto Fault Triggered: {fault}"
+                })
+            else:
+                print("SocketIO instance not set. Unable to emit for AUTO FAULT.")
+
+
 
     print("decoded can message: ", decodedMessage.sigDict)
     activeAlerts = fetchActiveAlerts()
@@ -48,7 +74,7 @@ def checkAlertsAgainstCanMsg(can_message): #can_message is the cm_tup from logfi
         signal = alert['field']
         alertType = alert['type']
         category = alert['category']
-        # print(f"Signal: {signal}, Alert Type: {alertType}, Category: {category}")
+        print(f"Signal: {signal}, Alert Type: {alertType}, Category: {category}")
 
         
 
