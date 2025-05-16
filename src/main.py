@@ -78,8 +78,8 @@ def main():
             socketio.start_background_task(target=consumer.process_data_live)
             socketio.start_background_task(target=partial(logfile_producer.process_logfile_live, datafile_path))
         
+    socketio.run(app, debug=False, allow_unsafe_werkzeug=True, host="0.0.0.0", port=5000)  # to run the sockio io app, .run is blocking! No code below this
 
-    socketio.run(app, debug=False, allow_unsafe_werkzeug=True)  # to run the sockio io app, .run is blocking! No code below this
 
 
 def cli_message_reader() -> argparse.ArgumentParser:

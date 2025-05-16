@@ -5,8 +5,12 @@ import backend.input.alertChecker as alertChecker
 from ..db_connection import DbConnection as dbconnect
 from ..dbcs import get_messages_from_dbc
 
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
 app = Flask(__name__, template_folder='../../frontend/html', static_folder='../../frontend/static')
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
 
 alertChecker.set_socketio(socketio)
 # List to store messages to display on the front end
