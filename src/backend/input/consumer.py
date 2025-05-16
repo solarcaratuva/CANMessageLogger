@@ -13,14 +13,12 @@ start_consume_time = time.perf_counter()  # the very first time when consumer st
 
 
 def process_data() -> None:
-    print("process_data")
     """
     Pops all stored tuples on CAN messages queue (each tuple representing a single CAN message) and adds them into the database
 
     @return: Nothing, it will just add all CAN messages from the queue into the database
     """
-    #print(f"DB_path in process_data: {DbConnection.DB_path}")
-    print("process_data")
+
     db_conn = DbConnection()
     list_can_messages = []
     while True:
@@ -35,12 +33,12 @@ def process_data() -> None:
 
 
 def process_data_live() -> None:
-    print("process_data_live")
     """
     Pops all stored tuples on CAN messages queue (each tuple representing a single CAN message) and adds them into the database
 
     @return: Nothing, it will just add all CAN messages from the queue into the database
     """
+
     global start_consume_time, last_consume_time
     start_consume_time = time.perf_counter()
     while True:
@@ -54,7 +52,6 @@ def process_data_live() -> None:
             can_msg = decode_message(*cm_tuple)
             if can_msg is not None:
                 list_can_messages.append(can_msg)
-                #print("Just added: ", str(can_msg))
 
         db_conn.add_batch_can_msg(list_can_messages)
         time.sleep(LOOP_TIME)

@@ -44,7 +44,6 @@ def parse_dbc_fields():
     dbc_path = "resources/CAN-messages/Rivanna3.dbc"
     
     result = get_messages_from_dbc(dbc_path)
-    print("result: ", result)
 
     return jsonify({'message': result})
 
@@ -60,7 +59,6 @@ def create_alert():
 })
 
     alert_id = logger_db.create_alert(data)
-    print("created the alert: ", data, alert_id)
 
     return jsonify({
         "status": "success",
@@ -70,14 +68,11 @@ def create_alert():
 
 @app.route('/get_alerts', methods=['GET'])
 def get_alerts():
-    print("get alert ")
     alertChecker.fetchActiveAlerts()
-    print("fetched alerts")
     try:
         logger_db = dbconnect()
         query = "SELECT * FROM Alerts"
         alerts = logger_db.query(query)
-        print("fetching alerts from within python app.py: ", alerts, "\n\n\n", type(alerts))
         return jsonify({"status": "success", "alerts": alerts}), 200
     except Exception as e:
         print(f"Error fetching alerts: {e}")
@@ -98,11 +93,9 @@ def get_triggered_alerts():
     
     # Convert any bytes in can_message_data to a hex string
     for alert in triggered_alerts:
-        # print("ALERT THAT GOT FETCHED: ", alert)
         if 'can_message_data' in alert and isinstance(alert['can_message_data'], bytes):
             alert['can_message_data'] = alert['can_message_data'].hex()
     
-    print("fetching triggered alerts from within python app.py: ")
     return jsonify({"status": "success", "triggered_alerts": triggered_alerts}), 200
 
 

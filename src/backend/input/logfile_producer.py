@@ -4,7 +4,7 @@ import time
 
 import re
 
-LOOP_TIME = 0.0001
+LOOP_TIME = 0.01
 
 #                          Timestamp                        ID                              Data Bytes
 pattern = re.compile(r'(\d{2}):(\d{2}):(\d{2}) DEBUG .+ ID (0x[0-9A-Fa-f]+) Length \d+ Data (0x[0-9A-Fa-f]+)')
@@ -50,24 +50,20 @@ def parse_line(log_line: str) -> tuple[int, bytes, int]:
 
 
 def process_logfile(path_to_log_file: str) -> None:
-    print("log_file")
     with open(path_to_log_file, 'r') as file:
         for line in file:
             cm_tup = parse_line(line)
             if cm_tup is not None:  # if the line from log file followed the format, add to queue
-                # queueHandler.add_to_queue_with_instant_checks(cm_tup)
                 queue.put(cm_tup)
 
 
 # Emphasize: For this function TimeStamp is NOT taken from logfile, it is system time (see sys_cm_tuple)
 def process_logfile_live(path_to_log_file: str) -> None:
-    print("log_file_live")
     with open(path_to_log_file, 'r') as file:
         for line in file:
             cm_tup = parse_line(line)
             if cm_tup is not None:  # if the line from log file followed the format, add to queue
                 sys_cm_tup = (cm_tup[0], cm_tup[1], time.perf_counter() - start_consume_time)  # from the System Time
-                queueHandler.add_to_queue_with_instant_checks(cm_tup)
-                #queue.put(sys_cm_tup)
+                queueHandler.add_to_queue_with_instant_checks(sys_cm_tup)
             time.sleep(LOOP_TIME)
 

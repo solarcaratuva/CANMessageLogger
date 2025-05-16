@@ -6,7 +6,6 @@ message_list = list()
 
 @app.route('/get_table_names', methods=['GET'])
 def get_table_names():
-    print("table name check")
     try:
         logger_db = dbconnect()
         tables = logger_db.query("SELECT name FROM sqlite_master WHERE type='table';")
@@ -19,7 +18,6 @@ def get_table_names():
 
 @app.route('/get_latest_message', methods=['GET'])
 def get_latest_message_batch():
-    print("latest message check")
     logger_db = dbconnect()
     message_batch = list()
 

@@ -10,7 +10,6 @@ class DbConnection:
     DB_path = "./CANDatabases"  # static, i.e. shared with all DbConnection Objects
 
     def __init__(self):
-        #print("The database path is: ", DbConnection.DB_path)
         self.conn = sqlite3.connect(DbConnection.DB_path)
         self.conn.row_factory = sqlite3.Row
         self.cur = self.conn.cursor()
@@ -159,12 +158,9 @@ class DbConnection:
         @return: Nothing, just sets the SQL database connection path for all DbConnection objects (it is static)
         """
         DbConnection.DB_path = path
-        print("Just set DB_path to: ", DbConnection.DB_path)
     
     def add_triggered_alert(self, alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause):
         try:
-            print("ADDING AN ALERT TO PREV TRIGGERED ALERTS", alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause)
-            # print(traceback.print_stack())
             connection = self.conn
             cursor = connection.cursor()
 
@@ -175,12 +171,9 @@ class DbConnection:
 
             connection.commit()
             new_id = cursor.lastrowid
-            print(f"Created triggered alert with ID {new_id}")
             return new_id
         
         except sqlite3.Error as e:
-            print(f"Database error inserting triggered alert: {e}")
-            print(alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause)
             return None
     
     
@@ -238,7 +231,6 @@ class DbConnection:
 
             connection.commit()
             new_id = cursor.lastrowid
-            print(f"Created alert with ID {new_id}")
             return new_id
 
         except sqlite3.Error as e:
@@ -256,7 +248,6 @@ class DbConnection:
             ''', (alert_id,))
 
             connection.commit()
-            print(f"Deleted alert with ID {alert_id}")
         
         except sqlite3.Error as e:
             print(f"Database error deleting alert: {e}")
