@@ -2,8 +2,10 @@ import git
 from datetime import datetime
 import subprocess
 import os
-from . import config
 import requests
+
+
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
 def ensure_submodule_initialized(submodule_path: str):
@@ -11,7 +13,7 @@ def ensure_submodule_initialized(submodule_path: str):
     try:
         subprocess.run(
             ["git", "submodule", "update", "--init", "--recursive", "--", submodule_path],
-            cwd=config.REPO_ROOT,
+            cwd=REPO_ROOT,
             check=True
         )
     except subprocess.CalledProcessError as e:
@@ -21,7 +23,7 @@ def ensure_submodule_initialized(submodule_path: str):
 def gitPull(branch: str, submodule_path: str = None) -> tuple[bool, str]:
     try:
         # Get absolute path to repo or submodule
-        repo_path = os.path.join(config.REPO_ROOT, submodule_path) if submodule_path else config.REPO_ROOT
+        repo_path = os.path.join(REPO_ROOT, submodule_path) if submodule_path else REPO_ROOT
         repo_path = os.path.abspath(repo_path)
 
         print(f"[GIT] Checking out {branch} in {submodule_path or 'main repo'}...")
