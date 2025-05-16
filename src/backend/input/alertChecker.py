@@ -32,7 +32,6 @@ def checkAlertsAgainstCanMsg(can_message): #can_message is the cm_tup from logfi
     """
     
     logger_db = dbconnect()
-    time.sleep(5)
     can_message_id = can_message[0]
     can_message_data = can_message[1]
     can_message_timestamp = can_message[2]
