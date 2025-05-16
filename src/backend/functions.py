@@ -3,6 +3,7 @@ from datetime import datetime
 import subprocess
 import os
 from . import config
+import requests
 
 
 def ensure_submodule_initialized(submodule_path: str):
@@ -60,30 +61,6 @@ def gitPull(branch: str, submodule_path: str = None) -> tuple[bool, str]:
 
     except Exception as e:
         return False, f"[GIT ERROR] {str(e)}"
-
-
-def compile() -> bool:
-    compileCmd = config.REPO_CONFIG["compileCmd"]
-    containerName = config.REPO_CONFIG["containerName"]
-    client = docker.from_env()
-    container = client.containers.get(containerName)
-    container.start()
-
-    exitCode, output = container.exec_run(f"sh -c '{compileCmd}'")
-    logPath = os.path.join(config.LOG_FOLDER, "compile.log")
-    with open(logPath, "w") as log:
-        log.write(output.decode() if output else "NO OUTPUT")
-    return exitCode == 0
-
-
-def upload(board: str) -> bool:
-    uploadCmd = config.REPO_CONFIG["boards"][board]["uploadCmd"]
-    command = f"cd {config.REPO_ROOT} && {uploadCmd}"
-    logPath = os.path.join(config.LOG_FOLDER, f"upload_{board}.log")
-    with open(logPath, "w") as log:
-        process = subprocess.Popen(command, stdout=log, stderr=log, encoding="utf-8", shell=True)
-        process.wait()
-    return process.returncode == 0
 
 
 def is_connected(repo) -> bool:
