@@ -1,9 +1,7 @@
 import git
 from datetime import datetime
-import docker
 import subprocess
 import os
-import requests
 from . import config
 
 
