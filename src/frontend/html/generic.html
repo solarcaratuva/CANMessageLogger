@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../static/style/styles.css">
     <title>UVA Solar Car</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <!-- Include other head elements here -->
     <style>
         html, body {
@@ -39,6 +40,7 @@
             padding: 20px;
         }
     </style>
+    {% block head_extra %}{% endblock %}
 </head>
 
 <body>
@@ -63,7 +65,7 @@
                         <a class="nav-link" href="/">Debug Dashboard<span class="sr-only">(current)</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Graphs</a>
+                        <a class="nav-link" href="/graph_view">Graphs</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/link2">Link2</a>

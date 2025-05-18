@@ -4,6 +4,8 @@ from flask_socketio import SocketIO
 import backend.input.alertChecker as alertChecker
 from ..db_connection import DbConnection as dbconnect
 from ..dbcs import get_messages_from_dbc
+import os
+import backend.input.consumer as consumer
 
 import logging
 log = logging.getLogger('werkzeug')
@@ -13,6 +15,7 @@ app = Flask(__name__, template_folder='../../frontend/html', static_folder='../.
 socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
 
 alertChecker.set_socketio(socketio)
+consumer.set_socketio(socketio)
 # List to store messages to display on the front end
 message_list = list()
 alert_definitions = dict() # {1: alert1, 2: alert2, 3: alert3, ...}
@@ -27,6 +30,10 @@ def index():
 @app.route('/alert_manager')
 def alert_manager():
     return render_template('alert_manager.html')
+
+@app.route('/graph_view')
+def graph_view():
+    return render_template('graph_view.html')
 
 @app.route('/link2')
 def link2():
@@ -50,6 +57,41 @@ def parse_dbc_fields():
     result = get_messages_from_dbc(dbc_path)
 
     return jsonify({'message': result})
+
+@app.route('/get_can_message_types', methods=['GET'])
+def get_can_message_types():
+    """
+    Get all available CAN message types and their signals from all DBC files
+    """
+    message_types = {}
+    
+    # Loop through all DBC files in the resources/CAN-messages directory
+    dbc_files_dir = "resources/CAN-messages"
+    for filename in os.listdir(dbc_files_dir):
+        if filename.endswith('.dbc'):
+            dbc_path = os.path.join(dbc_files_dir, filename)
+            try:
+                result = get_messages_from_dbc(dbc_path)
+                # Merge into our message_types dictionary
+                for msg_name, signals in result.items():
+                    if msg_name not in message_types:
+                        message_types[msg_name] = signals
+                    else:
+                        # If message exists, merge signals
+                        message_types[msg_name].update(signals)
+                print(f"Loaded CAN message types from {filename}")
+            except Exception as e:
+                print(f"Error parsing DBC file {filename}: {str(e)}")
+    
+    # Log what we found
+    print(f"Total CAN message types found: {len(message_types)}")
+    for msg_name, signals in message_types.items():
+        print(f"  {msg_name}: {len(signals)} signals")
+    
+    return jsonify({
+        "status": "success",
+        "message_types": message_types
+    })
 
 @app.route('/create_alert', methods=['POST'])
 def create_alert():

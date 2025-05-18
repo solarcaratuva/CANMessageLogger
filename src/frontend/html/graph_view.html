@@ -1,0 +1,672 @@
+{% extends "generic.html" %}
+{% block title %}Graph View{% endblock %}
+
+{% block head_extra %}
+<style>
+  /* Custom styles for the graph view */
+  .control-button {
+    margin-right: 8px;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  
+  .control-button.active {
+    background-color: #28a745;
+    color: white;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+    border-color: #28a745;
+  }
+  
+  .control-button:hover:not(.active) {
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  
+  .status-bar {
+    padding: 8px 16px;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 15px;
+  }
+  
+  .status-item {
+    display: inline-block;
+    margin-right: 12px;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  
+  .data-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+  }
+  
+  .data-indicator.active {
+    background-color: #28a745;
+  }
+  
+  .data-indicator.inactive {
+    background-color: #6c757d;
+  }
+  
+  .data-indicator.receiving {
+    background-color: #ffc107;
+    animation: pulse 1s infinite;
+  }
+  
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+  
+  /* Clean up button group layout */
+  .control-buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hide error message section from generic template -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Hide the error card from the generic template
+    const errorCard = document.getElementById('errorCard');
+    if (errorCard) {
+      errorCard.style.display = 'none';
+    }
+  });
+</script>
+
+<div class="container-fluid mt-4">
+  <div class="row">
+    <!-- Graph Container -->
+    <div class="col-md-9">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">Real-time CAN Data Graph</h4>
+        </div>
+        
+        <!-- Status Bar -->
+        <div class="card-body pb-0">
+          <div class="status-bar d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <span id="currentTimestamp" class="status-item badge-primary">Current Time: 0.000s</span>
+              <span id="timeRange" class="status-item badge-secondary">Data Range: 0.000s - 0.000s</span>
+            </div>
+            <div>
+              <div class="data-status">
+                <span class="data-indicator active" id="liveDataIndicator"></span>
+                <span id="dataStatusText">Live Data</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Control Buttons -->
+          <div class="control-buttons-container">
+            <button id="zoomBtn" class="btn control-button">
+              <i class="fa fa-search-plus mr-1"></i> Zoom
+            </button>
+            <button id="zoomScrollBtn" class="btn control-button">
+              <i class="fa fa-arrows-alt-h mr-1"></i> Zoom with Scroll
+            </button>
+            <button id="autoRangeBtn" class="btn control-button active">
+              <i class="fa fa-expand-arrows-alt mr-1"></i> Auto Range
+            </button>
+            <button id="showAllDataBtn" class="btn control-button">
+              <i class="fa fa-chart-line mr-1"></i> Show All Data
+            </button>
+          </div>
+          
+          <div id="graphContainer" style="width: 100%; height: 500px;"></div>
+
+          <div class="time-range-selector mt-4 mb-3">
+            <div class="form-row align-items-end">
+              <div class="col-md-4">
+                <label for="startTime" class="mb-1">Start Time (s):</label>
+                <input type="number" class="form-control" id="startTime" step="0.001" min="0" value="0">
+              </div>
+              <div class="col-md-4">
+                <label for="endTime" class="mb-1">End Time (s):</label>
+                <input type="number" class="form-control" id="endTime" step="0.001" min="0" value="60">
+              </div>
+              <div class="col-md-4">
+                <button id="applyRangeBtn" class="btn btn-primary btn-block">Apply Range</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Control Panel -->
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-header bg-secondary text-white">
+          <h4 class="mb-0">Data Selection</h4>
+        </div>
+        <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+          <div class="d-flex justify-content-between mb-3">
+            <button id="selectAllBtn" class="btn btn-sm btn-outline-primary">Select All</button>
+            <button id="clearAllBtn" class="btn btn-sm btn-outline-secondary">Clear All</button>
+          </div>
+          <div id="signalSelectors">
+            <!-- Will be populated dynamically with CAN message types and signals -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Include Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Socket connection
+    const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+    
+    // Graph configuration
+    let graphData = [];
+    let dataTraces = {};
+    let layout = {
+      title: 'CAN Messages Real-time Data',
+      xaxis: {
+        title: 'Time (s)',
+        range: [0, 60]
+      },
+      yaxis: {
+        title: 'Value'
+      },
+      legend: {
+        orientation: 'v',
+        x: 1.05,
+        y: 1
+      },
+      hovermode: 'closest',
+      margin: { l: 60, r: 40, t: 40, b: 60 }
+    };
+    
+    // Create the initial empty plot
+    Plotly.newPlot('graphContainer', graphData, layout);
+    
+    // Mode flags
+    let zoomWithScroll = false;
+    let zoomRange = false;
+    let autoRange = true;
+    
+    // Time window
+    let startTime = 0;
+    let endTime = 60;
+    let timeWindow = endTime - startTime;
+    
+    // Data tracking variables
+    let globalMinTime = Infinity;
+    let globalMaxTime = -Infinity;
+    
+    // For tracking whether we've received any data
+    let dataReceived = false;
+    
+    // Update live data indicator function
+    function updateDataIndicator(status) {
+      const indicator = document.getElementById('liveDataIndicator');
+      const statusText = document.getElementById('dataStatusText');
+      
+      switch(status) {
+        case 'receiving':
+          indicator.className = 'data-indicator receiving';
+          statusText.textContent = 'Receiving Data';
+          break;
+        case 'active':
+          indicator.className = 'data-indicator active';
+          statusText.textContent = 'Live Data';
+          break;
+        default:
+          indicator.className = 'data-indicator inactive';
+          statusText.textContent = 'No Data';
+      }
+    }
+    
+    // Initialize indicator
+    updateDataIndicator('inactive');
+    
+    // Debug message function
+    function logDebug(message) {
+      console.log(`[Graph] ${new Date().toISOString()}: ${message}`);
+    }
+    
+    // Function to fetch and populate available signal types
+    function fetchSignalTypes() {
+      logDebug("Fetching signal types...");
+      fetch('/get_can_message_types')
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            logDebug(`Received message types: ${Object.keys(data.message_types).length} message types`);
+            populateSignalCheckboxes(data.message_types);
+          } else {
+            logDebug(`Error in response: ${JSON.stringify(data)}`);
+          }
+        })
+        .catch(error => {
+          logDebug(`Error fetching CAN message types: ${error}`);
+          console.error('Error fetching CAN message types:', error);
+        });
+    }
+    
+    // Function to populate the signal checkboxes
+    function populateSignalCheckboxes(messageTypes) {
+      const signalSelectorsDiv = document.getElementById('signalSelectors');
+      signalSelectorsDiv.innerHTML = '';
+      
+      Object.keys(messageTypes).sort().forEach(messageType => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message-type mb-3';
+        
+        const messageHeader = document.createElement('div');
+        messageHeader.className = 'message-header d-flex justify-content-between';
+        
+        const messageLabel = document.createElement('h5');
+        messageLabel.textContent = messageType;
+        messageLabel.className = 'mb-2';
+        
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'btn btn-sm btn-outline-info toggle-btn';
+        toggleBtn.textContent = 'Toggle All';
+        toggleBtn.dataset.messageType = messageType;
+        
+        messageHeader.appendChild(messageLabel);
+        messageHeader.appendChild(toggleBtn);
+        messageDiv.appendChild(messageHeader);
+        
+        const signalsDiv = document.createElement('div');
+        signalsDiv.className = 'signals pl-3';
+        
+        Object.keys(messageTypes[messageType]).sort().forEach(signalName => {
+          const signalType = messageTypes[messageType][signalName];
+          
+          // Only add numerical signals
+          if (signalType === 'int' || signalType === 'float') {
+            const checkboxDiv = document.createElement('div');
+            checkboxDiv.className = 'form-check';
+            
+            const checkboxInput = document.createElement('input');
+            checkboxInput.type = 'checkbox';
+            checkboxInput.className = 'form-check-input signal-checkbox';
+            checkboxInput.id = `${messageType}.${signalName}`;
+            checkboxInput.dataset.messageType = messageType;
+            checkboxInput.dataset.signalName = signalName;
+            
+            const checkboxLabel = document.createElement('label');
+            checkboxLabel.className = 'form-check-label';
+            checkboxLabel.htmlFor = `${messageType}.${signalName}`;
+            checkboxLabel.textContent = signalName;
+            
+            checkboxDiv.appendChild(checkboxInput);
+            checkboxDiv.appendChild(checkboxLabel);
+            signalsDiv.appendChild(checkboxDiv);
+            
+            // Add event listener to checkbox
+            checkboxInput.addEventListener('change', function() {
+              const id = `${this.dataset.messageType}.${this.dataset.signalName}`;
+              if (this.checked) {
+                // Add trace if it doesn't exist
+                if (!dataTraces[id]) {
+                  const randomColor = getRandomColor();
+                  const newTrace = {
+                    x: [],
+                    y: [],
+                    name: id,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: randomColor }
+                  };
+                  
+                  // Add to our data structures
+                  dataTraces[id] = newTrace;
+                  graphData.push(newTrace);
+                  
+                  // Add to the plot
+                  Plotly.addTraces('graphContainer', newTrace);
+                  logDebug(`Added trace for ${id}`);
+                } else {
+                  // Show existing trace
+                  const traceIndex = graphData.findIndex(trace => trace.name === id);
+                  if (traceIndex !== -1) {
+                    Plotly.restyle('graphContainer', { visible: true }, [traceIndex]);
+                    logDebug(`Made trace for ${id} visible`);
+                  }
+                }
+              } else {
+                // Hide trace
+                const traceIndex = graphData.findIndex(trace => trace.name === id);
+                if (traceIndex !== -1) {
+                  Plotly.restyle('graphContainer', { visible: false }, [traceIndex]);
+                  logDebug(`Made trace for ${id} hidden`);
+                }
+              }
+            });
+          }
+        });
+        
+        messageDiv.appendChild(signalsDiv);
+        signalSelectorsDiv.appendChild(messageDiv);
+        
+        // Add event listener to toggle button
+        toggleBtn.addEventListener('click', function() {
+          const messageType = this.dataset.messageType;
+          const checkboxes = document.querySelectorAll(`.signal-checkbox[data-message-type="${messageType}"]`);
+          
+          // Check if all are checked
+          const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+          
+          // Toggle all checkboxes
+          checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+            // Trigger change event
+            const event = new Event('change');
+            cb.dispatchEvent(event);
+          });
+        });
+      });
+    }
+    
+    // Utility function to generate random colors
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+    
+    // Socket event for connecting
+    socket.on('connect', function() {
+      logDebug('Socket.IO connected');
+      updateDataIndicator('active');
+    });
+    
+    // Socket event for errors/disconnect
+    socket.on('connect_error', function(error) {
+      logDebug(`Socket.IO connection error: ${error}`);
+      updateDataIndicator('inactive');
+    });
+    
+    socket.on('disconnect', function(reason) {
+      logDebug(`Socket.IO disconnected: ${reason}`);
+      updateDataIndicator('inactive');
+    });
+    
+    // Socket event for receiving CAN messages
+    socket.on('can_message', function(data) {
+      // Format: { message_name: 'MessageName', signals: { signal1: value1, signal2: value2, ... }, timestamp: timestamp }
+      const messageName = data.message_name;
+      const signals = data.signals;
+      const timestamp = data.timestamp;
+      
+      // Mark that we've received data
+      if (!dataReceived) {
+        dataReceived = true;
+        logDebug("First data received");
+      }
+      
+      // Update global time range
+      globalMinTime = Math.min(globalMinTime, timestamp);
+      globalMaxTime = Math.max(globalMaxTime, timestamp);
+      
+      // Flash the data status indicator
+      updateDataIndicator('receiving');
+      setTimeout(() => {
+        updateDataIndicator('active');
+      }, 200);
+      
+      // For debugging - log the first few messages
+      let messageCount = 0;
+      if (messageCount < 5) {
+        logDebug(`Received CAN message: ${messageName}, timestamp: ${timestamp}, signals: ${Object.keys(signals).length}`);
+        messageCount++;
+      }
+      
+      // Update each trace that matches this message's signals
+      let updateData = {};
+      let tracesToUpdate = [];
+      
+      // Process each signal in the message
+      Object.keys(signals).forEach(signalName => {
+        const id = `${messageName}.${signalName}`;
+        const value = signals[signalName];
+        
+        // Skip non-numeric values
+        if (isNaN(value) || value === null || value === undefined) return;
+        
+        // If we have a trace for this signal and it's enabled
+        if (dataTraces[id]) {
+          // Find the index of this trace in the graphData array
+          const traceIndex = graphData.findIndex(trace => trace.name === id);
+          if (traceIndex !== -1) {
+            // Add the new data point to our data structure
+            dataTraces[id].x.push(timestamp);
+            dataTraces[id].y.push(value);
+            
+            // Add this trace to the update
+            if (!updateData[traceIndex]) {
+              updateData[traceIndex] = { x: [[timestamp]], y: [[value]] };
+              tracesToUpdate.push(traceIndex);
+            } else {
+              updateData[traceIndex].x[0].push(timestamp);
+              updateData[traceIndex].y[0].push(value);
+            }
+          }
+        }
+      });
+      
+      // If we have traces to update
+      if (tracesToUpdate.length > 0) {
+        // Build the update arrays for Plotly
+        let updateTraces = [];
+        let updateX = [];
+        let updateY = [];
+        
+        tracesToUpdate.forEach(index => {
+          updateTraces.push(index);
+          updateX.push(updateData[index].x[0]);
+          updateY.push(updateData[index].y[0]);
+        });
+        
+        // Extend the traces with new data
+        Plotly.extendTraces('graphContainer', { 
+          x: updateX, 
+          y: updateY 
+        }, updateTraces);
+        
+        // Update the x-axis range if needed
+        if (autoRange) {
+          Plotly.relayout('graphContainer', {
+            'xaxis.autorange': true,
+            'yaxis.autorange': true
+          });
+        } else if (zoomWithScroll) {
+          // Get current min and max from visible data
+          let allCurrentX = [];
+          graphData.forEach(trace => {
+            if (trace.x && trace.x.length > 0) {
+              allCurrentX = allCurrentX.concat(trace.x);
+            }
+          });
+          
+          if (allCurrentX.length > 0) {
+            // Use the most recent timestamp as the right edge of the window
+            const maxX = Math.max(...allCurrentX);
+            
+            // Update the display to show a fixed-width window that follows the latest data
+            Plotly.relayout('graphContainer', {
+              'xaxis.range': [maxX - timeWindow, maxX]
+            });
+            
+            // Update the time inputs to show current window
+            document.getElementById('startTime').value = (maxX - timeWindow).toFixed(3);
+            document.getElementById('endTime').value = maxX.toFixed(3);
+          }
+        }
+        
+        // Update timestamp display in the UI
+        document.getElementById('currentTimestamp').textContent = `Current Time: ${globalMaxTime.toFixed(3)}s`;
+        document.getElementById('timeRange').textContent = `Data Range: ${globalMinTime.toFixed(3)}s - ${globalMaxTime.toFixed(3)}s`;
+      }
+    });
+    
+    // Function to update the active button states
+    function updateButtonStates(activeButtonId) {
+      // Remove active class from all buttons
+      document.querySelectorAll('.control-button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      // Add active class to the selected button
+      if (activeButtonId) {
+        document.getElementById(activeButtonId).classList.add('active');
+      }
+    }
+    
+    // Event listeners for zoom buttons
+    document.getElementById('zoomBtn').addEventListener('click', function() {
+      zoomWithScroll = false;
+      zoomRange = true;
+      autoRange = false;
+      
+      // Get current time range values
+      startTime = parseFloat(document.getElementById('startTime').value) || 0;
+      endTime = parseFloat(document.getElementById('endTime').value) || 60;
+      
+      // Update the layout
+      Plotly.relayout('graphContainer', {
+        'xaxis.range': [startTime, endTime]
+      });
+      
+      updateButtonStates('zoomBtn');
+      logDebug(`Zoom mode activated: fixed range [${startTime}, ${endTime}]`);
+    });
+    
+    document.getElementById('zoomScrollBtn').addEventListener('click', function() {
+      zoomWithScroll = true;
+      zoomRange = false;
+      autoRange = false;
+      
+      // Get current time range values
+      startTime = parseFloat(document.getElementById('startTime').value) || 0;
+      endTime = parseFloat(document.getElementById('endTime').value) || 60;
+      timeWindow = endTime - startTime;
+      
+      // Apply the zoom immediately using the current data
+      if (dataReceived) {
+        Plotly.relayout('graphContainer', {
+          'xaxis.range': [globalMaxTime - timeWindow, globalMaxTime]
+        });
+      }
+      
+      updateButtonStates('zoomScrollBtn');
+      logDebug(`Zoom with scroll activated: window size ${timeWindow}s`);
+    });
+    
+    // Event listener for auto range button
+    document.getElementById('autoRangeBtn').addEventListener('click', function() {
+      autoRange = true;
+      zoomWithScroll = false;
+      zoomRange = false;
+      Plotly.relayout('graphContainer', {
+        'xaxis.autorange': true,
+        'yaxis.autorange': true
+      });
+      updateButtonStates('autoRangeBtn');
+      logDebug('Auto range mode activated');
+    });
+    
+    // Event listener for show all data button
+    document.getElementById('showAllDataBtn').addEventListener('click', function() {
+      autoRange = false;
+      zoomWithScroll = false;
+      zoomRange = false;
+      
+      if (dataReceived) {
+        // Add a small margin to the data range for visibility
+        const margin = (globalMaxTime - globalMinTime) * 0.05;
+        Plotly.relayout('graphContainer', {
+          'xaxis.range': [globalMinTime - margin, globalMaxTime + margin]
+        });
+        
+        // Update the time inputs to show full range
+        document.getElementById('startTime').value = globalMinTime.toFixed(3);
+        document.getElementById('endTime').value = globalMaxTime.toFixed(3);
+      }
+      
+      updateButtonStates('showAllDataBtn');
+      logDebug('Show all data activated');
+    });
+    
+    // Event listener for apply range button
+    document.getElementById('applyRangeBtn').addEventListener('click', function() {
+      startTime = parseFloat(document.getElementById('startTime').value) || 0;
+      endTime = parseFloat(document.getElementById('endTime').value) || 60;
+      timeWindow = endTime - startTime;
+      
+      // Update the layout
+      Plotly.relayout('graphContainer', {
+        'xaxis.range': [startTime, endTime]
+      });
+      
+      // Update button states - this activates zoom mode
+      zoomWithScroll = false;
+      zoomRange = true;
+      autoRange = false;
+      updateButtonStates('zoomBtn');
+      
+      logDebug(`Applied time range: [${startTime}, ${endTime}]`);
+    });
+    
+    // Select all / Clear all buttons
+    document.getElementById('selectAllBtn').addEventListener('click', function() {
+      const checkboxes = document.querySelectorAll('.signal-checkbox');
+      checkboxes.forEach(cb => {
+        if (!cb.checked) {
+          cb.checked = true;
+          // Trigger change event
+          const event = new Event('change');
+          cb.dispatchEvent(event);
+        }
+      });
+      logDebug('Selected all signals');
+    });
+    
+    document.getElementById('clearAllBtn').addEventListener('click', function() {
+      const checkboxes = document.querySelectorAll('.signal-checkbox');
+      checkboxes.forEach(cb => {
+        if (cb.checked) {
+          cb.checked = false;
+          // Trigger change event
+          const event = new Event('change');
+          cb.dispatchEvent(event);
+        }
+      });
+      logDebug('Cleared all signals');
+    });
+    
+    // Initialize by fetching signal types
+    fetchSignalTypes();
+    logDebug('Graph view initialized');
+  });
+</script>
+{% endblock %} 
