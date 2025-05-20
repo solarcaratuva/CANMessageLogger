@@ -189,7 +189,8 @@
         range: [0, 60]
       },
       yaxis: {
-        title: 'Value'
+        title: 'Value',
+        rangemode: 'tozero'
       },
       legend: {
         orientation: 'v',
@@ -251,12 +252,98 @@
     // Function to fetch and populate available signal types
     function fetchSignalTypes() {
       logDebug("Fetching signal types...");
+        
+      // print data from fetch('/get_can_message_types')
+      fetch('/get_can_message_types')
+        .then(response => response.json())
+        .then(data => {
+          console.log(data);
+        });
+      // First get the message types from the DBC files
       fetch('/get_can_message_types')
         .then(response => response.json())
         .then(data => {
           if (data.status === 'success') {
-            logDebug(`Received message types: ${Object.keys(data.message_types).length} message types`);
-            populateSignalCheckboxes(data.message_types);
+            logDebug(`Received message types from DBC: ${Object.keys(data.message_types).length} message types`);
+            
+            // Now also fetch table names from the database
+            fetch('/get_table_names')
+              .then(res => res.json())
+              .then(tableData => {
+                if (Array.isArray(tableData.table_names)) {
+                  const messageTypes = data.message_types;
+                  
+                  // Add tables from database that might not be in DBC files
+                  tableData.table_names.forEach(tableName => {
+                    // Skip system tables
+                    if (["sqlite_sequence", "Alerts", "TriggeredAlerts"].includes(tableName)) {
+                      return;
+                    }
+                    
+                    // Add the table if it's not already in messageTypes
+                    if (!messageTypes[tableName]) {
+                      // Create an empty object for signals - we'll populate it later
+                      messageTypes[tableName] = {};
+                      logDebug(`Added table from database: ${tableName}`);
+                    }
+                  });
+                  
+                  // For each table, fetch a sample to determine signal names and types
+                  const fetchPromises = tableData.table_names
+                    .filter(tableName => 
+                      !["sqlite_sequence", "Alerts", "TriggeredAlerts"].includes(tableName) && 
+                      messageTypes[tableName])
+                    .map(tableName => {
+                      return fetch(`/get_latest_message?table=${tableName}`)
+                        .then(res => res.json())
+                        .then(msgData => {
+                          if (msgData.messages && msgData.messages.length > 0) {
+                            const message = msgData.messages.find(msg => msg.table_name === tableName);
+                            if (message && message.data) {
+                              // Add any signals from the data that aren't already defined
+                              Object.keys(message.data).forEach(signalName => {
+                                if (signalName !== 'timeStamp' && signalName !== 'count' && 
+                                    !messageTypes[tableName][signalName]) {
+                                  // Determine type based on value
+                                  const value = message.data[signalName];
+                                  const valueType = typeof value;
+                                  
+                                  if (valueType === 'number' || !isNaN(parseFloat(value))) {
+                                    messageTypes[tableName][signalName] = 'float';
+                                    logDebug(`Added signal from database: ${tableName}.${signalName}`);
+                                  }
+                                }
+                              });
+                            }
+                          }
+                        })
+                        .catch(error => {
+                          logDebug(`Error fetching sample for ${tableName}: ${error}`);
+                        });
+                    });
+                  
+                  // Wait for all fetches to complete
+                  Promise.all(fetchPromises)
+                    .then(() => {
+                      logDebug(`Final message types count: ${Object.keys(messageTypes).length}`);
+                      populateSignalCheckboxes(messageTypes);
+                    })
+                    .catch(error => {
+                      logDebug(`Error fetching signals from database: ${error}`);
+                      // Still populate with what we have
+                      populateSignalCheckboxes(messageTypes);
+                    });
+                } else {
+                  // If table names fetch fails, still populate with DBC data
+                  logDebug(`Error getting table names, using only DBC data`);
+                  populateSignalCheckboxes(data.message_types);
+                }
+              })
+              .catch(error => {
+                logDebug(`Error fetching table names: ${error}`);
+                // Still populate with DBC data
+                populateSignalCheckboxes(data.message_types);
+              });
           } else {
             logDebug(`Error in response: ${JSON.stringify(data)}`);
           }
@@ -295,11 +382,11 @@
         const signalsDiv = document.createElement('div');
         signalsDiv.className = 'signals pl-3';
         
+        let hasSignals = false;
         Object.keys(messageTypes[messageType]).sort().forEach(signalName => {
-          const signalType = messageTypes[messageType][signalName];
-          
-          // Only add numerical signals
-          if (signalType === 'int' || signalType === 'float') {
+          // Show all except internal marker
+          if (signalName !== '_noSignals') {
+            hasSignals = true;
             const checkboxDiv = document.createElement('div');
             checkboxDiv.className = 'form-check';
             
@@ -321,46 +408,52 @@
             
             // Add event listener to checkbox
             checkboxInput.addEventListener('change', function() {
-              const id = `${this.dataset.messageType}.${this.dataset.signalName}`;
+              const signalFullId = `${this.dataset.messageType}.${this.dataset.signalName}`;
               if (this.checked) {
-                // Add trace if it doesn't exist
-                if (!dataTraces[id]) {
+                // Only add if not already in graphData
+                if (!dataTraces[signalFullId]) {
                   const randomColor = getRandomColor();
                   const newTrace = {
                     x: [],
                     y: [],
-                    name: id,
+                    name: signalFullId,
                     type: 'scatter',
                     mode: 'lines',
                     line: { color: randomColor }
                   };
-                  
-                  // Add to our data structures
-                  dataTraces[id] = newTrace;
+                  dataTraces[signalFullId] = newTrace;
                   graphData.push(newTrace);
-                  
-                  // Add to the plot
                   Plotly.addTraces('graphContainer', newTrace);
-                  logDebug(`Added trace for ${id}`);
+                  logDebug(`Added trace for ${signalFullId}`);
                 } else {
-                  // Show existing trace
-                  const traceIndex = graphData.findIndex(trace => trace.name === id);
+                  // If already exists, just make it visible
+                  const traceIndex = graphData.findIndex(trace => trace.name === signalFullId);
                   if (traceIndex !== -1) {
                     Plotly.restyle('graphContainer', { visible: true }, [traceIndex]);
-                    logDebug(`Made trace for ${id} visible`);
+                    logDebug(`Made trace for ${signalFullId} visible`);
                   }
                 }
               } else {
-                // Hide trace
-                const traceIndex = graphData.findIndex(trace => trace.name === id);
+                // Remove trace from both Plotly and our data structures
+                const traceIndex = graphData.findIndex(trace => trace.name === signalFullId);
                 if (traceIndex !== -1) {
-                  Plotly.restyle('graphContainer', { visible: false }, [traceIndex]);
-                  logDebug(`Made trace for ${id} hidden`);
+                  Plotly.deleteTraces('graphContainer', [traceIndex]);
+                  graphData.splice(traceIndex, 1);
+                  delete dataTraces[signalFullId];
+                  logDebug(`Removed trace for ${signalFullId}`);
                 }
               }
             });
           }
         });
+        
+        // If no signals, show a message
+        if (!hasSignals || messageTypes[messageType]._noSignals) {
+          const noSignalsDiv = document.createElement('div');
+          noSignalsDiv.textContent = 'No signals found';
+          noSignalsDiv.className = 'text-muted pl-3';
+          signalsDiv.appendChild(noSignalsDiv);
+        }
         
         messageDiv.appendChild(signalsDiv);
         signalSelectorsDiv.appendChild(messageDiv);
@@ -447,20 +540,20 @@
       
       // Process each signal in the message
       Object.keys(signals).forEach(signalName => {
-        const id = `${messageName}.${signalName}`;
+        const signalFullId = `${messageName}.${signalName}`;
         const value = signals[signalName];
         
         // Skip non-numeric values
         if (isNaN(value) || value === null || value === undefined) return;
         
         // If we have a trace for this signal and it's enabled
-        if (dataTraces[id]) {
+        if (dataTraces[signalFullId]) {
           // Find the index of this trace in the graphData array
-          const traceIndex = graphData.findIndex(trace => trace.name === id);
+          const traceIndex = graphData.findIndex(trace => trace.name === signalFullId);
           if (traceIndex !== -1) {
             // Add the new data point to our data structure
-            dataTraces[id].x.push(timestamp);
-            dataTraces[id].y.push(value);
+            dataTraces[signalFullId].x.push(timestamp);
+            dataTraces[signalFullId].y.push(value);
             
             // Add this trace to the update
             if (!updateData[traceIndex]) {

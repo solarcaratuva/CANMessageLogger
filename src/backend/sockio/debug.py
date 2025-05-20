@@ -1,6 +1,6 @@
 from backend.sockio.socket import socketio, app  # the socketio app
 from backend.db_connection import DbConnection as dbconnect
-from flask import render_template, jsonify
+from flask import render_template, jsonify, request
 
 message_list = list()
 
@@ -21,6 +21,9 @@ def get_latest_message_batch():
     logger_db = dbconnect()
     message_batch = list()
 
+    # Get specific table if provided
+    specific_table = request.args.get('table')
+
     tables = logger_db.query("SELECT name FROM sqlite_master WHERE type='table';")
 
     # add tables here to ignore when getting latest message batch
@@ -31,6 +34,9 @@ def get_latest_message_batch():
         if table_name == "Alerts":
             continue
         if table_name == "TriggeredAlerts":
+            continue
+        # Skip if filtering by table and this isn't the one
+        if specific_table and table_name != specific_table:
             continue
 
         columns = logger_db.query(f"PRAGMA table_info({table_name});")
@@ -63,13 +69,14 @@ def get_latest_message_batch():
     table_names = list({msg['table_name'] for msg in message_batch})
     keys = list({key for msg in message_batch for key in msg['data'].keys()})
 
-    message_list.extend(messages)
-    if len(message_list) > 1:
-        message_list.pop(0)
+    if not specific_table:
+        message_list.extend(messages)
+        if len(message_list) > 1:
+            message_list.pop(0)
 
     return jsonify({
         'messages': messages,
         'table_names': table_names,
-        'timestamp': message_batch[0]["timestamp"],
+        'timestamp': message_batch[0]["timestamp"] if message_batch else -1,
         'keys': keys
     })

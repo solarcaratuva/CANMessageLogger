@@ -83,10 +83,93 @@ def get_can_message_types():
             except Exception as e:
                 print(f"Error parsing DBC file {filename}: {str(e)}")
     
+    # Also check out.txt for any additional message types not defined in DBC files
+    try:
+        if os.path.exists("out.txt"):
+            print("Checking out.txt for additional message types")
+            processed_lines = 0
+            message_names = set()
+            
+            # First pass - collect all message names
+            with open("out.txt", "r") as out_file:
+                for line in out_file:
+                    try:
+                        if ":" in line:
+                            msg_name = line.split(":", 1)[0].strip()
+                            if msg_name and not msg_name.startswith("#"):  # Skip comments
+                                message_names.add(msg_name)
+                    except Exception:
+                        pass  # Skip problematic lines
+            
+            print(f"Found {len(message_names)} unique message names in out.txt")
+            
+            # Add any new message names to our dictionary
+            for msg_name in message_names:
+                if msg_name not in message_types:
+                    message_types[msg_name] = {}
+            
+            # Second pass - gather signals for each message
+            with open("out.txt", "r") as out_file:
+                for line in out_file:
+                    try:
+                        if ":" in line and "=" in line:
+                            parts = line.split(":", 1)
+                            if len(parts) >= 2:
+                                msg_name = parts[0].strip()
+                                if msg_name in message_types:
+                                    # Extract all signal names and values
+                                    signal_text = parts[1].strip()
+                                    # Split by commas but be careful with commas in values
+                                    signal_parts = []
+                                    current_part = ""
+                                    in_quotes = False
+                                    
+                                    for char in signal_text:
+                                        if char == '"':
+                                            in_quotes = not in_quotes
+                                            current_part += char
+                                        elif char == ',' and not in_quotes:
+                                            signal_parts.append(current_part.strip())
+                                            current_part = ""
+                                        else:
+                                            current_part += char
+                                    
+                                    if current_part:
+                                        signal_parts.append(current_part.strip())
+                                    
+                                    for signal_part in signal_parts:
+                                        if "=" in signal_part:
+                                            signal_name, value = signal_part.split("=", 1)
+                                            signal_name = signal_name.strip()
+                                            
+                                            # Try to determine if it's numeric
+                                            value = value.strip()
+                                            try:
+                                                # Attempt to convert to float to check if numeric
+                                                float(value.replace('"', ''))
+                                                signal_type = "float"
+                                            except ValueError:
+                                                signal_type = "string"
+                                            
+                                            if signal_name and signal_name not in message_types[msg_name]:
+                                                message_types[msg_name][signal_name] = signal_type
+                                    
+                                    processed_lines += 1
+                                    if processed_lines % 1000 == 0:
+                                        print(f"Processed {processed_lines} lines from out.txt")
+                    except Exception as signal_err:
+                        print(f"Error parsing signal from out.txt line: {signal_err}")
+            
+            print(f"Finished processing out.txt - processed {processed_lines} lines")
+        else:
+            print("out.txt file not found")
+    except Exception as e:
+        print(f"Error processing out.txt file: {str(e)}")
+    
     # Log what we found
     print(f"Total CAN message types found: {len(message_types)}")
     for msg_name, signals in message_types.items():
-        print(f"  {msg_name}: {len(signals)} signals")
+        print(f"  {msg_name}: {len(signals)} signals || {signals}")
     
     return jsonify({
         "status": "success",
