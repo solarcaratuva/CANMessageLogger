@@ -298,68 +298,66 @@
         Object.keys(messageTypes[messageType]).sort().forEach(signalName => {
           const signalType = messageTypes[messageType][signalName];
           
-          // Only add numerical signals
-          if (signalType === 'int' || signalType === 'float') {
-            const checkboxDiv = document.createElement('div');
-            checkboxDiv.className = 'form-check';
-            
-            const checkboxInput = document.createElement('input');
-            checkboxInput.type = 'checkbox';
-            checkboxInput.className = 'form-check-input signal-checkbox';
-            checkboxInput.id = `${messageType}.${signalName}`;
-            checkboxInput.dataset.messageType = messageType;
-            checkboxInput.dataset.signalName = signalName;
-            
-            const checkboxLabel = document.createElement('label');
-            checkboxLabel.className = 'form-check-label';
-            checkboxLabel.htmlFor = `${messageType}.${signalName}`;
-            checkboxLabel.textContent = signalName;
-            
-            checkboxDiv.appendChild(checkboxInput);
-            checkboxDiv.appendChild(checkboxLabel);
-            signalsDiv.appendChild(checkboxDiv);
-            
-            // Add event listener to checkbox
-            checkboxInput.addEventListener('change', function() {
-              const id = `${this.dataset.messageType}.${this.dataset.signalName}`;
-              if (this.checked) {
-                // Add trace if it doesn't exist
-                if (!dataTraces[id]) {
-                  const randomColor = getRandomColor();
-                  const newTrace = {
-                    x: [],
-                    y: [],
-                    name: id,
-                    type: 'scatter',
-                    mode: 'lines',
-                    line: { color: randomColor }
-                  };
-                  
-                  // Add to our data structures
-                  dataTraces[id] = newTrace;
-                  graphData.push(newTrace);
-                  
-                  // Add to the plot
-                  Plotly.addTraces('graphContainer', newTrace);
-                  logDebug(`Added trace for ${id}`);
-                } else {
-                  // Show existing trace
-                  const traceIndex = graphData.findIndex(trace => trace.name === id);
-                  if (traceIndex !== -1) {
-                    Plotly.restyle('graphContainer', { visible: true }, [traceIndex]);
-                    logDebug(`Made trace for ${id} visible`);
-                  }
-                }
+          // Remove the type check to show all signals
+          const checkboxDiv = document.createElement('div');
+          checkboxDiv.className = 'form-check';
+          
+          const checkboxInput = document.createElement('input');
+          checkboxInput.type = 'checkbox';
+          checkboxInput.className = 'form-check-input signal-checkbox';
+          checkboxInput.id = `${messageType}.${signalName}`;
+          checkboxInput.dataset.messageType = messageType;
+          checkboxInput.dataset.signalName = signalName;
+          
+          const checkboxLabel = document.createElement('label');
+          checkboxLabel.className = 'form-check-label';
+          checkboxLabel.htmlFor = `${messageType}.${signalName}`;
+          checkboxLabel.textContent = `${signalName} (${signalType})`;  // Show signal type in label
+          
+          checkboxDiv.appendChild(checkboxInput);
+          checkboxDiv.appendChild(checkboxLabel);
+          signalsDiv.appendChild(checkboxDiv);
+          
+          // Add event listener to checkbox
+          checkboxInput.addEventListener('change', function() {
+            const id = `${this.dataset.messageType}.${this.dataset.signalName}`;
+            if (this.checked) {
+              // Add trace if it doesn't exist
+              if (!dataTraces[id]) {
+                const randomColor = getRandomColor();
+                const newTrace = {
+                  x: [],
+                  y: [],
+                  name: id,
+                  type: 'scatter',
+                  mode: 'lines',
+                  line: { color: randomColor }
+                };
+                
+                // Add to our data structures
+                dataTraces[id] = newTrace;
+                graphData.push(newTrace);
+                
+                // Add to the plot
+                Plotly.addTraces('graphContainer', newTrace);
+                logDebug(`Added trace for ${id}`);
               } else {
-                // Hide trace
+                // Show existing trace
                 const traceIndex = graphData.findIndex(trace => trace.name === id);
                 if (traceIndex !== -1) {
-                  Plotly.restyle('graphContainer', { visible: false }, [traceIndex]);
-                  logDebug(`Made trace for ${id} hidden`);
+                  Plotly.restyle('graphContainer', { visible: true }, [traceIndex]);
+                  logDebug(`Made trace for ${id} visible`);
                 }
               }
-            });
-          }
+            } else {
+              // Hide trace
+              const traceIndex = graphData.findIndex(trace => trace.name === id);
+              if (traceIndex !== -1) {
+                Plotly.restyle('graphContainer', { visible: false }, [traceIndex]);
+                logDebug(`Made trace for ${id} hidden`);
+              }
+            }
+          });
         });
         
         messageDiv.appendChild(signalsDiv);

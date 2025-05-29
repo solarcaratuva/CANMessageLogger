@@ -4,8 +4,10 @@ from flask_socketio import SocketIO
 import backend.input.alertChecker as alertChecker
 from ..db_connection import DbConnection as dbconnect
 from ..dbcs import get_messages_from_dbc
+from ..downsampling import largest_triangle_three_buckets
 import os
 import backend.input.consumer as consumer
+import numpy as np
 
 import logging
 log = logging.getLogger('werkzeug')
@@ -144,6 +146,124 @@ def get_triggered_alerts():
     
     return jsonify({"status": "success", "triggered_alerts": triggered_alerts}), 200
 
+@app.route('/get_data_range', methods=['POST'])
+def get_data_range():
+    """
+    Get data for a specific time range and zoom level.
+    The zoom level determines how many points to return.
+    """
+    data = request.json
+    start_time = data.get('start_time')
+    end_time = data.get('end_time')
+    zoom_level = data.get('zoom_level', 1)  # Higher zoom level = more points
+    signal_id = data.get('signal_id')
+    
+    if not all([start_time, end_time, signal_id]):
+        return jsonify({"status": "error", "message": "Missing required parameters"}), 400
+    
+    try:
+        db = dbconnect()
+        # Query the database for the time range
+        query = """
+        SELECT timestamp, value 
+        FROM SignalData 
+        WHERE signal_id = ? AND timestamp BETWEEN ? AND ?
+        ORDER BY timestamp
+        """
+        results = db.query(query, (signal_id, start_time, end_time))
+        
+        if not results:
+            return jsonify({"status": "success", "data": []}), 200
+        
+        # Convert to numpy array for downsampling
+        data_points = np.array([(r['timestamp'], r['value']) for r in results])
+        
+        # Calculate number of points based on zoom level
+        # Base number of points is 100, multiply by zoom level
+        num_points = min(len(data_points), int(100 * zoom_level))
+        
+        # Downsample the data
+        downsampled_data = largest_triangle_three_buckets(data_points, num_points)
+        
+        # Convert back to list of dicts
+        formatted_data = [
+            {"timestamp": float(x), "value": float(y)} 
+            for x, y in downsampled_data
+        ]
+        
+        return jsonify({
+            "status": "success",
+            "data": formatted_data
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@socketio.on('request_data_range')
+def handle_data_range_request(data):
+    """
+    Handle requests for data in a specific time range with downsampling.
+    
+    Args:
+        data: Dictionary containing:
+            - signal_id: The signal ID to fetch data for
+            - start_time: Start time in milliseconds
+            - end_time: End time in milliseconds
+            - zoom_level: Level of zoom (1-10) to determine downsampling
+    """
+    try:
+        signal_id = data['signal_id']
+        start_time = data['start_time']
+        end_time = data['end_time']
+        zoom_level = data['zoom_level']
+        
+        # Parse signal ID to get message name and signal name
+        message_name, signal_name = signal_id.split('.')
+        
+        # Query the database for the data in the specified range
+        db_conn = dbconnect()
+        query = f"""
+            SELECT {signal_name}, timeStamp 
+            FROM {message_name} 
+            WHERE timeStamp BETWEEN {start_time} AND {end_time}
+            ORDER BY timeStamp
+        """
+        results = db_conn.query(query)
+        
+        if not results:
+            socketio.emit('data_range_update', {
+                'signal_id': signal_id,
+                'data': []
+            })
+            return
+        
+        # Convert results to numpy array for downsampling
+        data_points = np.array([(r['timeStamp'], r[signal_name]) for r in results])
+        
+        # Calculate number of points to keep based on zoom level
+        # Higher zoom level = more points
+        target_points = min(len(data_points), max(100, len(data_points) // (11 - zoom_level)))
+        
+        # Apply downsampling
+        downsampled_data = largest_triangle_three_buckets(data_points, target_points)
+        
+        # Convert back to list of dictionaries
+        formatted_data = [
+            {'timestamp': float(x), 'value': float(y)} 
+            for x, y in downsampled_data
+        ]
+        
+        # Send the downsampled data back to the client
+        socketio.emit('data_range_update', {
+            'signal_id': signal_id,
+            'data': formatted_data
+        })
+        
+    except Exception as e:
+        print(f"Error handling data range request: {str(e)}")
+        socketio.emit('data_range_error', {
+            'message': f"Error fetching data: {str(e)}"
+        })
 
 @socketio.on('connect')
 def handle_connect():
