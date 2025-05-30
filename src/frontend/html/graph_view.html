@@ -216,6 +216,8 @@
     // Data tracking variables
     let globalMinTime = Infinity;
     let globalMaxTime = -Infinity;
+    // Track last timestamp for each signal to detect gaps
+    let lastTimestamps = {};
     
     // For tracking whether we've received any data
     let dataReceived = false;
@@ -321,9 +323,13 @@
           // Add event listener to checkbox
           checkboxInput.addEventListener('change', function() {
             const id = `${this.dataset.messageType}.${this.dataset.signalName}`;
+            const plotDiv = document.getElementById('graphContainer');
+            const plotlyData = plotDiv.data || [];
             if (this.checked) {
-              // Add trace if it doesn't exist
-              if (!dataTraces[id]) {
+              // Check if trace already exists in the Plotly plot
+              const existingTraceIndex = plotlyData.findIndex(trace => trace.name === id);
+              if (existingTraceIndex === -1) {
+                // Only create and add new trace if it doesn't exist
                 const randomColor = getRandomColor();
                 const newTrace = {
                   x: [],
@@ -333,27 +339,22 @@
                   mode: 'lines',
                   line: { color: randomColor }
                 };
-                
                 // Add to our data structures
                 dataTraces[id] = newTrace;
                 graphData.push(newTrace);
-                
                 // Add to the plot
-                Plotly.addTraces('graphContainer', newTrace);
+                Plotly.addTraces(plotDiv, newTrace);
                 logDebug(`Added trace for ${id}`);
               } else {
                 // Show existing trace
-                const traceIndex = graphData.findIndex(trace => trace.name === id);
-                if (traceIndex !== -1) {
-                  Plotly.restyle('graphContainer', { visible: true }, [traceIndex]);
-                  logDebug(`Made trace for ${id} visible`);
-                }
+                Plotly.restyle(plotDiv, { visible: true }, [existingTraceIndex]);
+                logDebug(`Made trace for ${id} visible`);
               }
             } else {
               // Hide trace
-              const traceIndex = graphData.findIndex(trace => trace.name === id);
+              const traceIndex = plotlyData.findIndex(trace => trace.name === id);
               if (traceIndex !== -1) {
-                Plotly.restyle('graphContainer', { visible: false }, [traceIndex]);
+                Plotly.restyle(plotDiv, { visible: false }, [traceIndex]);
                 logDebug(`Made trace for ${id} hidden`);
               }
             }
@@ -456,10 +457,18 @@
           // Find the index of this trace in the graphData array
           const traceIndex = graphData.findIndex(trace => trace.name === id);
           if (traceIndex !== -1) {
+            // Detect time gap
+            const lastTimestamp = lastTimestamps[id];
+            const gapThreshold = 2.0; // seconds, adjust as needed
+            if (lastTimestamp !== undefined && Math.abs(timestamp - lastTimestamp) > gapThreshold) {
+              // Insert null to break the line
+              dataTraces[id].x.push(null);
+              dataTraces[id].y.push(null);
+            }
             // Add the new data point to our data structure
             dataTraces[id].x.push(timestamp);
             dataTraces[id].y.push(value);
-            
+            lastTimestamps[id] = timestamp;
             // Add this trace to the update
             if (!updateData[traceIndex]) {
               updateData[traceIndex] = { x: [[timestamp]], y: [[value]] };
