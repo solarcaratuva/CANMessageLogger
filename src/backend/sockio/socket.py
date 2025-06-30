@@ -24,13 +24,11 @@ def index():
     # Render the HTML with the large_data passed in
     return render_template('debug.html') # DELETED message_list
 
+
 @app.route('/alert_manager')
 def alert_manager():
     return render_template('alert_manager.html')
 
-@app.route('/link2')
-def link2():
-    return render_template('link2.html')
 
 @app.route('/parse_dbc_fields', methods=['POST'])
 def parse_dbc_fields():
@@ -46,10 +44,10 @@ def parse_dbc_fields():
     # dbc_path = os.path.normpath(dbc_path)
 
     dbc_path = "resources/CAN-messages/Rivanna3.dbc"
-    
     result = get_messages_from_dbc(dbc_path)
 
     return jsonify({'message': result})
+
 
 @app.route('/create_alert', methods=['POST'])
 def create_alert():
@@ -70,6 +68,7 @@ def create_alert():
         "alert_id": alert_id
     }), 200
 
+
 @app.route('/get_alerts', methods=['GET'])
 def get_alerts():
     alertChecker.fetchActiveAlerts()
@@ -82,12 +81,14 @@ def get_alerts():
         print(f"Error fetching alerts: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+
 @app.route('/delete_alert', methods=['POST'])
 def delete_alert():
     alert_id = request.json['alert_id']
     logger_db = dbconnect()
     logger_db.delete_alert(alert_id)
     return jsonify({"status": "success", "message": "Alert deleted"}), 200
+
 
 @app.route('/get_triggered_alerts', methods=['GET'])
 def get_triggered_alerts():
