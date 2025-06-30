@@ -87,7 +87,13 @@ def checkAlertsAgainstCanMsg(can_message): #can_message is the cm_tup from logfi
                 if (signal in decodedMessage.sigDict):
                     decoded_val = int(decodedMessage.sigDict[signal])
                     comp_val = int(comparison['value'])
+                    operator = comparison['operator']
 
+                    # the alert condition was not met, so no alert should be triggered
+                    if not eval(f"{decoded_val} {operator} {comp_val}"):
+                        continue                        
+
+                    # the alert condition was met, so trigger the alert
                     fail_cause = f"{decoded_val} {comparison['operator']} {comp_val}"
                     logger_db.add_triggered_alert(alert['id'], category, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp, signal, fail_cause)
                     if socketio_instance:
