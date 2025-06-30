@@ -99,6 +99,7 @@ def get_triggered_alerts():
     for alert in triggered_alerts:
         if 'can_message_data' in alert and isinstance(alert['can_message_data'], bytes):
             alert['can_message_data'] = alert['can_message_data'].hex()
+        alert['name'] = logger_db.get_alert_name(alert['alert_id'])
     
     return jsonify({"status": "success", "triggered_alerts": triggered_alerts}), 200
 

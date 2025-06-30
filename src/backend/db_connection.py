@@ -252,3 +252,22 @@ class DbConnection:
         except sqlite3.Error as e:
             print(f"Database error deleting alert: {e}")
 
+    def get_alert_name(self, alert_id: int) -> str:
+        try:
+            connection = self.conn
+            cursor = connection.cursor()
+
+            cursor.execute('''
+                SELECT name FROM Alerts WHERE id = ?
+            ''', (alert_id,))
+
+            row = cursor.fetchone()
+            if row:
+                return row['name']
+            else:
+                return None
+        
+        except sqlite3.Error as e:
+            print(f"Database error fetching alert name: {e}")
+            return None
+

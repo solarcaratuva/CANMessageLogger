@@ -116,7 +116,7 @@
 
         function fillAlertDiv(latest) {
             latestAlertDiv.innerHTML = `
-                <strong>Alert #${latest.alert_id}</strong> — ${latest.signal} |
+                <strong>Alert:</strong> ${latest.name} — ${latest.signal} |
                 <strong>Value:</strong> ${latest.fail_cause} |
                 <strong>CAN Msg ID:</strong> ${latest.category} (${latest.can_message_id}) |
                 <strong>CAN Data:</strong> ${latest.can_message_data} |
