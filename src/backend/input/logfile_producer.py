@@ -6,8 +6,8 @@ import re
 
 LOOP_TIME = 0.01
 
-#                          Timestamp                        ID                              Data Bytes
-pattern = re.compile(r'(\d{2}):(\d{2}):(\d{2}) DEBUG .+ ID (0x[0-9A-Fa-f]+) Length \d+ Data (0x[0-9A-Fa-f]+)')
+#                          Timestamp                 ID                              Data Bytes
+pattern = re.compile(r'(\d{2}):(\d{2}):(\d{2}) .+ ID (0x[0-9A-Fa-f]+) Length \d+ Data (0x[0-9A-Fa-f]+)')
 
 # These global vars are required for the non-live log-file processing
 msIncrementer = 0

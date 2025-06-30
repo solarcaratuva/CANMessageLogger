@@ -26,6 +26,8 @@ def listen_to_serial():
                 text = ser.readline().decode("utf-8").strip()
                 if text:
                     text_tuple = parse_line(text)
+                    if text_tuple is None:
+                        continue
                     queue.put(text_tuple)
 
             except Exception as e:
