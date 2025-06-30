@@ -120,7 +120,7 @@
                 <strong>Value:</strong> ${latest.fail_cause} |
                 <strong>CAN Msg ID:</strong> ${latest.category} (${latest.can_message_id}) |
                 <strong>CAN Data:</strong> ${latest.can_message_data} |
-                <strong>Timestamp:</strong> ${latest.can_message_timestamp}
+                <strong>Timestamp:</strong> ${Math.round(latest.can_message_timestamp)}
                 <button class="btn btn-sm btn-outline-dark float-right ml-3" id="clearAlertBtn">Clear</button>
             `;
             latestAlertDiv.classList.remove('alert-info');
