@@ -350,7 +350,7 @@
               <td>${formattedFailCause}</td>
               <td>${alert.category + " (" + alert.can_message_id+ ")" || ''}</td>
               <td>${alert.can_message_data}</td>
-              <td>${alert.can_message_timestamp}</td>
+              <td>${Math.trunc(alert.can_message_timestamp)}</td>
             </tr>
           `;
         });
