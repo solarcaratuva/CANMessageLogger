@@ -6,9 +6,9 @@ def setup_socketio():
     from backend.sockio.socket import socketio, app
     from backend.sockio import debug  # must be imported to register the socketio event handlers
     from backend.db_connection import DbConnection
-    from backend.input import consumer, logfile_producer, monitor_live_log
+    from backend.input import consumer, logfile_producer, monitor_live_log, radio
     from functools import partial
-    return socketio, app, debug, DbConnection, consumer, logfile_producer, monitor_live_log, partial
+    return socketio, app, debug, DbConnection, consumer, logfile_producer, monitor_live_log, radio, partial
 
 def main():
     timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -31,7 +31,7 @@ def main():
     if not success:
         print("[GIT ERROR] Continuing anyway...")
 
-    socketio, app, debug, DbConnection, consumer, logfile_producer, monitor_live_log, partial = setup_socketio()
+    socketio, app, debug, DbConnection, consumer, logfile_producer, monitor_live_log, radio, partial = setup_socketio()
 
     if args.inputFile:
         datafile_path = args.inputFile[0]
@@ -75,7 +75,11 @@ def main():
 
             socketio.start_background_task(target=consumer.process_data_live)
             socketio.start_background_task(target=partial(logfile_producer.process_logfile_live, datafile_path))
-        
+
+        case "radio":
+            socketio.start_background_task(target=consumer.process_data_live)
+            socketio.start_background_task(target=radio.listen_to_radio)
+
     print("Starting socketio server,\033[1;31m open localhost:5000 in your browser \033[0m")
     socketio.run(app, debug=False, allow_unsafe_werkzeug=True, host="0.0.0.0", port=5000)  # to run the sockio io app, .run is blocking! No code below this
 
@@ -84,7 +88,7 @@ def main():
 def cli_message_reader() -> argparse.ArgumentParser:
     """Creates the command line arguments parser for the main function"""
 
-    datatype_choices =["past_log", "livelog", "mock_livelog", "db"]
+    datatype_choices =["past_log", "livelog", "mock_livelog", "db", "radio"]
 
     parser = argparse.ArgumentParser() 
     parser.add_argument("logType", choices=datatype_choices, type=str,
