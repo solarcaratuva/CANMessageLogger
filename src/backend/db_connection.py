@@ -1,5 +1,5 @@
 import sqlite3
-from backend.dbcs import DBCs  # need to have dbcs.py in same directory! (this is the wrapper file we made for generating DBCs)
+import backend.dbcs as dbcs
 from backend.can_message import CanMessage  # our own CanMessage Object
 import json
 
@@ -7,16 +7,16 @@ import json
 
 
 class DbConnection:
-    DB_path = "./CANDatabases"  # static, i.e. shared with all DbConnection Objects
+    DB_path = "./error"  # static, i.e. shared with all DbConnection Objects, this variable must be set elsewhere before use
 
     def __init__(self):
-        # note that these are only for use in the backend consumer thread, NOT the frontend socketio requests
+        # every thread (and socketIO event handler) must have its own DbConnection object
         self.conn = sqlite3.connect(DbConnection.DB_path)
         self.conn.row_factory = sqlite3.Row
         self.cur = self.conn.cursor()
 
 
-    def __del__(self):
+    def __del__(self): # object destructor, called automatically when the object is deleted
         if hasattr(self,'cur') and self.cur:
             self.cur.close()
         if  hasattr(self,'conn') and self.conn:
@@ -53,7 +53,6 @@ class DbConnection:
         """
         can_message_signal_types = {}
         # {'message_name': {signal_name: signal_type, ..., ... }, ..., ...}
-
         for dbc in dbcs:
             for message in dbc.messages:
                 # Extracting the message name and its signals (assumes the type is an UNSIGNED INTEGER!)
@@ -99,6 +98,7 @@ class DbConnection:
         return [dict(row) for row in rows]  # list[ 'can_msg_1' is dict{signal: val,signal: val,signal: val}, ...]
 
 
+    # Should only be called once!
     def setup_the_tables(self) -> None:
         """
         Sets up the tables in the SQL database, this function must be called before ANY other function calls for the
@@ -137,8 +137,7 @@ class DbConnection:
         self.cur.execute(sql_triggered_alerts)
 
 
-        # Should only be called once!
-        can_msg_signals = self.__parse_can_message_signals(DBCs)
+        can_msg_signals = self.__parse_can_message_signals(dbcs.DBCs)
 
         # create table for each can_message_name
         for can_msg_type, signal_types_dict in can_msg_signals.items():
@@ -170,32 +169,17 @@ class DbConnection:
     
 
     def add_triggered_alert(self, alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause):
-        connection = self.conn
-        cursor = connection.cursor()
-
-        cursor.execute('''
+        self.cur.execute('''
             INSERT INTO TriggeredAlerts (alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause))
 
-        connection.commit()
-        new_id = cursor.lastrowid
+        self.conn.commit()
+        new_id = self.cur.lastrowid
         return new_id
     
     
-    def fetch_triggered_alerts(self):
-        connection = self.conn
-        cursor = connection.cursor()
-
-        cursor.execute('''
-            SELECT * FROM TriggeredAlerts
-        ''')
-
-        rows = cursor.fetchall()
-        return [dict(row) for row in rows]
-        
-
-    def create_alert(self, alert_data):
+    def create_alert(self, alert_data: dict) -> int:
         """
         Example alert_data:
         {
@@ -207,9 +191,6 @@ class DbConnection:
         "comparisons": [ { "operator": "<", "value": 3.0 } ]
         }
         """
-
-        connection = self.conn
-        cursor = connection.cursor()
 
         name = alert_data.get('name')
         field = alert_data.get('field')
@@ -225,36 +206,30 @@ class DbConnection:
             comps = alert_data.get('comparisons', [])
             comparisons_json = json.dumps(comps)
 
-        cursor.execute('''
+        self.cur.execute('''
             INSERT INTO Alerts (name, field, type, category, bool_value, comparisons_json)
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (name, field, type_, category, bool_value, comparisons_json))
 
-        connection.commit()
-        new_id = cursor.lastrowid
+        self.conn.commit()
+        new_id = self.cur.lastrowid
         return new_id
 
     
-    def delete_alert(self, alert_id):
-        connection = self.conn
-        cursor = connection.cursor()
-
-        cursor.execute('''
+    def delete_alert(self, alert_id: int) -> None:
+        self.cur.execute('''
             DELETE FROM Alerts WHERE id = ?
         ''', (alert_id,))
 
-        connection.commit()
-        
+        self.conn.commit()
+
 
     def get_alert_name(self, alert_id: int) -> str:
-        connection = self.conn
-        cursor = connection.cursor()
-
-        cursor.execute('''
+        self.cur.execute('''
             SELECT name FROM Alerts WHERE id = ?
         ''', (alert_id,))
 
-        row = cursor.fetchone()
+        row = self.cur.fetchone()
         if row:
             return row['name']
         else:

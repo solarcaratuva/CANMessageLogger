@@ -1,25 +1,26 @@
 import argparse
-from backend.functions import gitPull
+from backend.submodule_automation import gitPull
 import time
 import os
-def setup_socketio():
-    from backend.sockio.socket import socketio, app
-    from backend.sockio import debug  # must be imported to register the socketio event handlers
-    from backend.db_connection import DbConnection
-    from backend.input import consumer, logfile_producer, monitor_live_log, radio
-    from functools import partial
-    return socketio, app, debug, DbConnection, consumer, logfile_producer, monitor_live_log, radio, partial
+
+import backend.dbcs as dbcs
+from backend.sockio.socket import socketio, app
+
+from backend.db_connection import DbConnection
+from backend.input import consumer, logfile_producer, live_log_producer, radio_producer
+from functools import partial
+
+# must import sockio/ files to register the socketio event handlers
+from backend.sockio import debug_dashboard, alert_manager  
+
 
 def main():
     timestamp = time.strftime("%Y%m%d_%H%M%S")
 
-    newpath = './CANDatabases' 
-    if not os.path.exists(newpath):
-        os.makedirs(newpath)
+    db_dir = './CANDatabases' 
+    if not os.path.exists(db_dir):
+        os.makedirs(db_dir)
     # timestamp: year,month,day,hour,minute,second
-    database_path = f"./CANDatabases/can_database_{timestamp}.sqlite"
-
-    datafile_path = None
 
     parser = cli_message_reader()
     args = parser.parse_args()
@@ -31,69 +32,75 @@ def main():
     if not success:
         print("[GIT ERROR] Continuing anyway...")
 
-    socketio, app, debug, DbConnection, consumer, logfile_producer, monitor_live_log, radio, partial = setup_socketio()
+    dbcs.load_dbc_files()  # Load DBC files now that the submodule branch is set
 
+    if args.inputFile and not os.path.exists(args.inputFile[0]):
+        parser.error(f"The input file '{args.inputFile[0]}' does not exist.")
+
+    datafile_path = None
     if args.inputFile:
         datafile_path = args.inputFile[0]
 
+    database_path = f"./CANDatabases/can_database_{timestamp}.sqlite"
     if args.outputDB:
         database_path = args.outputDB[0]
+    if not database_path.endswith(".db") and not database_path.endswith(".sqlite"):
+        parser.error("Need to specify a .db or .sqlite file for the output database")
 
+    # setup the 'db' option if chosen, must be done before running 'setup_the_db_path()'
     if args.logType == "db":
         if not args.inputFile:
             parser.error("The '--inputFile' option is required when 'db' is provided.")
         if not (args.inputFile[0].endswith(".db")) and not (args.inputFile[0].endswith(".sqlite")):
             parser.error("Need to specify a .db or .sqlite file")
 
-            database_path = args.inputFile[0]
+        database_path = args.inputFile[0]
 
     # need to call .set_up_tables and .setup_database_path here!! (before running threads)
     DbConnection.setup_the_db_path(database_path)
-
     dbconn = DbConnection()
     dbconn.setup_the_tables()
 
     match args.logType:
-        case "past_log":
+        case "pastlog":
             if not args.inputFile:
-                parser.error("The '--inputFile' option is required when 'past_log' is provided.")
-            if not args.inputFile[0].endswith(".txt"):
-                parser.error("Need to specify a .txt file")
+                parser.error("The '--inputFile' option is required when 'pastlog' is provided.")
+            if not args.inputFile[0].endswith(".txt") and not args.inputFile[0].endswith(".log"):
+                parser.error("Need to specify a .txt or .log file for the input file")
 
             logfile_producer.process_logfile(datafile_path)
             consumer.process_data()
 
         case "livelog":
             socketio.start_background_task(target=consumer.process_data_live)
-            socketio.start_background_task(target=monitor_live_log.listen_to_serial)
+            socketio.start_background_task(target=live_log_producer.listen_to_serial)
 
         case "mock_livelog":
             if not args.inputFile:
                 parser.error("The '--inputFile' option is required when 'mock_livelog' is provided.")
-            if not args.inputFile[0].endswith(".txt"):
-                parser.error("Need to specify a .txt file")
+            if not args.inputFile[0].endswith(".txt") and not args.inputFile[0].endswith(".log"):
+                parser.error("Need to specify a .txt or .log file for the input file")
 
             socketio.start_background_task(target=consumer.process_data_live)
             socketio.start_background_task(target=partial(logfile_producer.process_logfile_live, datafile_path))
 
         case "radio":
             socketio.start_background_task(target=consumer.process_data_live)
-            socketio.start_background_task(target=radio.listen_to_radio)
+            socketio.start_background_task(target=radio_producer.listen_to_radio)
 
-    print("Starting socketio server,\033[1;31m open localhost:5000 in your browser \033[0m")
-    socketio.run(app, debug=False, allow_unsafe_werkzeug=True, host="0.0.0.0", port=5000)  # to run the sockio io app, .run is blocking! No code below this
-
+    PORT = 5500
+    print(f"Starting socketio server,\033[1;31m open localhost:{PORT} in your browser \033[0m")
+    socketio.run(app, debug=False, allow_unsafe_werkzeug=True, host="0.0.0.0", port=PORT)  # to run the sockio io app, .run is blocking! No code below this
 
 
 def cli_message_reader() -> argparse.ArgumentParser:
     """Creates the command line arguments parser for the main function"""
 
-    datatype_choices =["past_log", "livelog", "mock_livelog", "db", "radio"]
+    data_sources =["pastlog", "livelog", "mock_livelog", "db", "radio"]
 
     parser = argparse.ArgumentParser() 
-    parser.add_argument("logType", choices=datatype_choices, type=str,
-                        help=f"The type of database connection you wish to establish. Input must be one of:"
-                             f" {', '.join(datatype_choices)}")
+    parser.add_argument("logType", choices=data_sources, type=str.lower,
+                        help=f"The type of database connection you wish to establish, must be one of the listed choices.")
     parser.add_argument("--inputFile", "-i", type=str, nargs=1,
                         help="specifies path of input file, must be followed by logfile path")
     parser.add_argument("--outputDB", "-o", type=str, nargs=1, default=None,
@@ -106,4 +113,3 @@ def cli_message_reader() -> argparse.ArgumentParser:
 
 if __name__ == "__main__":
     main()
-

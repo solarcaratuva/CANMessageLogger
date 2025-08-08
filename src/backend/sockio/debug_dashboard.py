@@ -1,13 +1,16 @@
-from backend.sockio.socket import socketio, app  # the socketio app
-from backend.db_connection import DbConnection as dbconnect
-from flask import render_template, jsonify
+from backend.sockio.socket import socketio, app 
+from backend.db_connection import DbConnection
+from flask import jsonify
+
 
 message_list = list()
 
 @app.route('/get_table_names', methods=['GET'])
 def get_table_names():
+    """ Returns the names of all tables in the database. """
+
     try:
-        logger_db = dbconnect()
+        logger_db = DbConnection()
         tables = logger_db.query("SELECT name FROM sqlite_master WHERE type='table';")
         table_names = [table['name'] for table in tables]
         return jsonify({"table_names": table_names})
@@ -18,19 +21,18 @@ def get_table_names():
 
 @app.route('/get_latest_message', methods=['GET'])
 def get_latest_message_batch():
-    logger_db = dbconnect()
+    """ Returns the latest message for each message (table) in the database. """
+
+    logger_db = DbConnection()
     message_batch = list()
 
     tables = logger_db.query("SELECT name FROM sqlite_master WHERE type='table';")
 
     # add tables here to ignore when getting latest message batch
+    IGNORED_TABLES = ["sqlite_sequence", "Alerts", "TriggeredAlerts"]
     for table in tables:
         table_name = table['name']
-        if table_name == "sqlite_sequence":
-            continue
-        if table_name == "Alerts":
-            continue
-        if table_name == "TriggeredAlerts":
+        if table_name in IGNORED_TABLES:
             continue
 
         columns = logger_db.query(f"PRAGMA table_info({table_name});")
