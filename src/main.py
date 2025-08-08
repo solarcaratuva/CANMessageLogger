@@ -2,6 +2,7 @@ import argparse
 from backend.submodule_automation import gitPull
 import time
 import os
+import webbrowser
 
 import backend.dbcs as dbcs
 from backend.sockio.socket import socketio, app
@@ -90,6 +91,7 @@ def main():
 
     PORT = 5500
     print(f"Starting socketio server,\033[1;31m open localhost:{PORT} in your browser \033[0m")
+    webbrowser.open(f'http://localhost:{PORT}')  # Open the URL in the default browser
     socketio.run(app, debug=False, allow_unsafe_werkzeug=True, host="0.0.0.0", port=PORT)  # to run the sockio io app, .run is blocking! No code below this
 
 
