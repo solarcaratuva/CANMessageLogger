@@ -56,7 +56,7 @@ def checkAlertsAgainstCanMsg(can_message): #can_message is the cm_tup from logfi
                 fail_cause = f"BOOL Alert {alert['name']} triggered: {decodedMessage.sigDict[signal]} == {bool_value}"
                 logger_db.add_triggered_alert(alert['id'], category, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message_id, can_message_data, can_message_timestamp, signal, fail_cause)
 
-                socketio.call('big_popup_event', {
+                socketio.emit('big_popup_event', {
                     'message': f"Boolean Alert Triggered: {alert['name']}!"
                 })
         
