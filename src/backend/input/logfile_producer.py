@@ -56,10 +56,10 @@ def process_logfile(path_to_log_file: str) -> None:
         for line in file:
             cm_tup = parse_line(line)
             if cm_tup is not None:  # if the line from log file followed the format, add to queue
-                consumer.add_to_queue(cm_tup)
+                consumer.add_to_queue(*cm_tup)
 
 
-# Emphasize: For this function TimeStamp is NOT taken from logfile, it is system time (see sys_cm_tuple)
+# Emphasize: For this function TimeStamp is NOT taken from logfile, it is system time
 def process_logfile_live(path_to_log_file: str) -> None:
     """ Mocks a live data source by incrementally processing a log file and adding CAN messages to the queue"""
 
@@ -70,7 +70,6 @@ def process_logfile_live(path_to_log_file: str) -> None:
                 continue
             id, data, timestamp = cm_tup # timestamp is derived from the log statement itself and therefore not used
 
-            sys_cm_tup = (id, data, time.perf_counter() - consumer.start_consume_time)
-            consumer.add_to_queue(sys_cm_tup)
+            consumer.add_to_queue(id, data, time.perf_counter() - consumer.start_consume_time)
             time.sleep(LOOP_TIME)
 

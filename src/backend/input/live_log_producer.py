@@ -30,14 +30,14 @@ def listen_to_serial():
         while True:
             try:
                 text = ser.readline().decode("utf-8").strip()
-                if text:
-                    text_tuple = parse_line(text)
-                    if text_tuple is None:
-                        continue
-                    id, data, timestamp = text_tuple # timestamp is derived from the log statement itself and therefore not used
+                if text is None:
+                    continue
+                text_tuple = parse_line(text)
+                if text_tuple is None:
+                    continue
+                id, data, timestamp = text_tuple # timestamp is derived from the log statement itself and therefore not used
 
-                    sys_cm_tup = (id, data, time.perf_counter() - consumer.start_consume_time)
-                    consumer.add_to_queue(sys_cm_tup)
+                consumer.add_to_queue(id, data, time.perf_counter() - consumer.start_consume_time)
 
             except Exception as e:
                 print(f"Serial Read Exception: {e}")
