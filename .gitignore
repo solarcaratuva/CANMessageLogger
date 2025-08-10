@@ -12,3 +12,4 @@ venv
 *.txt
 !requirements.txt
 TODO
+!example.txt
