@@ -621,12 +621,18 @@
     })
     .then(response => response.json())
     .then(data => {
-      console.log("Alert created successfully:", data);
-      $("#addAlertModal").modal("hide");
-      fetchAlerts(); // Refresh the alerts display
+      if (data.status === "success") {
+        console.log("Alert created successfully:", data);
+        $("#addAlertModal").modal("hide");
+        fetchAlerts(); // Refresh the alerts display
+      } else if (data.status === "error") {
+        // Show error message to user
+        alert("Error creating alert: " + data.message);
+      }
     })
     .catch(error => {
       console.error("Error creating alert:", error);
+      alert("Network error: Failed to create alert");
     });
   });
 

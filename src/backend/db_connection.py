@@ -197,6 +197,15 @@ class DbConnection:
         type_ = alert_data.get('type')
         category = alert_data.get('category')  # <-- new
 
+        # Check if an alert with this name already exists
+        self.cur.execute('''
+            SELECT id FROM Alerts WHERE name = ?
+        ''', (name,))
+        existing_alert = self.cur.fetchone()
+        
+        if existing_alert:
+            raise ValueError(f"Alert with name '{name}' already exists")
+
         bool_value = None
         comparisons_json = None
 
