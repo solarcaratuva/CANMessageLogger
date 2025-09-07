@@ -34,17 +34,29 @@ def create_alert():
 
     logger_db = DbConnection()
     data = request.json 
-    socketio.emit('big_popup_event', {
-    'message': 'Something triggered! Take action!'
-})
+    
+    try:
+        alert_id = logger_db.create_alert(data)
+        socketio.emit('big_popup_event', {
+            'message': 'Request to create alert was triggered.'
+        })
 
-    alert_id = logger_db.create_alert(data)
-
-    return jsonify({
-        "status": "success",
-        "message": "Alert created",
-        "alert_id": alert_id
-    }), 200
+        return jsonify({
+            "status": "success",
+            "message": "Alert created",
+            "alert_id": alert_id
+        }), 200
+    
+    except ValueError as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            "status": "error", 
+            "message": f"Failed to create alert: {str(e)}"
+        }), 500
 
 
 @app.route('/get_alerts', methods=['GET'])
