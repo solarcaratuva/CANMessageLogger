@@ -2,50 +2,62 @@ import numpy as np
 
 def largest_triangle_three_buckets(data, threshold):
     """
-    Downsample data using the Largest Triangle Three Buckets algorithm.
-    
+    Downsample data using the standard Largest Triangle Three Buckets (LTTB) algorithm.
+
     Args:
-        data: List of (x, y) tuples or numpy array of shape (n, 2)
-        threshold: Number of points to keep after downsampling
-    
+        data: Iterable of (x, y) pairs or numpy array shape (n, 2). Assumes x is sorted.
+        threshold: Desired number of points in the result (>= 3). If threshold >= n, returns data.
+
     Returns:
-        Downsampled data as numpy array of shape (threshold, 2)
+        numpy.ndarray of shape (m, 2) where m <= threshold.
     """
-    if len(data) <= threshold:
-        return np.array(data)
-    
-    data = np.array(data)
+    if threshold is None or threshold <= 0:
+        return np.asarray(data)
+
+    data = np.asarray(data, dtype=float)
+    n = data.shape[0]
+    if n <= threshold:
+        return data
+
     x = data[:, 0]
     y = data[:, 1]
-    
-    # Calculate the size of each bucket
-    bucket_size = len(data) / threshold
-    
-    # Initialize the output array
-    sampled = np.zeros((threshold, 2))
-    sampled[0] = data[0]  # Always keep the first point
-    
-    # For each bucket
-    for i in range(threshold - 2):
-        # Calculate the bucket boundaries
-        bucket_start = int((i + 1) * bucket_size)
-        bucket_end = int((i + 2) * bucket_size)
-        
-        # Get the points in this bucket
-        bucket_points = data[bucket_start:bucket_end]
-        
-        # Calculate the area of the triangle formed by the previous point,
-        # each point in the bucket, and the next point
-        areas = []
-        for point in bucket_points:
-            # Calculate the area of the triangle
-            area = abs((sampled[i][0] - point[0]) * (y[-1] - sampled[i][1]) -
-                      (sampled[i][0] - x[-1]) * (point[1] - sampled[i][1])) / 2
-            areas.append(area)
-        
-        # Find the point that forms the largest triangle
-        max_area_idx = np.argmax(areas)
-        sampled[i + 1] = bucket_points[max_area_idx]
-    
-    sampled[-1] = data[-1]  # Always keep the last point
-    return sampled 
+
+    sampled = np.empty((threshold, 2), dtype=float)
+    sampled[0] = data[0]
+    sampled[-1] = data[-1]
+
+    bucket_size = (n - 2) / (threshold - 2)
+    a_idx = 0
+
+    for i in range(1, threshold - 1):
+        # Bucket ranges for points to consider (current bucket)
+        range_start = int(np.floor((i - 1) * bucket_size)) + 1
+        range_end = int(np.floor(i * bucket_size)) + 1
+        range_end = min(range_end, n - 1)
+        if range_end <= range_start:
+            range_end = range_start + 1
+        idx_range = np.arange(range_start, range_end)
+
+        # Next bucket average for triangle apex reference
+        avg_start = int(np.floor(i * bucket_size)) + 1
+        avg_end = int(np.floor((i + 1) * bucket_size)) + 1
+        avg_end = min(avg_end, n)
+        if avg_end <= avg_start:
+            avg_end = avg_start + 1
+        avg_x = np.mean(x[avg_start:avg_end])
+        avg_y = np.mean(y[avg_start:avg_end])
+
+        # Compute triangle areas for all candidates with previous selected point a and next-bucket average
+        ax = x[a_idx]
+        ay = y[a_idx]
+        cx = avg_x
+        cy = avg_y
+        bx = x[idx_range]
+        by = y[idx_range]
+
+        areas = np.abs((ax - cx) * (by - ay) - (ax - bx) * (cy - ay))
+        max_index_in_range = np.argmax(areas)
+        a_idx = idx_range[max_index_in_range]
+        sampled[i] = (x[a_idx], y[a_idx])
+
+    return sampled

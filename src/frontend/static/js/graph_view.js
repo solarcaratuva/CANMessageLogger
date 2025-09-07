@@ -4,6 +4,9 @@ const socket = io();
 // Store active signals and their data
 const activeSignals = new Map();
 let globalRequestCounter = 0;
+let visibleInFlight = false;
+let visiblePending = null; // { startTime, endTime, zoomLevel, viewportWidth }
+let lastVisibleRequestId = 0;
 
 // Initialize Plotly graph
 const graphDiv = document.getElementById('graph');
@@ -11,7 +14,7 @@ const layout = {
     title: 'CAN Signal Data',
     xaxis: {
         title: 'Time',
-        type: 'date',
+        type: 'linear',
         rangeslider: { visible: false },
     },
     yaxis: {
@@ -38,17 +41,15 @@ function debounce(func, wait) {
 // Handle zoom and pan events (debounced)
 graphDiv.on('plotly_relayout', debounce(function(eventdata) {
     if (eventdata['xaxis.range[0]'] && eventdata['xaxis.range[1]']) {
-        const startTime = new Date(eventdata['xaxis.range[0]']).getTime();
-        const endTime = new Date(eventdata['xaxis.range[1]']).getTime();
+        // Treat ranges as numeric seconds
+        const startTime = Number(eventdata['xaxis.range[0]']);
+        const endTime = Number(eventdata['xaxis.range[1]']);
         
         // Calculate zoom level based on time range
-        const timeRange = endTime - startTime;
-        const zoomLevel = Math.max(1, Math.min(10, Math.floor(1000000 / timeRange)));
+        const timeRange = Math.max(1, endTime - startTime); // seconds
+        const zoomLevel = Math.max(1, Math.min(10, Math.floor(100 / timeRange)));
         
-        // Request new data for each active signal
-        activeSignals.forEach((signalData, signalId) => {
-            requestDataRange(signalId, startTime, endTime, zoomLevel);
-        });
+        requestVisibleRange(startTime, endTime, zoomLevel);
     }
 }, 200));
 
@@ -71,6 +72,33 @@ function requestDataRange(signalId, startTime, endTime, zoomLevel) {
 
     socket.emit('request_data_range', {
         signal_id: signalId,
+        start_time: startTime,
+        end_time: endTime,
+        zoom_level: zoomLevel,
+        viewport_width: viewportWidth,
+        request_id: requestId
+    });
+}
+
+// Bulk request for all active signals in current visible range
+function requestVisibleRange(startTime, endTime, zoomLevel) {
+    const viewportWidth = Math.floor(graphDiv.clientWidth || graphDiv.getBoundingClientRect().width || 1200);
+    const signalIds = Array.from(activeSignals.keys());
+    if (signalIds.length === 0) return;
+
+    const params = { startTime, endTime, zoomLevel, viewportWidth };
+
+    if (visibleInFlight) {
+        visiblePending = params; // coalesce to latest
+        return;
+    }
+
+    visibleInFlight = true;
+    const requestId = ++globalRequestCounter;
+    lastVisibleRequestId = requestId;
+
+    socket.emit('request_visible_range', {
+        signal_ids: signalIds,
         start_time: startTime,
         end_time: endTime,
         zoom_level: zoomLevel,
@@ -134,6 +162,39 @@ socket.on('data_range_update', function(data) {
     }
 });
 
+// Handle bulk visible-range updates
+socket.on('visible_range_update', function(payload) {
+    if (typeof payload.request_id === 'number' && payload.request_id < lastVisibleRequestId) {
+        return; // stale
+    }
+    const series = payload.signals || {};
+    Object.keys(series).forEach((signalId) => {
+        const info = activeSignals.get(signalId);
+        if (!info) return;
+        const s = series[signalId];
+        info.x = Array.isArray(s.x) ? s.x : [];
+        info.y = Array.isArray(s.y) ? s.y : [];
+    });
+    rebuildPlot();
+
+    visibleInFlight = false;
+    if (visiblePending) {
+        const { startTime, endTime, zoomLevel, viewportWidth } = visiblePending;
+        visiblePending = null;
+        const requestId = ++globalRequestCounter;
+        lastVisibleRequestId = requestId;
+        socket.emit('request_visible_range', {
+            signal_ids: Array.from(activeSignals.keys()),
+            start_time: startTime,
+            end_time: endTime,
+            zoom_level: zoomLevel,
+            viewport_width: viewportWidth,
+            request_id: requestId
+        });
+        visibleInFlight = true;
+    }
+});
+
 // Handle errors
 socket.on('data_range_error', function(data) {
     console.error('Error fetching data:', data.message);
@@ -167,12 +228,12 @@ function addSignal(signalId, signalName, color) {
     // Build or update the plot using react
     rebuildPlot();
     
-    // Get initial data
+    // Get initial data (bulk)
     const currentRange = graphDiv.layout.xaxis.range;
     if (currentRange) {
-        const startTime = new Date(currentRange[0]).getTime();
-        const endTime = new Date(currentRange[1]).getTime();
-        requestDataRange(signalId, startTime, endTime, 1);
+        const startTime = Number(currentRange[0]);
+        const endTime = Number(currentRange[1]);
+        requestVisibleRange(startTime, endTime, 1);
     }
 }
 
@@ -190,3 +251,14 @@ window.graphView = {
     addSignal,
     removeSignal
 }; 
+
+// Idle polling to recover from transient misses: every 1s, request current visible range
+setInterval(() => {
+    const rng = graphDiv.layout && graphDiv.layout.xaxis && graphDiv.layout.xaxis.range;
+    if (!rng || rng.length < 2) return;
+    const startTime = Number(rng[0]);
+    const endTime = Number(rng[1]);
+    const timeRange = Math.max(1, endTime - startTime);
+    const zoomLevel = Math.max(1, Math.min(10, Math.floor(100 / timeRange)));
+    requestVisibleRange(startTime, endTime, zoomLevel);
+}, 1000);

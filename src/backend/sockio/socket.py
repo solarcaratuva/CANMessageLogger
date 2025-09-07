@@ -177,13 +177,18 @@ def get_data_range():
             return jsonify({"status": "success", "data": []}), 200
         
         # Convert to numpy array for downsampling
-        data_points = np.array([(r['timestamp'], r['value']) for r in results])
+        data_points = np.array([(r['timestamp'], r['value']) for r in results], dtype=float)
         
         # Calculate number of points based on zoom level and viewport width
         base_points = min(len(data_points), max(100, len(data_points) // max(1, (11 - int(zoom_level)))))
         pixel_cap = max(500, int(3 * int(viewport_width)))
         absolute_cap = 2500
         target_points = min(len(data_points), base_points, pixel_cap, absolute_cap)
+
+        # Pre-sample indices before LTTB if data is extremely large
+        if len(data_points) > target_points * 50:
+            step = max(1, len(data_points) // (target_points * 20))
+            data_points = data_points[::step]
         
         # Downsample the data
         downsampled_data = largest_triangle_three_buckets(data_points, target_points)
@@ -242,7 +247,7 @@ def handle_data_range_request(data):
             return
         
         # Convert results to numpy array for downsampling
-        data_points = np.array([(r['timeStamp'], r[signal_name]) for r in results])
+        data_points = np.array([(r['timeStamp'], r[signal_name]) for r in results], dtype=float)
         
         # Calculate number of points to keep based on zoom level and viewport width
         safe_div = max(1, (11 - int(zoom_level)))
@@ -250,6 +255,11 @@ def handle_data_range_request(data):
         pixel_cap = max(500, int(3 * int(viewport_width)))
         absolute_cap = 2500
         target_points = min(len(data_points), base_points, pixel_cap, absolute_cap)
+
+        # If rows are extremely large relative to target, pre-sample indices before LTTB to reduce memory/CPU
+        if len(data_points) > target_points * 50:
+            step = max(1, len(data_points) // (target_points * 20))
+            data_points = data_points[::step]
         
         # Apply downsampling
         downsampled_data = largest_triangle_three_buckets(data_points, target_points)
@@ -269,6 +279,75 @@ def handle_data_range_request(data):
         socketio.emit('data_range_error', {
             'message': f"Error fetching data: {str(e)}"
         })
+
+@socketio.on('request_visible_range')
+def handle_visible_range_request(data):
+    """
+    Bulk request for multiple signals over a visible time window.
+    Expects: {
+      signal_ids: ["Message.signal", ...],
+      start_time: number (seconds),
+      end_time: number (seconds),
+      zoom_level: 1..10,
+      viewport_width: number,
+      request_id: number
+    }
+    Returns one payload with x/y arrays per signal.
+    """
+    try:
+        signal_ids = data.get('signal_ids', [])
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+        zoom_level = data.get('zoom_level', 1)
+        viewport_width = data.get('viewport_width', 1200)
+        request_id = data.get('request_id')
+
+        if not signal_ids or start_time is None or end_time is None:
+            socketio.emit('data_range_error', { 'message': 'Missing required parameters' })
+            return
+
+        db_conn = dbconnect()
+
+        # Determine target points per signal using same cap logic
+        safe_div = max(1, (11 - int(zoom_level)))
+        pixel_cap = max(500, int(3 * int(viewport_width)))
+        absolute_cap = 2500
+
+        results_by_signal = {}
+        for sid in signal_ids:
+            try:
+                message_name, signal_name = sid.split('.')
+                query = f"""
+                    SELECT {signal_name}, timeStamp
+                    FROM {message_name}
+                    WHERE timeStamp BETWEEN ? AND ?
+                    ORDER BY timeStamp
+                """
+                rows = db_conn.query(query, (start_time, end_time))
+                if not rows:
+                    results_by_signal[sid] = { 'x': [], 'y': [] }
+                    continue
+                dp = np.array([(r['timeStamp'], r[signal_name]) for r in rows], dtype=float)
+                base_points = max(100, len(dp) // safe_div)
+                target_points = min(len(dp), base_points, pixel_cap, absolute_cap)
+                if len(dp) > target_points * 50:
+                    step = max(1, len(dp) // (target_points * 20))
+                    dp = dp[::step]
+                ds = largest_triangle_three_buckets(dp, target_points)
+                results_by_signal[sid] = {
+                    'x': [float(pt[0]) for pt in ds],
+                    'y': [float(pt[1]) for pt in ds]
+                }
+            except Exception as inner_e:
+                results_by_signal[sid] = { 'x': [], 'y': [] }
+
+        socketio.emit('visible_range_update', {
+            'signals': results_by_signal,
+            'request_id': request_id
+        })
+    except Exception as e:
+        print(f"Error handling visible range request: {str(e)}")
+        socketio.emit('data_range_error', { 'message': f"Error fetching visible range: {str(e)}" })
 
 @socketio.on('connect')
 def handle_connect():
