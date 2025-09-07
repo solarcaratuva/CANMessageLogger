@@ -156,6 +156,7 @@ def get_data_range():
     start_time = data.get('start_time')
     end_time = data.get('end_time')
     zoom_level = data.get('zoom_level', 1)  # Higher zoom level = more points
+    viewport_width = data.get('viewport_width', 1200)
     signal_id = data.get('signal_id')
     
     if not all([start_time, end_time, signal_id]):
@@ -178,22 +179,23 @@ def get_data_range():
         # Convert to numpy array for downsampling
         data_points = np.array([(r['timestamp'], r['value']) for r in results])
         
-        # Calculate number of points based on zoom level
-        # Base number of points is 100, multiply by zoom level
-        num_points = min(len(data_points), int(100 * zoom_level))
+        # Calculate number of points based on zoom level and viewport width
+        base_points = min(len(data_points), max(100, len(data_points) // max(1, (11 - int(zoom_level)))))
+        pixel_cap = max(500, int(3 * int(viewport_width)))
+        absolute_cap = 2500
+        target_points = min(len(data_points), base_points, pixel_cap, absolute_cap)
         
         # Downsample the data
-        downsampled_data = largest_triangle_three_buckets(data_points, num_points)
+        downsampled_data = largest_triangle_three_buckets(data_points, target_points)
         
-        # Convert back to list of dicts
-        formatted_data = [
-            {"timestamp": float(x), "value": float(y)} 
-            for x, y in downsampled_data
-        ]
+        # Return compact arrays
+        x = [float(pt[0]) for pt in downsampled_data]
+        y = [float(pt[1]) for pt in downsampled_data]
         
         return jsonify({
             "status": "success",
-            "data": formatted_data
+            "x": x,
+            "y": y
         }), 200
         
     except Exception as e:
@@ -215,7 +217,9 @@ def handle_data_range_request(data):
         signal_id = data['signal_id']
         start_time = data['start_time']
         end_time = data['end_time']
-        zoom_level = data['zoom_level']
+        zoom_level = data.get('zoom_level', 1)
+        viewport_width = data.get('viewport_width', 1200)
+        request_id = data.get('request_id')
         
         # Parse signal ID to get message name and signal name
         message_name, signal_name = signal_id.split('.')
@@ -225,10 +229,10 @@ def handle_data_range_request(data):
         query = f"""
             SELECT {signal_name}, timeStamp 
             FROM {message_name} 
-            WHERE timeStamp BETWEEN {start_time} AND {end_time}
+            WHERE timeStamp BETWEEN ? AND ?
             ORDER BY timeStamp
         """
-        results = db_conn.query(query)
+        results = db_conn.query(query, (start_time, end_time))
         
         if not results:
             socketio.emit('data_range_update', {
@@ -240,23 +244,24 @@ def handle_data_range_request(data):
         # Convert results to numpy array for downsampling
         data_points = np.array([(r['timeStamp'], r[signal_name]) for r in results])
         
-        # Calculate number of points to keep based on zoom level
-        # Higher zoom level = more points
-        target_points = min(len(data_points), max(100, len(data_points) // (11 - zoom_level)))
+        # Calculate number of points to keep based on zoom level and viewport width
+        safe_div = max(1, (11 - int(zoom_level)))
+        base_points = max(100, len(data_points) // safe_div)
+        pixel_cap = max(500, int(3 * int(viewport_width)))
+        absolute_cap = 2500
+        target_points = min(len(data_points), base_points, pixel_cap, absolute_cap)
         
         # Apply downsampling
         downsampled_data = largest_triangle_three_buckets(data_points, target_points)
         
-        # Convert back to list of dictionaries
-        formatted_data = [
-            {'timestamp': float(x), 'value': float(y)} 
-            for x, y in downsampled_data
-        ]
-        
-        # Send the downsampled data back to the client
+        # Send the downsampled data back to the client (compact arrays)
+        x = [float(pt[0]) for pt in downsampled_data]
+        y = [float(pt[1]) for pt in downsampled_data]
         socketio.emit('data_range_update', {
             'signal_id': signal_id,
-            'data': formatted_data
+            'x': x,
+            'y': y,
+            'request_id': request_id
         })
         
     except Exception as e:
