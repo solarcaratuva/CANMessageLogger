@@ -59,18 +59,18 @@
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav mr-auto">
                     <!-- Example nav links, update as needed -->
-                    <li class="nav-item active">
+                    <li class="nav-item" id="nav-debug">
                         <a class="nav-link" href="/">Debug Dashboard<span class="sr-only">(current)</span></a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" id="nav-graphs">
                         <a class="nav-link" href="#">Graphs</a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" id="nav-alerts">
                         <a class="nav-link" href="/alert_manager">Alert Manager</a>
                     </li>
                 </ul>
                 <div class="navbar-nav ml-auto">
-                    <span class="text-light middleTitle">Debug Dashboard</span>
+                    <span class="text-light middleTitle" id="pageTitle">Loading...</span>
                 </div>
             </div>
         </nav>
@@ -100,6 +100,58 @@
         const latestAlertDiv = document.getElementById('latestAlert');
         const errorCard = document.getElementById('errorCard');
         const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+
+        // Function to set page title and active navigation based on current URL
+        function setPageTitleAndActiveNav() {
+            const pageTitleElement = document.getElementById('pageTitle');
+            const currentPath = window.location.pathname;
+            
+            // Remove active class from all nav items
+            document.querySelectorAll('.navbar-nav .nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            let pageTitle = 'Unknown Page';
+            let activeNavId = null;
+            
+            switch(currentPath) {
+                case '/':
+                    pageTitle = 'Debug Dashboard';
+                    activeNavId = 'nav-debug';
+                    break;
+                case '/alert_manager':
+                    pageTitle = 'Alert Manager';
+                    activeNavId = 'nav-alerts';
+                    break;
+                case '/graphs':
+                    pageTitle = 'Graphs';
+                    activeNavId = 'nav-graphs';
+                    break;
+                default:
+                    // Extract page name from URL path
+                    const pathSegments = currentPath.split('/').filter(segment => segment);
+                    if (pathSegments.length > 0) {
+                        pageTitle = pathSegments[pathSegments.length - 1]
+                            .replace(/[-_]/g, ' ')
+                            .replace(/\b\w/g, l => l.toUpperCase());
+                    } else {
+                        pageTitle = 'Home';
+                    }
+            }
+            
+            // Set the page title
+            if (pageTitleElement) {
+                pageTitleElement.textContent = pageTitle;
+            }
+            
+            // Set the active navigation item
+            if (activeNavId) {
+                const activeNavElement = document.getElementById(activeNavId);
+                if (activeNavElement) {
+                    activeNavElement.classList.add('active');
+                }
+            }
+        }
 
         function renderNoErrors() {
             latestAlertDiv.textContent = 'No errors currently.';
@@ -236,6 +288,9 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Set the page title and active navigation based on current URL
+            setPageTitleAndActiveNav();
+            
             // Clean up stale cleared_trigger_id
             const clearedTriggerId = localStorage.getItem('cleared_trigger_id');
             if (clearedTriggerId) {
