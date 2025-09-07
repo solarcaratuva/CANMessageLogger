@@ -38,7 +38,7 @@ def create_alert():
     try:
         alert_id = logger_db.create_alert(data)
         socketio.emit('big_popup_event', {
-            'message': 'Something triggered! Take action!'
+            'message': 'Request to create alert was triggered.'
         })
 
         return jsonify({
