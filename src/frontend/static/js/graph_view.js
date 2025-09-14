@@ -51,6 +51,10 @@ function debounce(func, wait) {
 // Handle zoom and pan events (debounced)
 graphDiv.on('plotly_relayout', debounce(function(eventdata) {
     if (eventdata['xaxis.range[0]'] && eventdata['xaxis.range[1]']) {
+        // User manually changed the range - switch to manual mode
+        viewMode = 'manual';
+        console.log('User interaction detected - switched to manual mode');
+        
         // Treat ranges as numeric seconds
         const startTime = Number(eventdata['xaxis.range[0]']);
         const endTime = Number(eventdata['xaxis.range[1]']);
@@ -59,7 +63,10 @@ graphDiv.on('plotly_relayout', debounce(function(eventdata) {
         const timeRange = Math.max(1, endTime - startTime); // seconds
         const zoomLevel = Math.max(1, Math.min(10, Math.floor(100 / timeRange)));
         
+        // Immediately request data for the new range
         requestVisibleRange(startTime, endTime, zoomLevel);
+        
+        console.log(`Manual range change: requesting ${startTime.toFixed(1)}-${endTime.toFixed(1)}s`);
     }
 }, 200));
 
@@ -299,13 +306,44 @@ function startPolling() {
         if (!pollingActive) return;
         
         if (activeSignals.size > 0) {
-            // Always request latest data to keep live updates flowing
-            const now = globalTimeRange.max || Date.now() / 1000;
-            const endTime = now + 5; // Add buffer for new data
-            const startTime = Math.max(0, endTime - LIVE_WINDOW_SIZE * 2); // Get more data for different view modes
-            const zoomLevel = 3; // Medium zoom for good performance
+            let startTime, endTime, zoomLevel;
             
-            // Always request live data regardless of view mode
+            if (viewMode === 'live') {
+                // Live mode: request latest data with rolling window
+                const now = globalTimeRange.max || Date.now() / 1000;
+                endTime = now + 5; // Add buffer for new data
+                startTime = Math.max(0, endTime - LIVE_WINDOW_SIZE * 2);
+                zoomLevel = 3;
+            } else if (viewMode === 'showAll') {
+                // Show all mode: request entire dataset plus buffer for new data
+                const now = globalTimeRange.max || Date.now() / 1000;
+                startTime = Math.max(0, globalTimeRange.min - 5); // Small buffer before start
+                endTime = now + 5; // Buffer for new data
+                zoomLevel = 2; // Lower zoom for large range
+            } else {
+                // Manual/Auto range modes: request data for currently visible range
+                const rng = graphDiv.layout && graphDiv.layout.xaxis && graphDiv.layout.xaxis.range;
+                if (rng && rng.length >= 2) {
+                    // Use visible range with some buffer
+                    const visibleStart = Number(rng[0]);
+                    const visibleEnd = Number(rng[1]);
+                    const rangeSize = visibleEnd - visibleStart;
+                    const buffer = rangeSize * 0.1; // 10% buffer on each side
+                    
+                    startTime = Math.max(0, visibleStart - buffer);
+                    endTime = visibleEnd + buffer;
+                    zoomLevel = Math.max(1, Math.min(10, Math.floor(100 / rangeSize)));
+                    
+                    console.log(`Manual mode polling: visible ${visibleStart.toFixed(1)}-${visibleEnd.toFixed(1)}s, requesting ${startTime.toFixed(1)}-${endTime.toFixed(1)}s`);
+                } else {
+                    // Fallback: request recent data
+                    const now = globalTimeRange.max || Date.now() / 1000;
+                    endTime = now + 5;
+                    startTime = Math.max(0, endTime - LIVE_WINDOW_SIZE);
+                    zoomLevel = 3;
+                }
+            }
+            
             requestVisibleRange(startTime, endTime, zoomLevel);
         }
         
@@ -379,24 +417,48 @@ function setLiveMode() {
     viewMode = 'live';
     console.log('Switched to live scrolling mode (updates continue)');
     applyViewMode();
+    // Immediately request live data
+    if (pollingActive && activeSignals.size > 0) {
+        const now = globalTimeRange.max || Date.now() / 1000;
+        requestVisibleRange(Math.max(0, now - LIVE_WINDOW_SIZE), now + 5, 3);
+    }
 }
 
 function setManualMode() {
     viewMode = 'manual';
     console.log('Switched to manual mode (updates continue)');
     // Don't apply view mode here - let user control the range
+    // But request data for current visible range
+    if (pollingActive && activeSignals.size > 0) {
+        const rng = graphDiv.layout && graphDiv.layout.xaxis && graphDiv.layout.xaxis.range;
+        if (rng && rng.length >= 2) {
+            const startTime = Math.max(0, Number(rng[0]) - 5);
+            const endTime = Number(rng[1]) + 5;
+            requestVisibleRange(startTime, endTime, 3);
+        }
+    }
 }
 
 function showAllData() {
     viewMode = 'showAll';
     console.log('Switched to show all data mode (updates continue)');
     applyViewMode();
+    // Immediately request all data
+    if (pollingActive && activeSignals.size > 0) {
+        const now = globalTimeRange.max || Date.now() / 1000;
+        requestVisibleRange(Math.max(0, globalTimeRange.min - 5), now + 5, 2);
+    }
 }
 
 function setAutoRange() {
     viewMode = 'autoRange';
     console.log('Switched to auto range mode (updates continue)');
     applyViewMode();
+    // Request recent data for auto-ranging
+    if (pollingActive && activeSignals.size > 0) {
+        const now = globalTimeRange.max || Date.now() / 1000;
+        requestVisibleRange(Math.max(0, now - LIVE_WINDOW_SIZE), now + 5, 3);
+    }
 }
 
 // Export functions for use in other files
@@ -416,3 +478,4 @@ console.log('graph_view.js loaded successfully');
 console.log('graphDiv element found:', !!graphDiv);
 console.log('window.graphView exported:', !!window.graphView);
 console.log(`Polling interval: ${POLLING_INTERVAL}ms (${1000/POLLING_INTERVAL} updates/second)`);
+console.log('View mode:', viewMode, '- Live updates enabled:', liveUpdatesEnabled);
