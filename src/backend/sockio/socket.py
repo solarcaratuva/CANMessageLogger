@@ -17,7 +17,6 @@ app = Flask(__name__, template_folder='../../frontend/html', static_folder='../.
 socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
 
 alertChecker.set_socketio(socketio)
-consumer.set_socketio(socketio)
 # List to store messages to display on the front end
 message_list = list()
 alert_definitions = dict() # {1: alert1, 2: alert2, 3: alert3, ...}
@@ -146,64 +145,87 @@ def get_triggered_alerts():
     
     return jsonify({"status": "success", "triggered_alerts": triggered_alerts}), 200
 
-@app.route('/get_data_range', methods=['POST'])
-def get_data_range():
+@app.route('/get_visible_range', methods=['POST'])
+def get_visible_range():
     """
-    Get data for a specific time range and zoom level.
-    The zoom level determines how many points to return.
+    REST endpoint for bulk request of multiple signals over a visible time window.
+    Replaces the socketio-based approach with HTTP polling.
+    
+    Expects JSON: {
+      signal_ids: ["Message.signal", ...],
+      start_time: number (seconds),
+      end_time: number (seconds),
+      zoom_level: 1..10,
+      viewport_width: number
+    }
+    
+    Returns JSON with x/y arrays per signal.
     """
-    data = request.json
-    start_time = data.get('start_time')
-    end_time = data.get('end_time')
-    zoom_level = data.get('zoom_level', 1)  # Higher zoom level = more points
-    viewport_width = data.get('viewport_width', 1200)
-    signal_id = data.get('signal_id')
-    
-    if not all([start_time, end_time, signal_id]):
-        return jsonify({"status": "error", "message": "Missing required parameters"}), 400
-    
     try:
-        db = dbconnect()
-        # Query the database for the time range
-        query = """
-        SELECT timestamp, value 
-        FROM SignalData 
-        WHERE signal_id = ? AND timestamp BETWEEN ? AND ?
-        ORDER BY timestamp
-        """
-        results = db.query(query, (signal_id, start_time, end_time))
-        
-        if not results:
-            return jsonify({"status": "success", "data": []}), 200
-        
-        # Convert to numpy array for downsampling
-        data_points = np.array([(r['timestamp'], r['value']) for r in results], dtype=float)
-        
-        # Calculate number of points based on zoom level and viewport width
-        base_points = min(len(data_points), max(100, len(data_points) // max(1, (11 - int(zoom_level)))))
+        data = request.json
+        signal_ids = data.get('signal_ids', [])
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+        zoom_level = data.get('zoom_level', 1)
+        viewport_width = data.get('viewport_width', 1200)
+
+        if not signal_ids or start_time is None or end_time is None:
+            return jsonify({"status": "error", "message": "Missing required parameters"}), 400
+
+        db_conn = dbconnect()
+
+        # Determine target points per signal using same cap logic as socketio handlers
+        safe_div = max(1, (11 - int(zoom_level)))
         pixel_cap = max(500, int(3 * int(viewport_width)))
         absolute_cap = 2500
-        target_points = min(len(data_points), base_points, pixel_cap, absolute_cap)
 
-        # Pre-sample indices before LTTB if data is extremely large
-        if len(data_points) > target_points * 50:
-            step = max(1, len(data_points) // (target_points * 20))
-            data_points = data_points[::step]
-        
-        # Downsample the data
-        downsampled_data = largest_triangle_three_buckets(data_points, target_points)
-        
-        # Return compact arrays
-        x = [float(pt[0]) for pt in downsampled_data]
-        y = [float(pt[1]) for pt in downsampled_data]
-        
+        results_by_signal = {}
+        for sid in signal_ids:
+            try:
+                message_name, signal_name = sid.split('.')
+                query = f"""
+                    SELECT {signal_name}, timeStamp
+                    FROM {message_name}
+                    WHERE timeStamp BETWEEN {start_time} AND {end_time}
+                    ORDER BY timeStamp
+                """
+                rows = db_conn.query(query)
+                if not rows:
+                    results_by_signal[sid] = { 'x': [], 'y': [] }
+                    continue
+                
+                # Convert to numpy array for downsampling and drop NaN/None
+                dp = np.array([(r['timeStamp'], r[signal_name]) for r in rows], dtype=float)
+                if dp.size:
+                    finite_mask = np.isfinite(dp[:, 0]) & np.isfinite(dp[:, 1])
+                    dp = dp[finite_mask]
+                
+                # Calculate target points
+                base_points = max(100, len(dp) // safe_div)
+                target_points = min(len(dp), base_points, pixel_cap, absolute_cap)
+                
+                # Pre-sample if extremely large dataset
+                if len(dp) > target_points * 50:
+                    step = max(1, len(dp) // (target_points * 20))
+                    dp = dp[::step]
+                
+                # Apply downsampling
+                ds = largest_triangle_three_buckets(dp, target_points)
+                results_by_signal[sid] = {
+                    'x': [float(pt[0]) for pt in ds],
+                    'y': [float(pt[1]) for pt in ds]
+                }
+            except Exception as inner_e:
+                print(f"Error processing signal {sid}: {str(inner_e)}")
+                results_by_signal[sid] = { 'x': [], 'y': [] }
+
         return jsonify({
             "status": "success",
-            "x": x,
-            "y": y
+            "signals": results_by_signal
         }), 200
         
     except Exception as e:
+        print(f"Error in get_visible_range: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @socketio.on('request_data_range')
@@ -234,10 +256,10 @@ def handle_data_range_request(data):
         query = f"""
             SELECT {signal_name}, timeStamp 
             FROM {message_name} 
-            WHERE timeStamp BETWEEN ? AND ?
+            WHERE timeStamp BETWEEN {start_time} AND {end_time}
             ORDER BY timeStamp
         """
-        results = db_conn.query(query, (start_time, end_time))
+        results = db_conn.query(query)
         
         if not results:
             socketio.emit('data_range_update', {
@@ -246,8 +268,11 @@ def handle_data_range_request(data):
             })
             return
         
-        # Convert results to numpy array for downsampling
+        # Convert results to numpy array for downsampling and drop NaN/None
         data_points = np.array([(r['timeStamp'], r[signal_name]) for r in results], dtype=float)
+        if data_points.size:
+            finite_mask = np.isfinite(data_points[:, 0]) & np.isfinite(data_points[:, 1])
+            data_points = data_points[finite_mask]
         
         # Calculate number of points to keep based on zoom level and viewport width
         safe_div = max(1, (11 - int(zoom_level)))
@@ -320,14 +345,17 @@ def handle_visible_range_request(data):
                 query = f"""
                     SELECT {signal_name}, timeStamp
                     FROM {message_name}
-                    WHERE timeStamp BETWEEN ? AND ?
+                    WHERE timeStamp BETWEEN {start_time} AND {end_time}
                     ORDER BY timeStamp
                 """
-                rows = db_conn.query(query, (start_time, end_time))
+                rows = db_conn.query(query)
                 if not rows:
                     results_by_signal[sid] = { 'x': [], 'y': [] }
                     continue
                 dp = np.array([(r['timeStamp'], r[signal_name]) for r in rows], dtype=float)
+                if dp.size:
+                    finite_mask = np.isfinite(dp[:, 0]) & np.isfinite(dp[:, 1])
+                    dp = dp[finite_mask]
                 base_points = max(100, len(dp) // safe_div)
                 target_points = min(len(dp), base_points, pixel_cap, absolute_cap)
                 if len(dp) > target_points * 50:

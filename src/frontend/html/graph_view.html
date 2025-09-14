@@ -119,10 +119,10 @@
             <button id="zoomBtn" class="btn control-button">
               <i class="fa fa-search-plus mr-1"></i> Zoom
             </button>
-            <button id="zoomScrollBtn" class="btn control-button">
-              <i class="fa fa-arrows-alt-h mr-1"></i> Zoom with Scroll
+            <button id="zoomScrollBtn" class="btn control-button active">
+              <i class="fa fa-arrows-alt-h mr-1"></i> Live Mode
             </button>
-            <button id="autoRangeBtn" class="btn control-button active">
+            <button id="autoRangeBtn" class="btn control-button">
               <i class="fa fa-expand-arrows-alt mr-1"></i> Auto Range
             </button>
             <button id="showAllDataBtn" class="btn control-button">
@@ -173,35 +173,14 @@
 
 <!-- Include Plotly.js -->
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<!-- Include graph_view.js for HTTP polling-based data fetching -->
+<script src="/static/js/graph_view.js"></script>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Socket connection
-    const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+    // HTTP polling-based data fetching (handled by graph_view.js)
     
-    // Graph configuration
-    let graphData = [];
-    let dataTraces = {};
-    let layout = {
-      title: 'CAN Messages Real-time Data',
-      xaxis: {
-        title: 'Time (s)',
-        range: [0, 60]
-      },
-      yaxis: {
-        title: 'Value'
-      },
-      legend: {
-        orientation: 'v',
-        x: 1.05,
-        y: 1
-      },
-      hovermode: 'closest',
-      margin: { l: 60, r: 40, t: 40, b: 60 }
-    };
-    
-    // Create the initial empty plot
-    Plotly.newPlot('graphContainer', graphData, layout);
+    // Note: Graph initialization is now handled by graph_view.js
     
     // Mode flags
     let zoomWithScroll = false;
@@ -222,7 +201,7 @@
     // For tracking whether we've received any data
     let dataReceived = false;
     
-    // Update live data indicator function
+    // Update live data indicator function (make it globally available)
     function updateDataIndicator(status) {
       const indicator = document.getElementById('liveDataIndicator');
       const statusText = document.getElementById('dataStatusText');
@@ -236,11 +215,18 @@
           indicator.className = 'data-indicator active';
           statusText.textContent = 'Live Data';
           break;
+        case 'warning':
+          indicator.className = 'data-indicator receiving';
+          statusText.textContent = 'Slow Data';
+          break;
         default:
           indicator.className = 'data-indicator inactive';
           statusText.textContent = 'No Data';
       }
     }
+    
+    // Make function globally available for graph_view.js
+    window.updateDataIndicator = updateDataIndicator;
     
     // Initialize indicator
     updateDataIndicator('inactive');
@@ -323,39 +309,33 @@
           // Add event listener to checkbox
           checkboxInput.addEventListener('change', function() {
             const id = `${this.dataset.messageType}.${this.dataset.signalName}`;
-            const plotDiv = document.getElementById('graphContainer');
-            const plotlyData = plotDiv.data || [];
+            const signalName = `${this.dataset.messageType}.${this.dataset.signalName}`;
+            
             if (this.checked) {
-              // Check if trace already exists in the Plotly plot
-              const existingTraceIndex = plotlyData.findIndex(trace => trace.name === id);
-              if (existingTraceIndex === -1) {
-                // Only create and add new trace if it doesn't exist
-                const randomColor = getRandomColor();
-                const newTrace = {
-                  x: [],
-                  y: [],
-                  name: id,
-                  type: 'scatter',
-                  mode: 'lines',
-                  line: { color: randomColor }
-                };
-                // Add to our data structures
-                dataTraces[id] = newTrace;
-                graphData.push(newTrace);
-                // Add to the plot
-                Plotly.addTraces(plotDiv, newTrace);
-                logDebug(`Added trace for ${id}`);
+              // Add signal using the new graph_view.js API
+              const randomColor = getRandomColor();
+              console.log('Attempting to add signal:', id, 'graphView available:', !!window.graphView);
+              if (window.graphView && window.graphView.addSignal) {
+                window.graphView.addSignal(id, signalName, randomColor);
+                logDebug(`Added signal ${id} to graph`);
               } else {
-                // Show existing trace
-                Plotly.restyle(plotDiv, { visible: true }, [existingTraceIndex]);
-                logDebug(`Made trace for ${id} visible`);
+                console.error('graphView not available, window.graphView:', window.graphView);
+                // Fallback: try again after a short delay in case scripts are still loading
+                setTimeout(() => {
+                  if (window.graphView && window.graphView.addSignal) {
+                    window.graphView.addSignal(id, signalName, randomColor);
+                    logDebug(`Added signal ${id} to graph (delayed)`);
+                  }
+                }, 100);
               }
             } else {
-              // Hide trace
-              const traceIndex = plotlyData.findIndex(trace => trace.name === id);
-              if (traceIndex !== -1) {
-                Plotly.restyle(plotDiv, { visible: false }, [traceIndex]);
-                logDebug(`Made trace for ${id} hidden`);
+              // Remove signal using the new graph_view.js API
+              console.log('Attempting to remove signal:', id, 'graphView available:', !!window.graphView);
+              if (window.graphView && window.graphView.removeSignal) {
+                window.graphView.removeSignal(id);
+                logDebug(`Removed signal ${id} from graph`);
+              } else {
+                console.error('graphView not available for removal, window.graphView:', window.graphView);
               }
             }
           });
@@ -393,148 +373,32 @@
       return color;
     }
     
-    // Socket event for connecting
-    socket.on('connect', function() {
-      logDebug('Socket.IO connected');
+    // HTTP polling status management
+    let lastDataTime = 0;
+    let dataReceiveCheckInterval;
+    
+    function startDataStatusChecking() {
       updateDataIndicator('active');
-    });
-    
-    // Socket event for errors/disconnect
-    socket.on('connect_error', function(error) {
-      logDebug(`Socket.IO connection error: ${error}`);
-      updateDataIndicator('inactive');
-    });
-    
-    socket.on('disconnect', function(reason) {
-      logDebug(`Socket.IO disconnected: ${reason}`);
-      updateDataIndicator('inactive');
-    });
-    
-    // Socket event for receiving CAN messages
-    socket.on('can_message', function(data) {
-      // Format: { message_name: 'MessageName', signals: { signal1: value1, signal2: value2, ... }, timestamp: timestamp }
-      const messageName = data.message_name;
-      const signals = data.signals;
-      const timestamp = data.timestamp;
+      logDebug('HTTP polling status checking started');
       
-      // Mark that we've received data
-      if (!dataReceived) {
-        dataReceived = true;
-        logDebug("First data received");
-      }
-      
-      // Update global time range
-      globalMinTime = Math.min(globalMinTime, timestamp);
-      globalMaxTime = Math.max(globalMaxTime, timestamp);
-      
-      // Flash the data status indicator
-      updateDataIndicator('receiving');
-      setTimeout(() => {
+      // Check for data activity every 2 seconds
+      dataReceiveCheckInterval = setInterval(() => {
+        const now = Date.now();
+        if (now - lastDataTime > 5000) { // No data for 5 seconds
+          updateDataIndicator('inactive');
+        } else if (now - lastDataTime > 2000) { // Slow data
+          updateDataIndicator('warning');
+        } else {
         updateDataIndicator('active');
-      }, 200);
-      
-      // For debugging - log the first few messages
-      let messageCount = 0;
-      if (messageCount < 5) {
-        logDebug(`Received CAN message: ${messageName}, timestamp: ${timestamp}, signals: ${Object.keys(signals).length}`);
-        messageCount++;
-      }
-      
-      // Update each trace that matches this message's signals
-      let updateData = {};
-      let tracesToUpdate = [];
-      
-      // Process each signal in the message
-      Object.keys(signals).forEach(signalName => {
-        const id = `${messageName}.${signalName}`;
-        const value = signals[signalName];
-        
-        // Skip non-numeric values
-        if (isNaN(value) || value === null || value === undefined) return;
-        
-        // If we have a trace for this signal and it's enabled
-        if (dataTraces[id]) {
-          // Find the index of this trace in the graphData array
-          const traceIndex = graphData.findIndex(trace => trace.name === id);
-          if (traceIndex !== -1) {
-            // Detect time gap
-            const lastTimestamp = lastTimestamps[id];
-            const gapThreshold = 2.0; // seconds, adjust as needed
-            if (lastTimestamp !== undefined && Math.abs(timestamp - lastTimestamp) > gapThreshold) {
-              // Insert null to break the line
-              dataTraces[id].x.push(null);
-              dataTraces[id].y.push(null);
-            }
-            // Add the new data point to our data structure
-            dataTraces[id].x.push(timestamp);
-            dataTraces[id].y.push(value);
-            lastTimestamps[id] = timestamp;
-            // Add this trace to the update
-            if (!updateData[traceIndex]) {
-              updateData[traceIndex] = { x: [[timestamp]], y: [[value]] };
-              tracesToUpdate.push(traceIndex);
-            } else {
-              updateData[traceIndex].x[0].push(timestamp);
-              updateData[traceIndex].y[0].push(value);
-            }
-          }
         }
-      });
-      
-      // If we have traces to update
-      if (tracesToUpdate.length > 0) {
-        // Build the update arrays for Plotly
-        let updateTraces = [];
-        let updateX = [];
-        let updateY = [];
-        
-        tracesToUpdate.forEach(index => {
-          updateTraces.push(index);
-          updateX.push(updateData[index].x[0]);
-          updateY.push(updateData[index].y[0]);
-        });
-        
-        // Extend the traces with new data
-        Plotly.extendTraces('graphContainer', { 
-          x: updateX, 
-          y: updateY 
-        }, updateTraces);
-        
-        // Update the x-axis range if needed
-        if (autoRange) {
-          Plotly.relayout('graphContainer', {
-            'xaxis.autorange': true,
-            'yaxis.autorange': true
-          });
-        } else if (zoomWithScroll) {
-          // Get current min and max from visible data
-          let allCurrentX = [];
-          graphData.forEach(trace => {
-            if (trace.x && trace.x.length > 0) {
-              allCurrentX = allCurrentX.concat(trace.x);
-            }
-          });
-          
-          if (allCurrentX.length > 0) {
-            // Use the most recent timestamp as the right edge of the window
-            const maxX = Math.max(...allCurrentX);
-            
-            // Update the display to show a fixed-width window that follows the latest data
-            Plotly.relayout('graphContainer', {
-              'xaxis.range': [maxX - timeWindow, maxX]
-            });
-            
-            // Update the time inputs to show current window
-            document.getElementById('startTime').value = (maxX - timeWindow).toFixed(3);
-            document.getElementById('endTime').value = maxX.toFixed(3);
-          }
-        }
-        
-        // Update timestamp display in the UI
-        document.getElementById('currentTimestamp').textContent = `Current Time: ${globalMaxTime.toFixed(3)}s`;
-        document.getElementById('timeRange').textContent = `Data Range: ${globalMinTime.toFixed(3)}s - ${globalMaxTime.toFixed(3)}s`;
-      }
-    });
+      }, 2000);
+    }
+    
+    // Start checking data status
+    startDataStatusChecking();
+    
+    // Note: CAN message handling is now done by graph_view.js using HTTP polling
+    // This provides better performance and memory management with proper downsampling
     
     // Function to update the active button states
     function updateButtonStates(activeButtonId) {
@@ -569,78 +433,48 @@
     });
     
     document.getElementById('zoomScrollBtn').addEventListener('click', function() {
-      zoomWithScroll = true;
-      zoomRange = false;
-      autoRange = false;
-      
-      // Get current time range values
-      startTime = parseFloat(document.getElementById('startTime').value) || 0;
-      endTime = parseFloat(document.getElementById('endTime').value) || 60;
-      timeWindow = endTime - startTime;
-      
-      // Apply the zoom immediately using the current data
-      if (dataReceived) {
-        Plotly.relayout('graphContainer', {
-          'xaxis.range': [globalMaxTime - timeWindow, globalMaxTime]
-        });
+      if (window.graphView && window.graphView.setLiveMode) {
+        window.graphView.setLiveMode();
+        updateButtonStates('zoomScrollBtn');
+        logDebug('Live mode activated (zoom with scroll)');
       }
-      
-      updateButtonStates('zoomScrollBtn');
-      logDebug(`Zoom with scroll activated: window size ${timeWindow}s`);
     });
     
     // Event listener for auto range button
     document.getElementById('autoRangeBtn').addEventListener('click', function() {
-      autoRange = true;
-      zoomWithScroll = false;
-      zoomRange = false;
-      Plotly.relayout('graphContainer', {
-        'xaxis.autorange': true,
-        'yaxis.autorange': true
-      });
-      updateButtonStates('autoRangeBtn');
-      logDebug('Auto range mode activated');
+      if (window.graphView && window.graphView.setAutoRange) {
+        window.graphView.setAutoRange();
+        updateButtonStates('autoRangeBtn');
+        logDebug('Auto range mode activated');
+      }
     });
     
     // Event listener for show all data button
     document.getElementById('showAllDataBtn').addEventListener('click', function() {
-      autoRange = false;
-      zoomWithScroll = false;
-      zoomRange = false;
-      
-      if (dataReceived) {
-        // Add a small margin to the data range for visibility
-        const margin = (globalMaxTime - globalMinTime) * 0.05;
-        Plotly.relayout('graphContainer', {
-          'xaxis.range': [globalMinTime - margin, globalMaxTime + margin]
-        });
-        
-        // Update the time inputs to show full range
-        document.getElementById('startTime').value = globalMinTime.toFixed(3);
-        document.getElementById('endTime').value = globalMaxTime.toFixed(3);
+      if (window.graphView && window.graphView.showAllData) {
+        window.graphView.showAllData();
+        updateButtonStates('showAllDataBtn');
+        logDebug('Show all data activated');
       }
-      
-      updateButtonStates('showAllDataBtn');
-      logDebug('Show all data activated');
     });
     
     // Event listener for apply range button
     document.getElementById('applyRangeBtn').addEventListener('click', function() {
-      startTime = parseFloat(document.getElementById('startTime').value) || 0;
-      endTime = parseFloat(document.getElementById('endTime').value) || 60;
-      timeWindow = endTime - startTime;
+      const startTime = parseFloat(document.getElementById('startTime').value) || 0;
+      const endTime = parseFloat(document.getElementById('endTime').value) || 60;
+      
+      // Switch to manual mode and apply the range
+      if (window.graphView && window.graphView.setManualMode) {
+        window.graphView.setManualMode();
+      }
       
       // Update the layout
       Plotly.relayout('graphContainer', {
-        'xaxis.range': [startTime, endTime]
+        'xaxis.range': [startTime, endTime],
+        'xaxis.autorange': false
       });
       
-      // Update button states - this activates zoom mode
-      zoomWithScroll = false;
-      zoomRange = true;
-      autoRange = false;
       updateButtonStates('zoomBtn');
-      
       logDebug(`Applied time range: [${startTime}, ${endTime}]`);
     });
     
