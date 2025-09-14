@@ -1,11 +1,12 @@
 // HTTP polling configuration
-const POLLING_INTERVAL = 1000; // milliseconds (1 second for live updates)
+const POLLING_INTERVAL = 100; // milliseconds (0.1 seconds for very responsive live updates)
 let pollingActive = false;
 let currentPollingTimeout = null;
 
 // Live data configuration
 const LIVE_WINDOW_SIZE = 60; // seconds - how much historical data to show in live mode
-let liveMode = true; // Start in live mode by default
+let liveUpdatesEnabled = true; // Always keep live updates enabled
+let viewMode = 'live'; // 'live', 'showAll', 'manual' - determines how to display data, but updates continue
 let globalTimeRange = { min: 0, max: 60 }; // Global time range tracker
 
 // Store active signals and their data
@@ -76,8 +77,9 @@ function requestVisibleRange(startTime, endTime, zoomLevel, specificSignalIds = 
 
     const params = { startTime, endTime, zoomLevel, viewportWidth };
 
+    // Enhanced request coalescing for high-frequency updates
     if (visibleInFlight) {
-        visiblePending = params; // coalesce to latest
+        visiblePending = params; // Always keep the latest request
         return;
     }
 
@@ -133,18 +135,50 @@ function rebuildPlot() {
     });
     Plotly.react(graphDiv, data, layout);
     
-    // Only auto-range Y-axis, let live mode handle X-axis
-    if (!liveMode) {
-        // In manual mode, auto-range both axes
-        Plotly.relayout(graphDiv, {
-            'xaxis.autorange': true,
-            'yaxis.autorange': true
-        });
-    } else {
-        // In live mode, only auto-range Y-axis
-        Plotly.relayout(graphDiv, {
-            'yaxis.autorange': true
-        });
+    // Always auto-range Y-axis for best visibility
+    Plotly.relayout(graphDiv, {
+        'yaxis.autorange': true
+    });
+}
+
+// Apply the current view mode to the graph display
+function applyViewMode() {
+    switch (viewMode) {
+        case 'live':
+            // Live scrolling mode - show latest data in a rolling window
+            if (globalTimeRange.max > globalTimeRange.min) {
+                const latestTime = globalTimeRange.max;
+                const windowStart = Math.max(0, latestTime - LIVE_WINDOW_SIZE);
+                
+                Plotly.relayout(graphDiv, {
+                    'xaxis.range': [windowStart, latestTime + 2],
+                    'xaxis.autorange': false
+                });
+            }
+            break;
+            
+        case 'showAll':
+            // Show all data mode - display entire dataset with live updates
+            if (globalTimeRange.max > globalTimeRange.min) {
+                const margin = (globalTimeRange.max - globalTimeRange.min) * 0.05;
+                Plotly.relayout(graphDiv, {
+                    'xaxis.range': [globalTimeRange.min - margin, globalTimeRange.max + margin],
+                    'xaxis.autorange': false
+                });
+            }
+            break;
+            
+        case 'autoRange':
+            // Auto range mode - let Plotly decide the best range
+            Plotly.relayout(graphDiv, {
+                'xaxis.autorange': true
+            });
+            break;
+            
+        case 'manual':
+            // Manual mode - don't change the current range, user has set it
+            // Do nothing, keep current range
+            break;
     }
 }
 
@@ -212,17 +246,8 @@ function handleVisibleRangeUpdate(payload) {
         
         updateDataStatus('active', minTime, maxTime);
         
-        // In live mode, auto-scroll to show latest data
-        if (liveMode) {
-            const latestTime = globalTimeRange.max;
-            const windowStart = Math.max(0, latestTime - LIVE_WINDOW_SIZE);
-            
-            // Update the graph to show the live window
-            Plotly.relayout(graphDiv, {
-                'xaxis.range': [windowStart, latestTime + 2], // Add small buffer
-                'xaxis.autorange': false // Disable autorange for live scrolling
-            });
-        }
+        // Apply view mode after updating data
+        applyViewMode();
     } else {
         updateDataStatus('inactive');
     }
@@ -274,33 +299,13 @@ function startPolling() {
         if (!pollingActive) return;
         
         if (activeSignals.size > 0) {
-            let startTime, endTime, zoomLevel;
+            // Always request latest data to keep live updates flowing
+            const now = globalTimeRange.max || Date.now() / 1000;
+            const endTime = now + 5; // Add buffer for new data
+            const startTime = Math.max(0, endTime - LIVE_WINDOW_SIZE * 2); // Get more data for different view modes
+            const zoomLevel = 3; // Medium zoom for good performance
             
-            if (liveMode) {
-                // Live mode: always request latest data
-                // Get the most recent timestamp from database (or use current time as approximation)
-                const now = globalTimeRange.max || Date.now() / 1000; // Convert to seconds if using current time
-                endTime = now + 5; // Add buffer for new data
-                startTime = Math.max(0, endTime - LIVE_WINDOW_SIZE);
-                zoomLevel = 3; // Medium zoom for live data
-                
-                console.log(`Live polling: requesting ${startTime.toFixed(1)}s to ${endTime.toFixed(1)}s`);
-            } else {
-                // Manual mode: use current visible range
-                const rng = graphDiv.layout && graphDiv.layout.xaxis && graphDiv.layout.xaxis.range;
-                if (rng && rng.length >= 2) {
-                    startTime = Number(rng[0]);
-                    endTime = Number(rng[1]);
-                    const timeRange = Math.max(1, endTime - startTime);
-                    zoomLevel = Math.max(1, Math.min(10, Math.floor(100 / timeRange)));
-                } else {
-                    // Fallback to global range
-                    startTime = globalTimeRange.min;
-                    endTime = globalTimeRange.max;
-                    zoomLevel = 3;
-                }
-            }
-            
+            // Always request live data regardless of view mode
             requestVisibleRange(startTime, endTime, zoomLevel);
         }
         
@@ -369,42 +374,29 @@ function removeSignal(signalId) {
     }
 }
 
-// Mode switching functions
+// Mode switching functions - all keep live updates active
 function setLiveMode() {
-    liveMode = true;
-    console.log('Switched to live mode');
-    // Immediately poll for latest data
-    if (pollingActive && activeSignals.size > 0) {
-        const now = globalTimeRange.max || Date.now() / 1000;
-        const endTime = now + 5;
-        const startTime = Math.max(0, endTime - LIVE_WINDOW_SIZE);
-        requestVisibleRange(startTime, endTime, 3);
-    }
+    viewMode = 'live';
+    console.log('Switched to live scrolling mode (updates continue)');
+    applyViewMode();
 }
 
 function setManualMode() {
-    liveMode = false;
-    console.log('Switched to manual mode');
+    viewMode = 'manual';
+    console.log('Switched to manual mode (updates continue)');
+    // Don't apply view mode here - let user control the range
 }
 
 function showAllData() {
-    setManualMode();
-    if (globalTimeRange.min < globalTimeRange.max) {
-        const margin = (globalTimeRange.max - globalTimeRange.min) * 0.05;
-        Plotly.relayout(graphDiv, {
-            'xaxis.range': [globalTimeRange.min - margin, globalTimeRange.max + margin],
-            'xaxis.autorange': false,
-            'yaxis.autorange': true
-        });
-    }
+    viewMode = 'showAll';
+    console.log('Switched to show all data mode (updates continue)');
+    applyViewMode();
 }
 
 function setAutoRange() {
-    setManualMode();
-    Plotly.relayout(graphDiv, {
-        'xaxis.autorange': true,
-        'yaxis.autorange': true
-    });
+    viewMode = 'autoRange';
+    console.log('Switched to auto range mode (updates continue)');
+    applyViewMode();
 }
 
 // Export functions for use in other files
@@ -423,3 +415,4 @@ window.graphView = {
 console.log('graph_view.js loaded successfully');
 console.log('graphDiv element found:', !!graphDiv);
 console.log('window.graphView exported:', !!window.graphView);
+console.log(`Polling interval: ${POLLING_INTERVAL}ms (${1000/POLLING_INTERVAL} updates/second)`);
