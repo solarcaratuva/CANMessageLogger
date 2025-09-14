@@ -66,8 +66,7 @@ def process_data_live() -> None:
         while True:
             if queue.empty():
                 break
-            cm_tuple = queue.get()
-            can_msg = decode_message(*cm_tuple)
+            can_msg = queue.get()
             if can_msg is not None:
                 list_can_messages.append(can_msg)
                 
