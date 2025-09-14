@@ -180,6 +180,9 @@ def get_visible_range():
         absolute_cap = 2500
 
         results_by_signal = {}
+        total_raw_points = 0
+        total_processed_points = 0
+        
         for sid in signal_ids:
             try:
                 message_name, signal_name = sid.split('.')
@@ -196,6 +199,9 @@ def get_visible_range():
                 
                 # Convert to numpy array for downsampling and drop NaN/None
                 dp = np.array([(r['timeStamp'], r[signal_name]) for r in rows], dtype=float)
+                raw_points = len(dp)
+                total_raw_points += raw_points
+                
                 if dp.size:
                     finite_mask = np.isfinite(dp[:, 0]) & np.isfinite(dp[:, 1])
                     dp = dp[finite_mask]
@@ -211,6 +217,11 @@ def get_visible_range():
                 
                 # Apply downsampling
                 ds = largest_triangle_three_buckets(dp, target_points)
+                processed_points = len(ds)
+                total_processed_points += processed_points
+                
+                print(f"🔍 Signal {sid}: {raw_points} raw → {processed_points} processed points")
+                
                 results_by_signal[sid] = {
                     'x': [float(pt[0]) for pt in ds],
                     'y': [float(pt[1]) for pt in ds]
@@ -218,6 +229,17 @@ def get_visible_range():
             except Exception as inner_e:
                 print(f"Error processing signal {sid}: {str(inner_e)}")
                 results_by_signal[sid] = { 'x': [], 'y': [] }
+
+        # Log overall processing summary
+        print(f"📈 Range Query Processing Summary:")
+        print(f"   Time range: {start_time:.2f}s - {end_time:.2f}s ({end_time - start_time:.2f}s duration)")
+        print(f"   Signals processed: {len(signal_ids)}")
+        print(f"   Total raw data points: {total_raw_points:,}")
+        print(f"   Total processed points: {total_processed_points:,}")
+        if total_raw_points > 0:
+            compression_ratio = (1 - total_processed_points / total_raw_points) * 100
+            print(f"   Compression: {compression_ratio:.1f}% reduction")
+        print(f"   Zoom level: {zoom_level}, Viewport: {viewport_width}px")
 
         return jsonify({
             "status": "success",

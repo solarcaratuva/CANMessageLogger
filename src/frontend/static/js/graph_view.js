@@ -111,6 +111,19 @@ function requestVisibleRange(startTime, endTime, zoomLevel, specificSignalIds = 
     .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
+                // Log how many data points we received for each signal
+                let totalPoints = 0;
+                const signalCounts = {};
+                Object.keys(data.signals).forEach(signalId => {
+                    const pointCount = data.signals[signalId].x ? data.signals[signalId].x.length : 0;
+                    signalCounts[signalId] = pointCount;
+                    totalPoints += pointCount;
+                });
+                
+                console.log(`📊 Range Query Results: ${totalPoints} total points across ${Object.keys(data.signals).length} signals`);
+                console.log(`   Time range: ${startTime.toFixed(2)}s - ${endTime.toFixed(2)}s (${(endTime - startTime).toFixed(2)}s duration)`);
+                console.log(`   Points per signal:`, signalCounts);
+                
                 handleVisibleRangeUpdate({
                     signals: data.signals,
                     request_id: requestId
