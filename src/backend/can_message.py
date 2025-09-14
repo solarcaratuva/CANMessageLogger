@@ -1,4 +1,4 @@
-from backend.dbcs import DBCs
+import backend.dbcs as dbcs
 
 
 class CanMessage:
@@ -30,7 +30,7 @@ def decode_message(id: int, data: bytes, timestamp: float) -> CanMessage:
 
     decoded_message = None  # dictionary of signals to return
 
-    for db in DBCs:
+    for db in dbcs.DBCs:
         for msg in db.messages:
             if msg.frame_id == id:
                 name = msg.name

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template
 from flask_socketio import SocketIO
 # from backend.input.alertChecker import alertChecker
 import backend.input.alertChecker as alertChecker
@@ -9,24 +9,20 @@ import os
 import backend.input.consumer as consumer
 import numpy as np
 
+# disables excessive debug logging from SocketIO
 import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
+# `app` and `socketio` represent the REST API connection, and are used in other files in sockio/
 app = Flask(__name__, template_folder='../../frontend/html', static_folder='../../frontend/static')
 socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
-
-alertChecker.set_socketio(socketio)
-# List to store messages to display on the front end
-message_list = list()
-alert_definitions = dict() # {1: alert1, 2: alert2, 3: alert3, ...}
-alertsCreated = 0
 
 
 @app.route('/')
 def index():
     # Render the HTML with the large_data passed in
-    return render_template('debug.html') # DELETED message_list
+    return render_template('debug_dashboard.html') # DELETED message_list
 
 @app.route('/alert_manager')
 def alert_manager():

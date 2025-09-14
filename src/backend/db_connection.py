@@ -1,5 +1,5 @@
 import sqlite3
-from backend.dbcs import DBCs  # need to have dbcs.py in same directory! (this is the wrapper file we made for generating DBCs)
+import backend.dbcs as dbcs
 from backend.can_message import CanMessage  # our own CanMessage Object
 import json
 
@@ -7,18 +7,21 @@ import json
 
 
 class DbConnection:
-    DB_path = "./CANDatabases"  # static, i.e. shared with all DbConnection Objects
+    DB_path = "./error"  # static, i.e. shared with all DbConnection Objects, this variable must be set elsewhere before use
 
     def __init__(self):
+        # every thread (and socketIO event handler) must have its own DbConnection object
         self.conn = sqlite3.connect(DbConnection.DB_path)
         self.conn.row_factory = sqlite3.Row
         self.cur = self.conn.cursor()
 
-    def __del__(self):
+
+    def __del__(self): # object destructor, called automatically when the object is deleted
         if hasattr(self,'cur') and self.cur:
             self.cur.close()
         if  hasattr(self,'conn') and self.conn:
             self.conn.close()
+
 
     def __db_insert_message(self, can_msg: CanMessage) -> None:
         """
@@ -37,6 +40,7 @@ class DbConnection:
         # can_msg.messageName is assumed to be the name of the table in database
         self.cur.execute(sql, tuple(signal_dict.values()))
 
+
     @staticmethod
     def __parse_can_message_signals(dbcs: list) -> dict:
         """
@@ -49,13 +53,13 @@ class DbConnection:
         """
         can_message_signal_types = {}
         # {'message_name': {signal_name: signal_type, ..., ... }, ..., ...}
-
         for dbc in dbcs:
             for message in dbc.messages:
                 # Extracting the message name and its signals (assumes the type is an UNSIGNED INTEGER!)
                 can_message_signal_types[message.name] = {signal.name: "INTEGER" for signal in message.signals}
 
         return can_message_signal_types
+
 
     def add_can_msg(self, can_msg: CanMessage) -> None:
         """
@@ -67,6 +71,7 @@ class DbConnection:
         self.__db_insert_message(can_msg)  # helper function defined above
 
         self.conn.commit()
+
 
     def add_batch_can_msg(self, can_msg_list: list[CanMessage]) -> None:
         """
@@ -80,6 +85,7 @@ class DbConnection:
 
         self.conn.commit()
 
+
     def query(self, query: str) -> list[dict]:
         """
         Execute a single SQL query and returns what the SQL query returns as a list of dictionaries
@@ -91,6 +97,8 @@ class DbConnection:
         rows = self.cur.fetchall()
         return [dict(row) for row in rows]  # list[ 'can_msg_1' is dict{signal: val,signal: val,signal: val}, ...]
 
+
+    # Should only be called once!
     def setup_the_tables(self) -> None:
         """
         Sets up the tables in the SQL database, this function must be called before ANY other function calls for the
@@ -99,7 +107,6 @@ class DbConnection:
         @return: None, creates a table for each message type (i.e. there will be as many tables as there are
         message types, as defined in DBCs)
         """
-
         
         sql_alerts = '''
             CREATE TABLE IF NOT EXISTS Alerts (
@@ -130,8 +137,7 @@ class DbConnection:
         self.cur.execute(sql_triggered_alerts)
 
 
-        # Should only be called once!
-        can_msg_signals = self.__parse_can_message_signals(DBCs)
+        can_msg_signals = self.__parse_can_message_signals(dbcs.DBCs)
 
         # create table for each can_message_name
         for can_msg_type, signal_types_dict in can_msg_signals.items():
@@ -143,12 +149,14 @@ class DbConnection:
 
         self.conn.commit()
 
+
     def get_table_names(self) -> list[str]:
         self.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tables = self.cur.fetchall()
 
         # Convert the result to a list of table names
         return [table[0] for table in tables]
+
 
     @staticmethod
     def setup_the_db_path(path: str) -> None:
@@ -159,42 +167,19 @@ class DbConnection:
         """
         DbConnection.DB_path = path
     
+
     def add_triggered_alert(self, alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause):
-        try:
-            connection = self.conn
-            cursor = connection.cursor()
+        self.cur.execute('''
+            INSERT INTO TriggeredAlerts (alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause))
 
-            cursor.execute('''
-                INSERT INTO TriggeredAlerts (alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause))
-
-            connection.commit()
-            new_id = cursor.lastrowid
-            return new_id
-        
-        except sqlite3.Error as e:
-            return None
+        self.conn.commit()
+        new_id = self.cur.lastrowid
+        return new_id
     
     
-    def fetch_triggered_alerts(self):
-        try:
-            connection = self.conn
-            cursor = connection.cursor()
-
-            cursor.execute('''
-                SELECT * FROM TriggeredAlerts
-            ''')
-
-            rows = cursor.fetchall()
-            return [dict(row) for row in rows]
-        
-        except sqlite3.Error as e:
-            print(f"Database error fetching triggered alerts: {e}")
-            return None
-
-
-    def create_alert(self, alert_data):
+    def create_alert(self, alert_data: dict) -> int:
         """
         Example alert_data:
         {
@@ -206,49 +191,55 @@ class DbConnection:
         "comparisons": [ { "operator": "<", "value": 3.0 } ]
         }
         """
-        try:
-            connection = self.conn
-            cursor = connection.cursor()
 
-            name = alert_data.get('name')
-            field = alert_data.get('field')
-            type_ = alert_data.get('type')
-            category = alert_data.get('category')  # <-- new
+        name = alert_data.get('name')
+        field = alert_data.get('field')
+        type_ = alert_data.get('type')
+        category = alert_data.get('category')  # <-- new
 
-            bool_value = None
-            comparisons_json = None
+        # Check if an alert with this name already exists
+        self.cur.execute('''
+            SELECT id FROM Alerts WHERE name = ?
+        ''', (name,))
+        existing_alert = self.cur.fetchone()
+        
+        if existing_alert:
+            raise ValueError(f"Alert with name '{name}' already exists")
 
-            if type_ == 'bool':
-                bool_value = alert_data.get('value')  # "true"/"false"
-            elif type_ in ['int', 'double']:
-                comps = alert_data.get('comparisons', [])
-                comparisons_json = json.dumps(comps)
+        bool_value = None
+        comparisons_json = None
 
-            cursor.execute('''
-                INSERT INTO Alerts (name, field, type, category, bool_value, comparisons_json)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (name, field, type_, category, bool_value, comparisons_json))
+        if type_ == 'bool':
+            bool_value = alert_data.get('value')  # "true"/"false"
+        elif type_ in ['int', 'double']:
+            comps = alert_data.get('comparisons', [])
+            comparisons_json = json.dumps(comps)
 
-            connection.commit()
-            new_id = cursor.lastrowid
-            return new_id
+        self.cur.execute('''
+            INSERT INTO Alerts (name, field, type, category, bool_value, comparisons_json)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (name, field, type_, category, bool_value, comparisons_json))
 
-        except sqlite3.Error as e:
-            print(f"Database error inserting alert: {e}")
-            return None
+        self.conn.commit()
+        new_id = self.cur.lastrowid
+        return new_id
 
     
-    def delete_alert(self, alert_id):
-        try:
-            connection = self.conn
-            cursor = connection.cursor()
+    def delete_alert(self, alert_id: int) -> None:
+        self.cur.execute('''
+            DELETE FROM Alerts WHERE id = ?
+        ''', (alert_id,))
 
-            cursor.execute('''
-                DELETE FROM Alerts WHERE id = ?
-            ''', (alert_id,))
+        self.conn.commit()
 
-            connection.commit()
-        
-        except sqlite3.Error as e:
-            print(f"Database error deleting alert: {e}")
 
+    def get_alert_name(self, alert_id: int) -> str:
+        self.cur.execute('''
+            SELECT name FROM Alerts WHERE id = ?
+        ''', (alert_id,))
+
+        row = self.cur.fetchone()
+        if row:
+            return row['name']
+        else:
+            return None

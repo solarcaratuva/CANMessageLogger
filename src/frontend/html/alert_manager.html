@@ -170,9 +170,9 @@
                     class="form-check-input"
                     type="checkbox"
                     id="equalCheck"
-                    value="="
+                    value="=="
                   />
-                  <label class="form-check-label" for="equalCheck">=</label>
+                  <label class="form-check-label" for="equalCheck">==</label>
                 </div>
               </div>
               <div class="col">
@@ -335,7 +335,7 @@
         `;
 
         data.triggered_alerts.forEach((alert) => {
-          const operatorMatch = alert.fail_cause.match(/(.*?)(\s*(?:!=|=|<|>)\s*)(.*)/);
+          const operatorMatch = alert.fail_cause.match(/(.*?)(\s*(?:!=|==|<|>)\s*)(.*)/);
           let formattedFailCause = alert.fail_cause;
 
           if (operatorMatch) {
@@ -350,7 +350,7 @@
               <td>${formattedFailCause}</td>
               <td>${alert.category + " (" + alert.can_message_id+ ")" || ''}</td>
               <td>${alert.can_message_data}</td>
-              <td>${alert.can_message_timestamp}</td>
+              <td>${Math.trunc(alert.can_message_timestamp)}</td>
             </tr>
           `;
         });
@@ -595,7 +595,7 @@
       const eqCheck = document.getElementById("equalCheck");
       const eqValue = document.getElementById("equalValue");
       if (eqCheck.checked && eqValue.value !== "") {
-        comparisons.push({ operator: "=", value: eqValue.value });
+        comparisons.push({ operator: "==", value: eqValue.value });
       }
 
       const neCheck = document.getElementById("notEqualCheck");
@@ -621,12 +621,18 @@
     })
     .then(response => response.json())
     .then(data => {
-      console.log("Alert created successfully:", data);
-      $("#addAlertModal").modal("hide");
-      fetchAlerts(); // Refresh the alerts display
+      if (data.status === "success") {
+        console.log("Alert created successfully:", data);
+        $("#addAlertModal").modal("hide");
+        fetchAlerts(); // Refresh the alerts display
+      } else if (data.status === "error") {
+        // Show error message to user
+        alert("Error creating alert: " + data.message);
+      }
     })
     .catch(error => {
       console.error("Error creating alert:", error);
+      alert("Network error: Failed to create alert");
     });
   });
 
