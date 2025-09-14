@@ -1,3 +1,4 @@
+import backend.dbcs as dbcs
 from backend.sockio.socket import socketio, app 
 from backend.db_connection import DbConnection
 from flask import jsonify
@@ -51,9 +52,26 @@ def get_latest_message_batch():
             timestamp = -1
             message_data = dict()
 
+        message_data_with_units = {}
+        dbc_msg = None
+        for dbc in dbcs.DBCs:
+            for msg in dbc.messages:
+                if msg.name == table_name:
+                    dbc_msg = msg
+                    break
+            if dbc_msg:
+                break
+        if dbc_msg:
+            for signal in dbc_msg.signals:
+                val = message_data.get(signal.name)
+                message_data_with_units[signal.name] = {"value": val, "unit": signal.unit}
+        else:
+            for k, v in message_data.items():
+                message_data_with_units[k] = {"value": v, "unit": None}
+
         message_batch.append({
             'table_name': table_name,
-            'data': message_data,
+            'data': message_data_with_units,
             'timestamp': timestamp
         })
 
