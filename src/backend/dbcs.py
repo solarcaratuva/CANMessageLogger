@@ -31,4 +31,3 @@ def get_messages_from_dbcs() -> dict:
                 else:
                     res[message.name][signal.name] = "int"
     return res
-
