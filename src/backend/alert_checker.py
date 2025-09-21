@@ -58,7 +58,3 @@ def checkAlertsAgainstCanMsg(can_message: CanMessage, raw_data: bytes):
                     # the alert condition was met, so trigger the alert
                     fail_cause = f"{decoded_val} {comparison['operator']} {comp_val}"
                     logger_db.add_triggered_alert(alert['id'], category, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message.messageId, raw_data, can_message.timeStamp, signal, fail_cause)
-                    if socketio_instance:
-                        socketio_instance.emit('big_popup_event', {
-                            'message': f"INT Alert {alert['name']} triggered: {decoded_val} != {comp_val}"
-                        })
