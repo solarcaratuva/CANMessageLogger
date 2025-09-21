@@ -1,6 +1,11 @@
+from typing import Union, Iterable
 import numpy as np
+from numpy.typing import NDArray
 
-def largest_triangle_three_buckets(data, threshold):
+def largest_triangle_three_buckets(
+    data: Union[Iterable[tuple[float, float]], NDArray[np.float64]], 
+    threshold: Union[int, None]
+) -> NDArray[np.float64]:
     """
     Downsample data using the standard Largest Triangle Three Buckets (LTTB) algorithm.
 

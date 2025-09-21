@@ -2,6 +2,8 @@ from backend.db_connection import DbConnection
 from backend.can_message import CanMessage
 import json
 from datetime import datetime
+from backend.sockio.socket import socketio
+socketio_instance = socketio
 
 
 def fetchActiveAlerts():
@@ -19,14 +21,6 @@ def checkAlertsAgainstCanMsg(can_message: CanMessage, raw_data: bytes, socketio_
     """
     Checks the given CAN message against all active alerts
     """
-    
-    # Lazy import to avoid circular dependency
-    if socketio_instance is None:
-        try:
-            from backend.sockio.socket import socketio
-            socketio_instance = socketio
-        except ImportError:
-            socketio_instance = None
     
     logger_db = DbConnection()
     
