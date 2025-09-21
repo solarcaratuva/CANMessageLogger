@@ -1,0 +1,29 @@
+
+<head>
+    <meta charset="utf-8"/>
+    <title>Startup Options</title>
+</head>
+<body>
+    <h1>Configure & Launch</h1>
+    <form method="POST" action="/start">
+        <label for="logType">Log Type</label>
+        <select name="logType" id="logType" required>
+            <option value="pastlog">pastlog</option>
+            <option value="livelog">livelog</option>
+            <option value="mock_livelog">mock_livelog</option>
+            <option value="db">db</option>
+            <option value="radio">radio</option>
+        </select>
+        <br>
+        <label for="inputFile">Input File</label>
+        <input type="text" id="inputFile" name="inputFile" />
+        <br>
+        <label for="outputDB">Output DB (optional)</label>
+        <input type="text" id="outputDB" name="outputDB" />
+        <br>
+        <label for="set_dbc_branch">DBC Branch</label>
+        <input type="text" id="set_dbc_branch" name="set_dbc_branch" value="main" />
+        <br>
+        <button type="submit">Launch App</button>
+    </form>
+</body>

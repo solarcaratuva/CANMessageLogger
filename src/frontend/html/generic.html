@@ -235,6 +235,7 @@
                     // If we reach here, either there was no activeAutoId, or the stored one is no longer valid.
                     // Process the absolute latest alert.
                     const latest = triggered[0];
+                    console.log(triggered)
 
                     // If user explicitly cleared this specific latest alert via the button
                     if (clearedTriggerId && parseInt(clearedTriggerId) === latest.id) {
