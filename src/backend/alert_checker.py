@@ -2,9 +2,6 @@ from backend.db_connection import DbConnection
 from backend.can_message import CanMessage
 import json
 from datetime import datetime
-from backend.sockio.socket import socketio
-socketio_instance = socketio
-
 
 def fetchActiveAlerts():
     """
@@ -17,7 +14,7 @@ def fetchActiveAlerts():
     return alerts
 
 
-def checkAlertsAgainstCanMsg(can_message: CanMessage, raw_data: bytes, socketio_instance=None): 
+def checkAlertsAgainstCanMsg(can_message: CanMessage, raw_data: bytes): 
     """
     Checks the given CAN message against all active alerts
     """
@@ -33,11 +30,6 @@ def checkAlertsAgainstCanMsg(can_message: CanMessage, raw_data: bytes, socketio_
         if (fault in can_message.sigDict and can_message.sigDict[fault] == 1):
             logger_db.add_triggered_alert(-1, "", datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message.messageId, raw_data, can_message.timeStamp, fault, "AUTO FAULT")
 
-            if socketio_instance:
-                socketio_instance.emit('big_popup_event', {
-                    'message': f"Auto Fault Triggered: {fault}"
-                })
-
     activeAlerts = fetchActiveAlerts()
     for alert in activeAlerts:
         signal = alert['field']
@@ -50,11 +42,6 @@ def checkAlertsAgainstCanMsg(can_message: CanMessage, raw_data: bytes, socketio_
                
                 fail_cause = f"BOOL Alert {alert['name']} triggered: {can_message.sigDict[signal]} == {bool_value}"
                 logger_db.add_triggered_alert(alert['id'], category, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message.messageId, raw_data, can_message.timeStamp, signal, fail_cause)
-
-                if socketio_instance:
-                    socketio_instance.emit('big_popup_event', {
-                        'message': f"Boolean Alert Triggered: {alert['name']}!"
-                    })
         
         elif alertType == 'int':
             comparisons = json.loads(alert['comparisons_json'])

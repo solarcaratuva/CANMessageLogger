@@ -12,7 +12,7 @@ from backend.input import consumer, logfile_producer, live_log_producer, radio_p
 from functools import partial
 
 # must import sockio/ files to register the socketio event handlers and routes
-from backend.sockio import debug_dashboard, alert_manager, routes, graph_view_handlers  
+from backend.sockio import debug_dashboard, alert_manager, graph_view 
 
 
 def main():
