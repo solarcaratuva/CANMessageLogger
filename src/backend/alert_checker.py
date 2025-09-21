@@ -1,7 +1,9 @@
 from backend.db_connection import DbConnection
 from backend.can_message import CanMessage
+from backend.sockio.socket import socketio
 import json
 from datetime import datetime
+
 
 def fetchActiveAlerts():
     """
@@ -30,6 +32,10 @@ def checkAlertsAgainstCanMsg(can_message: CanMessage, raw_data: bytes):
         if (fault in can_message.sigDict and can_message.sigDict[fault] == 1):
             logger_db.add_triggered_alert(-1, "", datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message.messageId, raw_data, can_message.timeStamp, fault, "AUTO FAULT")
 
+            socketio.emit('big_popup_event', {
+                'message': f"Auto Fault Triggered: {fault}"
+            })
+
     activeAlerts = fetchActiveAlerts()
     for alert in activeAlerts:
         signal = alert['field']
@@ -42,6 +48,10 @@ def checkAlertsAgainstCanMsg(can_message: CanMessage, raw_data: bytes):
                
                 fail_cause = f"BOOL Alert {alert['name']} triggered: {can_message.sigDict[signal]} == {bool_value}"
                 logger_db.add_triggered_alert(alert['id'], category, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message.messageId, raw_data, can_message.timeStamp, signal, fail_cause)
+
+                socketio.emit('big_popup_event', {
+                    'message': f"Boolean Alert Triggered: {alert['name']}!"
+                })
         
         elif alertType == 'int':
             comparisons = json.loads(alert['comparisons_json'])
@@ -58,3 +68,6 @@ def checkAlertsAgainstCanMsg(can_message: CanMessage, raw_data: bytes):
                     # the alert condition was met, so trigger the alert
                     fail_cause = f"{decoded_val} {comparison['operator']} {comp_val}"
                     logger_db.add_triggered_alert(alert['id'], category, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), can_message.messageId, raw_data, can_message.timeStamp, signal, fail_cause)
+                    socketio.emit('big_popup_event', {
+                        'message': f"INT Alert {alert['name']} triggered: {decoded_val} != {comp_val}"
+                    })
