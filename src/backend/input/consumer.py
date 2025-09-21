@@ -66,4 +66,3 @@ def process_data_live() -> None:
 
         db_conn.add_batch_can_msg(list_can_messages)
         time.sleep(LOOP_TIME)
-

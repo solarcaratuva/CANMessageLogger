@@ -13,3 +13,4 @@ venv
 !requirements.txt
 TODO
 !example.txt
+.vscode
