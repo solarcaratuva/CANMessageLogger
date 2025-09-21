@@ -7,10 +7,6 @@ import numpy as np
 from .socket import app
 
 
-@app.route('/')
-def index():
-    # Render the HTML with the large_data passed in
-    return render_template('debug_dashboard.html') # DELETED message_list
 
 
 @app.route('/graph_view')

@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, render_template
 from flask_socketio import SocketIO
 
 # disables excessive debug logging from SocketIO
@@ -10,6 +10,10 @@ log.setLevel(logging.ERROR)
 app = Flask(__name__, template_folder='../../frontend/html', static_folder='../../frontend/static')
 socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
 
+@app.route('/')
+def index():
+    # Render the HTML with the large_data passed in
+    return render_template('debug_dashboard.html') # DELETED message_list
 
 @socketio.on('connect')
 def handle_connect():

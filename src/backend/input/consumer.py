@@ -54,11 +54,7 @@ def process_data_live() -> None:
     global start_consume_time, last_consume_time
     start_consume_time = time.perf_counter()
     db_conn = DbConnection()
-        
-    # For tracking processed messages
-    message_count = 0
-    last_status_time = time.perf_counter()
-    
+
     while True:
         last_consume_time = time.perf_counter()
         list_can_messages = []
@@ -66,18 +62,7 @@ def process_data_live() -> None:
             if queue.empty():
                 break
             can_msg = queue.get()
-            if can_msg is not None:
-                list_can_messages.append(can_msg)
-                
-                # Track processed messages
-                message_count += 1
-                
-                # Log status every 1000 messages or 10 seconds
-                current_time = time.perf_counter()
-                if message_count % 1000 == 0 or (current_time - last_status_time) > 10:
-                    last_status_time = current_time
+            list_can_messages.append(can_msg)
 
-        if list_can_messages:
-            db_conn.add_batch_can_msg(list_can_messages)
+        db_conn.add_batch_can_msg(list_can_messages)
         time.sleep(LOOP_TIME)
-
