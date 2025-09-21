@@ -12,8 +12,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger
 
 @app.route('/')
 def index():
-    # Render the HTML with the large_data passed in
-    return render_template('debug_dashboard.html') # DELETED message_list
+    return render_template('debug_dashboard.html')
 
 @socketio.on('connect')
 def handle_connect():

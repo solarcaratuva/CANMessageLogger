@@ -11,7 +11,6 @@ from backend.db_connection import DbConnection
 from backend.input import consumer, logfile_producer, live_log_producer, radio_producer
 from functools import partial
 
-# must import sockio/ files to register the socketio event handlers and routes
 from backend.sockio import debug_dashboard, alert_manager, graph_view 
 
 
