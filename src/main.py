@@ -99,7 +99,6 @@ def launch_startup_options():
         return send_file("frontend/html/startup_options.html")
 
     def _shutdown(flask_request):
-        # Shutdown the setup server (Werkzeug only; ok for local dev)
         func = flask_request.environ.get("werkzeug.server.shutdown")
         if func:
             func()

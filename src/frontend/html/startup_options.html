@@ -1,29 +1,103 @@
-
 <head>
     <meta charset="utf-8"/>
     <title>Startup Options</title>
+    <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 2rem; }
+    form { max-width: 640px; display: grid; gap: 1rem; }
+    fieldset { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; }
+    legend { font-weight: 600; margin-bottom: 0.5rem; }
+    label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+    .radio-group { display: flex; flex-direction: column; gap: 0.5rem; }
+    .radio-option { display: flex; align-items: center; gap: 0.5rem; }
+    .radio-option input[type="radio"] { margin: 0; }
+    .radio-option label { font-weight: normal; margin: 0; cursor: pointer; }
+    input[type="text"] { width: 100%; padding: 0.5rem; }
+    small { color: #666; }
+    button { padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid #999; cursor: pointer; }
+    </style>
 </head>
 <body>
     <h1>Configure & Launch</h1>
     <form method="POST" action="/start">
-        <label for="logType">Log Type</label>
-        <select name="logType" id="logType" required>
-            <option value="pastlog">pastlog</option>
-            <option value="livelog">livelog</option>
-            <option value="mock_livelog">mock_livelog</option>
-            <option value="db">db</option>
-            <option value="radio">radio</option>
-        </select>
-        <br>
-        <label for="inputFile">Input File</label>
-        <input type="text" id="inputFile" name="inputFile" />
-        <br>
+    <fieldset>
+        <legend>Log Type</legend>
+        <div class="radio-group">
+            <div class="radio-option">
+                <input type="radio" name="logType" id="pastlog" value="pastlog" onchange="updateInputFileState()" required>
+                <label for="pastlog">pastlog</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="logType" id="livelog" value="livelog" onchange="updateInputFileState()">
+                <label for="livelog">livelog</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="logType" id="mock_livelog" value="mock_livelog" onchange="updateInputFileState()">
+                <label for="mock_livelog">mock_livelog</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="logType" id="db" value="db" onchange="updateInputFileState()">
+                <label for="db">db</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="logType" id="radio" value="radio" onchange="updateInputFileState()">
+                <label for="radio">radio</label>
+            </div>
+        </div>
+        <small>Choose the data source.</small>
+    </fieldset>
+
+    <fieldset id="inputFileFieldset" style="display:none;">
+        <label for="inputFile">Input File <span id="inputFileRequiredLabel" style="color:#c00;">(required)</span></label>
+        <input type="text" id="inputFile" name="inputFile" placeholder="e.g. ./logs/sample.log or ./db/my.sqlite" />
+        <small>Required for pastlog/mock_livelog (.log/.txt) and db (.db/.sqlite).</small>
+    </fieldset>
+
+    <fieldset>
         <label for="outputDB">Output DB (optional)</label>
-        <input type="text" id="outputDB" name="outputDB" />
-        <br>
-        <label for="set_dbc_branch">DBC Branch</label>
-        <input type="text" id="set_dbc_branch" name="set_dbc_branch" value="main" />
-        <br>
-        <button type="submit">Launch App</button>
+        <input type="text" id="outputDB" name="outputDB" placeholder="./CANDatabases/can_database_X.sqlite" />
+        <small>If omitted, a timestamped DB will be created.</small>
+    </fieldset>
+
+    <fieldset>
+        <legend>DBC Branch</legend>
+        <div class="radio-group">
+            <div class="radio-option">
+                <input type="radio" name="set_dbc_branch" id="main" value="main" checked>
+                <label for="main">main</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="set_dbc_branch" id="dev" value="dev">
+                <label for="dev">dev</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="set_dbc_branch" id="testing" value="testing">
+                <label for="testing">testing</label>
+            </div>
+        </div>
+    </fieldset>
+
+    <button type="submit">Launch App</button>
     </form>
+
+    <script>
+    function updateInputFileState() {
+        const logTypeRadio = document.querySelector('input[name="logType"]:checked');
+        const logType = logTypeRadio ? logTypeRadio.value : '';
+        const inputFileFieldset = document.getElementById('inputFileFieldset');
+        const inputFile = document.getElementById('inputFile');
+        const requiredLabel = document.getElementById('inputFileRequiredLabel');
+        const requiredTypes = ['pastlog', 'db', 'mock_livelog'];
+        if (requiredTypes.includes(logType)) {
+            inputFileFieldset.style.display = '';
+            inputFile.required = true;
+            requiredLabel.style.display = '';
+        } else {
+            inputFileFieldset.style.display = 'none';
+            inputFile.required = false;
+            requiredLabel.style.display = 'none';
+            inputFile.value = '';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', updateInputFileState);
+    </script>
 </body>
