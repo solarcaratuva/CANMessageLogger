@@ -6,8 +6,27 @@ let currentPollingTimeout = null;
 // Live data configuration
 const LIVE_WINDOW_SIZE = 60; // seconds - how much historical data to show in live mode
 let liveUpdatesEnabled = true; // Always keep live updates enabled
-let viewMode = 'live'; // 'live', 'showAll', 'manual' - determines how to display data, but updates continue
+let viewMode = 'live'; // 'live', 'showAll', 'manual', 'liveScroll', 'zoom' - determines how to display data, but updates continue
 let globalTimeRange = { min: 0, max: 60 }; // Global time range tracker
+
+// Live Scroll configuration
+let liveScrollConfig = {
+    enabled: false,
+    startTime: 0,
+    endTime: 60,
+    currentWindowStart: 0,
+    currentWindowEnd: 60,
+    timeDifferential: 10, // window size in seconds
+    scrollIncrement: 0.1, // seconds to scroll by each time (small increment)
+    intervalId: null
+};
+
+// Zoom configuration
+let zoomConfig = {
+    enabled: false,
+    fixedStartTime: 0,
+    fixedEndTime: 60
+};
 
 // Store active signals and their data
 const activeSignals = new Map();
@@ -188,10 +207,19 @@ function applyViewMode() {
             }
             break;
             
-        case 'autoRange':
-            // Auto range mode - let Plotly decide the best range
+        case 'liveScroll':
+            // Live Scroll mode - show specified range window and scroll it to the right
             Plotly.relayout(graphDiv, {
-                'xaxis.autorange': true
+                'xaxis.range': [liveScrollConfig.currentWindowStart, liveScrollConfig.currentWindowEnd],
+                'xaxis.autorange': false
+            });
+            break;
+            
+        case 'zoom':
+            // Zoom mode - fixed range view
+            Plotly.relayout(graphDiv, {
+                'xaxis.range': [zoomConfig.fixedStartTime, zoomConfig.fixedEndTime],
+                'xaxis.autorange': false
             });
             break;
             
@@ -307,6 +335,48 @@ function updateDataStatus(status, minTime, maxTime) {
     }
 }
 
+// Function to start Live Scroll scrolling
+function startLiveScrolling() {
+    if (liveScrollConfig.intervalId) {
+        clearInterval(liveScrollConfig.intervalId);
+    }
+    
+    liveScrollConfig.intervalId = setInterval(() => {
+        if (viewMode === 'liveScroll' && liveScrollConfig.enabled) {
+            // Get the latest current time from the most recent data points
+            let latestCurrentTime = 0;
+            activeSignals.forEach((signalData) => {
+                if (signalData.x && signalData.x.length > 0) {
+                    const signalMaxTime = Math.max(...signalData.x);
+                    latestCurrentTime = Math.max(latestCurrentTime, signalMaxTime);
+                }
+            });
+            
+            // Fallback to global time range if no signal data
+            if (latestCurrentTime === 0) {
+                latestCurrentTime = globalTimeRange.max || Date.now() / 1000;
+            }
+            
+            const newStartTime = latestCurrentTime - liveScrollConfig.timeDifferential;
+            
+            // Update the window to show the last timeDifferential seconds from current time
+            liveScrollConfig.currentWindowStart = newStartTime;
+            liveScrollConfig.currentWindowEnd = latestCurrentTime;
+            
+            console.log(`Live Scroll: moving window to ${liveScrollConfig.currentWindowStart.toFixed(1)}-${liveScrollConfig.currentWindowEnd.toFixed(1)} (last ${liveScrollConfig.timeDifferential}s from current time ${latestCurrentTime.toFixed(1)})`);
+            applyViewMode();
+        }
+    }, 100); // 0.1 second intervals (100ms) for truly live scrolling
+}
+
+// Function to stop Live Scroll scrolling
+function stopLiveScrolling() {
+    if (liveScrollConfig.intervalId) {
+        clearInterval(liveScrollConfig.intervalId);
+        liveScrollConfig.intervalId = null;
+    }
+}
+
 // Polling mechanism for continuous data updates
 function startPolling() {
     if (pollingActive) return;
@@ -333,8 +403,20 @@ function startPolling() {
                 startTime = Math.max(0, globalTimeRange.min - 5); // Small buffer before start
                 endTime = now + 5; // Buffer for new data
                 zoomLevel = 2; // Lower zoom for large range
+            } else if (viewMode === 'liveScroll') {
+                // Live Scroll mode: request data for current scrolling window with buffer
+                const buffer = liveScrollConfig.timeDifferential * 0.2;
+                startTime = Math.max(0, liveScrollConfig.currentWindowStart - buffer);
+                endTime = liveScrollConfig.currentWindowEnd + buffer;
+                zoomLevel = 3;
+            } else if (viewMode === 'zoom') {
+                // Zoom mode: request data for fixed zoom range with buffer
+                const buffer = (zoomConfig.fixedEndTime - zoomConfig.fixedStartTime) * 0.1;
+                startTime = Math.max(0, zoomConfig.fixedStartTime - buffer);
+                endTime = zoomConfig.fixedEndTime + buffer;
+                zoomLevel = 5; // Higher zoom for fixed range
             } else {
-                // Manual/Auto range modes: request data for currently visible range
+                // Manual mode: request data for currently visible range
                 const rng = graphDiv.layout && graphDiv.layout.xaxis && graphDiv.layout.xaxis.range;
                 if (rng && rng.length >= 2) {
                     // Use visible range with some buffer
@@ -373,6 +455,8 @@ function stopPolling() {
         clearTimeout(currentPollingTimeout);
         currentPollingTimeout = null;
     }
+    // Stop live scrolling when polling stops
+    stopLiveScrolling();
     // Set status to inactive when polling stops
     updateDataStatus('inactive');
 }
@@ -428,6 +512,9 @@ function removeSignal(signalId) {
 // Mode switching functions - all keep live updates active
 function setLiveMode() {
     viewMode = 'live';
+    stopLiveScrolling(); // Stop any live scrolling
+    liveScrollConfig.enabled = false;
+    zoomConfig.enabled = false;
     console.log('Switched to live scrolling mode (updates continue)');
     applyViewMode();
     // Immediately request live data
@@ -437,8 +524,73 @@ function setLiveMode() {
     }
 }
 
+function setLiveScrollMode(timeDifferential) {
+    viewMode = 'liveScroll';
+    stopLiveScrolling(); // Stop any existing scrolling
+    
+    // Get the actual current time from the most recent data points
+    let currentTime = 0;
+    activeSignals.forEach((signalData) => {
+        if (signalData.x && signalData.x.length > 0) {
+            const signalMaxTime = Math.max(...signalData.x);
+            currentTime = Math.max(currentTime, signalMaxTime);
+        }
+    });
+    
+    // Fallback to global time range if no signal data
+    if (currentTime === 0) {
+        currentTime = globalTimeRange.max || Date.now() / 1000;
+    }
+    
+    const startTime = currentTime - timeDifferential;
+    
+    // Configure live scroll with time differential
+    liveScrollConfig.enabled = true;
+    liveScrollConfig.startTime = startTime;
+    liveScrollConfig.endTime = currentTime;
+    liveScrollConfig.currentWindowStart = startTime;
+    liveScrollConfig.currentWindowEnd = currentTime;
+    liveScrollConfig.timeDifferential = timeDifferential; // Store the window size
+    
+    zoomConfig.enabled = false;
+    
+    console.log(`Switched to live scroll mode: showing last ${timeDifferential}s from current data time ${currentTime.toFixed(1)} (${startTime.toFixed(1)}-${currentTime.toFixed(1)}), scrolls by ${liveScrollConfig.scrollIncrement}s every 0.1 seconds`);
+    applyViewMode();
+    startLiveScrolling();
+    
+    // Immediately request data for the initial range
+    if (pollingActive && activeSignals.size > 0) {
+        const buffer = timeDifferential * 0.2;
+        requestVisibleRange(Math.max(0, startTime - buffer), currentTime + buffer, 3);
+    }
+}
+
+function setZoomMode(startTime, endTime) {
+    viewMode = 'zoom';
+    stopLiveScrolling(); // Stop any live scrolling
+    
+    // Configure zoom
+    zoomConfig.enabled = true;
+    zoomConfig.fixedStartTime = startTime;
+    zoomConfig.fixedEndTime = endTime;
+    
+    liveScrollConfig.enabled = false;
+    
+    console.log(`Switched to zoom mode: fixed range ${startTime}-${endTime} (updates continue)`);
+    applyViewMode();
+    
+    // Immediately request data for the zoom range
+    if (pollingActive && activeSignals.size > 0) {
+        const buffer = (endTime - startTime) * 0.1;
+        requestVisibleRange(Math.max(0, startTime - buffer), endTime + buffer, 5);
+    }
+}
+
 function setManualMode() {
     viewMode = 'manual';
+    stopLiveScrolling(); // Stop any live scrolling
+    liveScrollConfig.enabled = false;
+    zoomConfig.enabled = false;
     console.log('Switched to manual mode (updates continue)');
     // Don't apply view mode here - let user control the range
     // But request data for current visible range
@@ -454,23 +606,15 @@ function setManualMode() {
 
 function showAllData() {
     viewMode = 'showAll';
+    stopLiveScrolling(); // Stop any live scrolling
+    liveScrollConfig.enabled = false;
+    zoomConfig.enabled = false;
     console.log('Switched to show all data mode (updates continue)');
     applyViewMode();
     // Immediately request all data
     if (pollingActive && activeSignals.size > 0) {
         const now = globalTimeRange.max || Date.now() / 1000;
         requestVisibleRange(Math.max(0, globalTimeRange.min - 5), now + 5, 2);
-    }
-}
-
-function setAutoRange() {
-    viewMode = 'autoRange';
-    console.log('Switched to auto range mode (updates continue)');
-    applyViewMode();
-    // Request recent data for auto-ranging
-    if (pollingActive && activeSignals.size > 0) {
-        const now = globalTimeRange.max || Date.now() / 1000;
-        requestVisibleRange(Math.max(0, now - LIVE_WINDOW_SIZE), now + 5, 3);
     }
 }
 
@@ -481,9 +625,10 @@ window.graphView = {
     startPolling,
     stopPolling,
     setLiveMode,
+    setLiveScrollMode,
+    setZoomMode,
     setManualMode,
-    showAllData,
-    setAutoRange
+    showAllData
 };
 
 // Debug logging
