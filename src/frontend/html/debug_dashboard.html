@@ -161,7 +161,16 @@ function displayMessage(data) {
 
     tableMessages[tableName].forEach(msg => {
         const messageContent = Object.entries(msg.data)
-            .map(([k, v]) => `${k}: ${v}`)
+            .map(([k, v]) => {
+                if (typeof v === 'object' && v !== null && 'value' in v && 'unit' in v) {
+                    if (v.unit && v.unit !== null && v.unit !== "null" && v.unit !== "") {
+                        return `${k}: ${v.value} ${v.unit}`;
+                    } else {
+                        return `${k}: ${v.value}`;
+                    }
+                }
+                return `${k}: ${v}`;
+            })
             .join('\n');
 
         const div = document.createElement('div');
@@ -176,8 +185,8 @@ function displayMessage(data) {
             div.appendChild(document.createElement('br'));
         } else {
             div.textContent = "No Messages Received";
-        }
-
+        } 
+        
         div.appendChild(document.createTextNode(messageContent));
         cardBody.appendChild(div);
     });
