@@ -44,7 +44,30 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
 <script>
 const maxMessagesPerTable = 1;
-let checkedTables = ["MotorCommands", "DashboardCommands"];
+// Persist selected tables across page navigations using localStorage
+const STORAGE_KEY_SELECTED = 'debug:selectedTables';
+const DEFAULT_SELECTED = ["MotorCommands", "DashboardCommands"];
+
+function loadSelectedFromStorage() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY_SELECTED);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+function saveSelectedToStorage(selected) {
+    try {
+        localStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify(selected || []));
+    } catch (_) {
+        // noop
+    }
+}
+
+let checkedTables = loadSelectedFromStorage() || DEFAULT_SELECTED;
 const tableMessages = {};
 const lastReceivedTime = {};
 const lastMessageTime = {};
@@ -93,7 +116,9 @@ function fetchLatestMessages() {
 function populateCheckboxes(tableNames) {
     const form = document.getElementById('table-names-form');
     form.innerHTML = '';
-    checkedTables = ["MotorCommands", "DashboardCommands"];  // Reset on repopulate
+    // On repopulate, prefer persisted selection; otherwise use defaults
+    const persisted = loadSelectedFromStorage();
+    checkedTables = persisted && persisted.length ? persisted : DEFAULT_SELECTED;
 
     tableNames.forEach(name => {
         if (["sqlite_sequence", "Alerts", "TriggeredAlerts"].includes(name)) return;
@@ -116,13 +141,18 @@ function populateCheckboxes(tableNames) {
         checkboxWrapper.appendChild(label);
         form.appendChild(checkboxWrapper);
 
-        checkbox.addEventListener('change', loadTableData);
+        checkbox.addEventListener('change', () => {
+            loadTableData();
+        });
     });
+    // After creating checkboxes, apply visibility based on current selection
+    updateVisibleTables(checkedTables);
 }
 
 function loadTableData() {
     checkedTables = Array.from(document.querySelectorAll('input[name="tableName"]:checked'))
         .map(cb => cb.value);
+    saveSelectedToStorage(checkedTables);
     updateVisibleTables(checkedTables);
 }
 
