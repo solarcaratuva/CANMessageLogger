@@ -1,11 +1,8 @@
 import argparse
-from pathlib import Path
 import sys
-import threading
-from flask import Flask, request, render_template, redirect, send_file, send_from_directory
-import webbrowser
 import time
 import os
+import webbrowser
 
 from backend.submodule_automation import gitPull
 import backend.dbcs as dbcs
@@ -14,8 +11,8 @@ from backend.db_connection import DbConnection
 from backend.input import consumer, logfile_producer, live_log_producer, radio_producer
 from functools import partial
 from backend.sockio import debug_dashboard, alert_manager  # noqa: F401 (ensure handlers are registered)
+from startup_server import launch_startup_options
 
-SETUP_PORT = 5499
 SOCKETIO_PORT = 5500
 
 def build_parser() -> argparse.ArgumentParser:
@@ -46,7 +43,8 @@ def run_server(args):
     dbcs.load_dbc_files()
 
     if getattr(args, "inputFile", None) and args.inputFile and not os.path.exists(args.inputFile[0]):
-        raise FileNotFoundError(f"The input file '{args.inputFile[0]}' does not exist.")
+        print(f"The input file '{args.inputFile[0]}' does not exist.")
+        sys.exit()
 
     datafile_path = args.inputFile[0] if args.inputFile else None
 
@@ -91,52 +89,6 @@ def run_server(args):
     webbrowser.open(f'http://localhost:{SOCKETIO_PORT}')
     socketio.run(socketio_app, debug=False, allow_unsafe_werkzeug=True, host="0.0.0.0", port=SOCKETIO_PORT)
 
-def launch_startup_options():
-    
-    BASE_DIR = Path(__file__).resolve().parent 
-    FRONTEND_DIR = (BASE_DIR / "frontend").resolve()
-    HTML_DIR = (FRONTEND_DIR / "html").resolve()
-    STATIC_DIR = (FRONTEND_DIR / "static").resolve()
-    """A minimal local setup server that collects options then launches the real app."""
-    setup_app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="/static")
-
-    @setup_app.route("/", methods=["GET"])
-    def index():
-        return send_file("frontend/html/startup_options.html")
-    
-    @setup_app.route("/static/<path:filename>")
-    def static_files(filename):
-        return send_from_directory("frontend/static", filename)
-
-    def _shutdown(flask_request):
-        func = flask_request.environ.get("werkzeug.server.shutdown")
-        if func:
-            func()
-
-    @setup_app.route("/start", methods=["POST"])
-    def start():
-        # Gather form inputs into an argparse-like Namespace
-        class Opts: pass
-        opts = Opts()
-        opts.logType = request.form.get("logType")
-        inputFile = request.form.get("inputFile") or ""
-        opts.inputFile = [inputFile] if inputFile.strip() else None
-        outputDB = request.form.get("outputDB") or ""
-        opts.outputDB = [outputDB] if outputDB.strip() else None
-        opts.set_dbc_branch = request.form.get("set_dbc_branch") or "main"
-
-        # Launch the real server in a new thread
-        t = threading.Thread(target=lambda: run_server(opts), daemon=True)
-        t.start()
-
-        # Close the setup server and redirect to the real app
-        threading.Timer(0.25, lambda: _shutdown(request)).start()
-        return redirect(f"http://localhost:{SOCKETIO_PORT}", code=302)
-
-    # Open browser to setup UI and run the startup options server 
-    webbrowser.open(f"http://localhost:{SETUP_PORT}")
-    setup_app.run(host="127.0.0.1", port=SETUP_PORT, debug=False)
-
 def main():
     # Continue supporting CLI args 
     if len(sys.argv) > 1:
@@ -145,7 +97,7 @@ def main():
         run_server(args)
     else:
         # Only launches setup if no CLI args are shown
-        launch_startup_options()
+        launch_startup_options(run_server)
 
 if __name__ == "__main__":
     main()
