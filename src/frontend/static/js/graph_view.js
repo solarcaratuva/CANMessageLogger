@@ -384,6 +384,11 @@ function startPolling() {
     
     // Set status to receiving immediately
     updateDataStatus('receiving');
+
+    // If resuming in Live Scroll mode, ensure the scrolling interval restarts
+    if (viewMode === 'liveScroll' && liveScrollConfig.enabled) {
+        startLiveScrolling();
+    }
     
     function poll() {
         if (!pollingActive) return;
@@ -458,7 +463,7 @@ function stopPolling() {
     // Stop live scrolling when polling stops
     stopLiveScrolling();
     // Set status to inactive when polling stops
-    updateDataStatus('inactive');
+    updateDataStatus('paused');
 }
 
 // Function to add a new signal to the graph
