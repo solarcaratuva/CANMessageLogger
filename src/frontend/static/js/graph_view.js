@@ -384,6 +384,11 @@ function startPolling() {
     
     // Set status to receiving immediately
     updateDataStatus('receiving');
+
+    // If resuming in Live Scroll mode, ensure the scrolling interval restarts
+    if (viewMode === 'liveScroll' && liveScrollConfig.enabled) {
+        startLiveScrolling();
+    }
     
     function poll() {
         if (!pollingActive) return;
