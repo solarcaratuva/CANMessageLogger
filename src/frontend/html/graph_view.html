@@ -116,6 +116,9 @@
           
           <!-- Control Buttons -->
           <div class="control-buttons-container">
+            <button id="pauseResumeBtn" class="btn control-button" title="Pause fetching new data">
+              <i class="fa fa-pause mr-1" id="pauseResumeIcon"></i> <span id="pauseResumeText">Pause</span>
+            </button>
             <button id="zoomBtn" class="btn control-button">
               <i class="fa fa-search-plus mr-1"></i> Zoom
             </button>
@@ -218,6 +221,10 @@
         case 'active':
           indicator.className = 'data-indicator active';
           statusText.textContent = 'Live Data';
+          break;
+        case 'paused':
+          indicator.className = 'data-indicator inactive';
+          statusText.textContent = 'Paused';
           break;
         case 'warning':
           indicator.className = 'data-indicator receiving';
@@ -440,6 +447,35 @@
     }
     
     // Event listeners for control buttons
+    // Pause/Resume toggle button
+    const pauseBtn = document.getElementById('pauseResumeBtn');
+    const pauseIcon = document.getElementById('pauseResumeIcon');
+    const pauseText = document.getElementById('pauseResumeText');
+    let isPaused = false;
+
+    pauseBtn.addEventListener('click', function() {
+      if (!isPaused) {
+        // Pause polling
+        if (window.graphView && window.graphView.stopPolling) {
+          window.graphView.stopPolling();
+        }
+        isPaused = true;
+        pauseIcon.className = 'fa fa-play mr-1';
+        pauseText.textContent = 'Resume';
+        updateDataIndicator('paused');
+        logDebug('Polling paused by user');
+      } else {
+        // Resume polling
+        if (window.graphView && window.graphView.startPolling) {
+          window.graphView.startPolling();
+        }
+        isPaused = false;
+        pauseIcon.className = 'fa fa-pause mr-1';
+        pauseText.textContent = 'Pause';
+        logDebug('Polling resumed by user');
+      }
+    });
+
     document.getElementById('zoomBtn').addEventListener('click', function() {
       // Show zoom inputs and get values
       showInputsForMode('zoom');
