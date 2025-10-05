@@ -458,7 +458,7 @@ function stopPolling() {
     // Stop live scrolling when polling stops
     stopLiveScrolling();
     // Set status to inactive when polling stops
-    updateDataStatus('inactive');
+    updateDataStatus('paused');
 }
 
 // Function to add a new signal to the graph
