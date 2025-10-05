@@ -1,7 +1,8 @@
 import argparse
+from pathlib import Path
 import sys
 import threading
-from flask import Flask, request, send_file, redirect
+from flask import Flask, request, render_template, redirect, send_file, send_from_directory
 import webbrowser
 import time
 import os
@@ -91,12 +92,21 @@ def run_server(args):
     socketio.run(socketio_app, debug=False, allow_unsafe_werkzeug=True, host="0.0.0.0", port=SOCKETIO_PORT)
 
 def launch_startup_options():
+    
+    BASE_DIR = Path(__file__).resolve().parent 
+    FRONTEND_DIR = (BASE_DIR / "frontend").resolve()
+    HTML_DIR = (FRONTEND_DIR / "html").resolve()
+    STATIC_DIR = (FRONTEND_DIR / "static").resolve()
     """A minimal local setup server that collects options then launches the real app."""
-    setup_app = Flask(__name__)
+    setup_app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="/static")
 
     @setup_app.route("/", methods=["GET"])
     def index():
         return send_file("frontend/html/startup_options.html")
+    
+    @setup_app.route("/static/<path:filename>")
+    def static_files(filename):
+        return send_from_directory("frontend/static", filename)
 
     def _shutdown(flask_request):
         func = flask_request.environ.get("werkzeug.server.shutdown")
