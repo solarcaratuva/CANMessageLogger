@@ -26,6 +26,8 @@ def main():
     args = parser.parse_args()
 
     submodule_path = os.path.relpath("resources/CAN-messages")
+    print("submodule_path: ", submodule_path)
+    print("set_dbc input: ", args.set_dbc_branch)
 
     success, message = gitPull(args.set_dbc_branch, submodule_path=submodule_path)
     print("[GIT]", message)
