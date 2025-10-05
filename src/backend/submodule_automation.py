@@ -7,10 +7,10 @@ import requests
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-
 def ensure_submodule_initialized(submodule_path: str):
     """Ensure the given submodule is initialized and updated."""
     try:
+        print("RUNNING SUBPROECESS")
         subprocess.run(
             ["git", "submodule", "update", "--init", "--recursive", "--", submodule_path],
             cwd=REPO_ROOT,
@@ -37,10 +37,12 @@ def gitPull(branch: str, submodule_path: str = None) -> tuple[bool, str]:
         print("✔️ Repo loaded")
 
         if is_connected(repo):
+            print("is connected true condition")
             origin = repo.remote(name='origin')
             origin.fetch()
 
             remote_branches = [ref.name.split('/')[-1] for ref in origin.refs]
+            print("remote branches: ", remote_branches)
             if branch in remote_branches:
                 repo.git.checkout(branch)
                 origin.pull()
@@ -51,6 +53,7 @@ def gitPull(branch: str, submodule_path: str = None) -> tuple[bool, str]:
                 return False, f"[GIT ERROR] Branch \"{branch}\" does not exist remotely in {submodule_path or 'main repo'}!"
 
         else:
+            print("is connected false condition")
             local_branches = [head.name for head in repo.heads]
             if branch in local_branches:
                 repo.git.checkout(branch)
@@ -68,7 +71,19 @@ def gitPull(branch: str, submodule_path: str = None) -> tuple[bool, str]:
 def is_connected(repo) -> bool:
     try:
         url = next(repo.remote(name='origin').urls)
-        url = url.replace("git@", "https://").replace(":", "/").split(".git")[0]
-        return requests.get(url).ok
-    except:
+        
+        # Handle SSH URLs (git@github.com:user/repo.git -> https://github.com/user/repo)
+        if url.startswith("git@"):
+            url = url.replace("git@", "https://").replace(":", "/", 1)
+        
+        # Remove .git suffix if present
+        if url.endswith(".git"):
+            url = url[:-4]
+            
+        print("is connected:", url)
+        r = requests.get(url, timeout=5)
+        print("The requests get was", r.ok)
+        return r.ok
+    except Exception as e:
+        print(f"Connection check failed: {e}")
         return False
