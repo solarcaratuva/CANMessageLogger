@@ -1,8 +1,23 @@
 import React from 'react';
 import "./SpeedComponent.css"
 
-const SpeedComponent = ({current, max, min, average}) => {
-    return(
+//all speed components are too verbose for main page
+//showOnlyCurrent boolean will be set to true on landing page
+const SpeedComponent = ({current, max, min, average, showOnlyCurrent}) => {
+    if(showOnlyCurrent){
+        return(
+            <div className="speed-component">
+            <h2>SPEED</h2>
+            <div className='speed-card speed-avg'>
+                <p>Current</p>
+                <h3>{current} mph</h3>
+            </div>
+            </div>
+        )
+    }
+    
+    else{
+        return(
     <div>
         <div className="speed-component">
             <h2>SPEED</h2>
@@ -27,8 +42,8 @@ const SpeedComponent = ({current, max, min, average}) => {
                     <h3>{max} mph</h3>
             </div>
         </div>
-    </div>
-    )
+    </div>)
+    }
 }
 
 export default SpeedComponent;
