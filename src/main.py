@@ -1,5 +1,6 @@
 import argparse
 import sys
+from backend.submodule_automation import initialize_submodule, get_submodule_branches, set_submodule_branch, is_connected
 import time
 import os
 import webbrowser
@@ -34,11 +35,47 @@ def run_server(args):
     if not os.path.exists(db_dir):
         os.makedirs(db_dir)
 
-    submodule_path = os.path.relpath("resources/CAN-messages")
-    success, message = gitPull(args.set_dbc_branch, submodule_path=submodule_path)
-    print("[GIT]", message)
-    if not success:
-        print("[GIT ERROR] Continuing anyway...")
+    # Initialize submodule at startup
+    print("[STARTUP] Initializing submodule...")
+    try:
+        initialize_submodule()
+        
+        # Get available branches
+        available_branches = get_submodule_branches()
+        print(f"[STARTUP] Available DBC branches: {available_branches}")
+        
+        # Set the requested branch
+        online = is_connected()
+        print(f"[STARTUP] Internet connection: {'Available' if online else 'Not available'}")
+        
+        set_submodule_branch(args.set_dbc_branch, online)
+        print(f"[STARTUP] Successfully set DBC branch to: {args.set_dbc_branch}")
+        
+        # Print detailed verification info
+        print("[VERIFICATION] Checking DBC submodule status...")
+        import git
+        submodule_path = os.path.join("resources", "CAN-messages")
+        if os.path.exists(submodule_path):
+            repo = git.Repo(submodule_path)
+            current_branch = repo.active_branch.name
+            current_commit = repo.head.commit.hexsha[:8]
+            commit_message = repo.head.commit.message.strip()
+            commit_date = repo.head.commit.committed_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            
+            print(f"[VERIFICATION] Current branch: {current_branch}")
+            print(f"[VERIFICATION] Current commit: {current_commit}")
+            print(f"[VERIFICATION] Commit message: {commit_message}")
+            print(f"[VERIFICATION] Commit date: {commit_date}")
+            
+            # List DBC files in the submodule
+            dbc_files = [f for f in os.listdir(submodule_path) if f.endswith('.dbc')]
+            print(f"[VERIFICATION] DBC files found: {dbc_files}")
+        else:
+            print("[VERIFICATION] Submodule directory not found!")
+        
+    except Exception as e:
+        print(f"[STARTUP ERROR] Submodule setup failed: {e}")
+        print("[STARTUP ERROR] Continuing anyway...")
 
     dbcs.load_dbc_files()
 
