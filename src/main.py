@@ -4,8 +4,6 @@ from backend.submodule_automation import initialize_submodule, get_submodule_bra
 import time
 import os
 import webbrowser
-
-from backend.submodule_automation import gitPull
 import backend.dbcs as dbcs
 from backend.sockio.socket import socketio, app as socketio_app
 from backend.db_connection import DbConnection
@@ -15,6 +13,8 @@ from backend.sockio import debug_dashboard, alert_manager  # noqa: F401 (ensure 
 from startup_server import launch_startup_options
 
 from backend.sockio import debug_dashboard, alert_manager, graph_view 
+
+SOCKETIO_PORT = 5500
 
 def build_parser() -> argparse.ArgumentParser:
     data_sources = ["pastlog", "livelog", "mock_livelog", "db", "radio"]
@@ -36,23 +36,19 @@ def run_server(args):
         os.makedirs(db_dir)
 
     # Initialize submodule at startup
-    print("[STARTUP] Initializing submodule...")
     try:
         initialize_submodule()
         
         # Get available branches
         available_branches = get_submodule_branches()
-        print(f"[STARTUP] Available DBC branches: {available_branches}")
         
         # Set the requested branch
         online = is_connected()
-        print(f"[STARTUP] Internet connection: {'Available' if online else 'Not available'}")
         
         set_submodule_branch(args.set_dbc_branch, online)
         print(f"[STARTUP] Successfully set DBC branch to: {args.set_dbc_branch}")
         
         # Print detailed verification info
-        print("[VERIFICATION] Checking DBC submodule status...")
         import git
         submodule_path = os.path.join("resources", "CAN-messages")
         if os.path.exists(submodule_path):
@@ -69,7 +65,6 @@ def run_server(args):
             
             # List DBC files in the submodule
             dbc_files = [f for f in os.listdir(submodule_path) if f.endswith('.dbc')]
-            print(f"[VERIFICATION] DBC files found: {dbc_files}")
         else:
             print("[VERIFICATION] Submodule directory not found!")
         

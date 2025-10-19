@@ -12,13 +12,11 @@ SUBMODULE_PATH = "resources/CAN-messages"
 def initialize_submodule() -> None:
     """Initialize the submodule if it isn't already. Should be run at startup."""
     try:
-        print("[GIT] Initializing submodule...")
         subprocess.run(
             ["git", "submodule", "update", "--init", "--recursive", "--", SUBMODULE_PATH],
             cwd=REPO_ROOT,
             check=True
         )
-        print("✔️ Submodule initialized")
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"Failed to initialize submodule at {SUBMODULE_PATH}: {e}")
 
@@ -51,7 +49,6 @@ def get_submodule_branches() -> list[str]:
         
         # Remove duplicates and sort
         branches = sorted(list(set(branches)))
-        print(f"[GIT] Available branches: {branches}")
         return branches
         
     except Exception as e:
@@ -85,7 +82,7 @@ def set_submodule_branch(branch: str, online: bool) -> None:
             local_branches = [head.name for head in repo.heads]
             if branch in local_branches:
                 repo.git.checkout(branch)
-                print(f"✔️ Switched to local branch '{branch}'")
+                print(f"Switched to local branch '{branch}'")
             else:
                 # Try to checkout main as fallback
                 if 'main' in local_branches:
