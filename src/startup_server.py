@@ -42,12 +42,16 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
         opts.outputDB = [outputDB] if outputDB.strip() else None
         opts.set_dbc_branch = request.form.get("set_dbc_branch") or "main"
 
+        # Capture the shutdown function within the request context
+        shutdown_func = request.environ.get("werkzeug.server.shutdown")
+
         # Launch the real server in a new thread
         t = threading.Thread(target=lambda: run_server_callback(opts), daemon=True)
         t.start()
 
         # Close the setup server and redirect to the real app
-        threading.Timer(0.25, lambda: _shutdown(request)).start()
+        if shutdown_func:
+            threading.Timer(0.25, shutdown_func).start()
         return redirect(f"http://localhost:{socketio_port}", code=302)
 
     # Open browser to setup UI and run the startup options server 
