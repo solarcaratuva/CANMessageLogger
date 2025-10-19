@@ -15,8 +15,6 @@ from startup_server import launch_startup_options
 
 from backend.sockio import debug_dashboard, alert_manager, graph_view 
 
-SOCKETIO_PORT = 5500
-
 def build_parser() -> argparse.ArgumentParser:
     data_sources = ["pastlog", "livelog", "mock_livelog", "db", "radio"]
     parser = argparse.ArgumentParser()
