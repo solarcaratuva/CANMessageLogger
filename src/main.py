@@ -13,7 +13,7 @@ from functools import partial
 from backend.sockio import debug_dashboard, alert_manager  # noqa: F401 (ensure handlers are registered)
 from startup_server import launch_startup_options
 
-SOCKETIO_PORT = 5500
+from backend.sockio import debug_dashboard, alert_manager, graph_view 
 
 def build_parser() -> argparse.ArgumentParser:
     data_sources = ["pastlog", "livelog", "mock_livelog", "db", "radio"]

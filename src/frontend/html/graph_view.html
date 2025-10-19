@@ -1,0 +1,596 @@
+{% extends "generic.html" %}
+{% block title %}Graph View{% endblock %}
+
+{% block head_extra %}
+<style>
+  /* Custom styles for the graph view */
+  .control-button {
+    margin-right: 8px;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  
+  .control-button.active {
+    background-color: #28a745;
+    color: white;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+    border-color: #28a745;
+  }
+  
+  .control-button:hover:not(.active) {
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  
+  .status-bar {
+    padding: 8px 16px;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 15px;
+  }
+  
+  .status-item {
+    display: inline-block;
+    margin-right: 12px;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  
+  .data-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+  }
+  
+  .data-indicator.active {
+    background-color: #28a745;
+  }
+  
+  .data-indicator.inactive {
+    background-color: #6c757d;
+  }
+  
+  .data-indicator.receiving {
+    background-color: #ffc107;
+    animation: pulse 1s infinite;
+  }
+  
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+  
+  /* Clean up button group layout */
+  .control-buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hide error message section from generic template -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Hide the error card from the generic template
+    const errorCard = document.getElementById('errorCard');
+    if (errorCard) {
+      errorCard.style.display = 'none';
+    }
+  });
+</script>
+
+<div class="container-fluid mt-4">
+  <div class="row">
+    <!-- Graph Container -->
+    <div class="col-md-9">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">Real-time CAN Data Graph</h4>
+        </div>
+        
+        <!-- Status Bar -->
+        <div class="card-body pb-0">
+          <div class="status-bar d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <span id="currentTimestamp" class="status-item badge-primary">Current Time: 0.000s</span>
+              <span id="timeRange" class="status-item badge-secondary">Data Range: 0.000s - 0.000s</span>
+            </div>
+            <div>
+              <div class="data-status">
+                <span class="data-indicator active" id="liveDataIndicator"></span>
+                <span id="dataStatusText">Live Data</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Control Buttons -->
+          <div class="control-buttons-container">
+            <button id="pauseResumeBtn" class="btn control-button" title="Pause fetching new data">
+              <i class="fa fa-pause mr-1" id="pauseResumeIcon"></i> <span id="pauseResumeText">Pause</span>
+            </button>
+            <button id="zoomBtn" class="btn control-button">
+              <i class="fa fa-search-plus mr-1"></i> Zoom
+            </button>
+            <button id="zoomScrollBtn" class="btn control-button active">
+              <i class="fa fa-arrows-alt-h mr-1"></i> Live Scroll
+            </button>
+            <button id="showAllDataBtn" class="btn control-button">
+              <i class="fa fa-chart-line mr-1"></i> Live Show All
+            </button>
+          </div>
+          
+          <div id="graphContainer" style="width: 100%; height: 500px;"></div>
+
+          <div class="time-range-selector mt-4 mb-3">
+            <!-- Zoom Mode Inputs -->
+            <div id="zoomInputs" class="form-row align-items-end">
+              <div class="col-md-6">
+                <label for="startTime" class="mb-1">Start Time (s):</label>
+                <input type="number" class="form-control" id="startTime" step="0.001" min="0" value="0">
+              </div>
+              <div class="col-md-6">
+                <label for="endTime" class="mb-1">End Time (s):</label>
+                <input type="number" class="form-control" id="endTime" step="0.001" min="0" value="60">
+              </div>
+            </div>
+            
+            <!-- Live Scroll Mode Inputs -->
+            <div id="liveScrollInputs" class="form-row align-items-end" style="display: none;">
+              <div class="col-md-12">
+                <label for="timeDifferential" class="mb-1">Time Window (s):</label>
+                <input type="number" class="form-control" id="timeDifferential" step="0.001" min="0.1" value="10">
+                <small class="form-text text-muted">Shows the last X seconds from current data time</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Control Panel -->
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-header bg-secondary text-white">
+          <h4 class="mb-0">Data Selection</h4>
+        </div>
+        <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+          <div class="d-flex justify-content-between mb-3">
+            <button id="selectAllBtn" class="btn btn-sm btn-outline-primary">Select All</button>
+            <button id="clearAllBtn" class="btn btn-sm btn-outline-secondary">Clear All</button>
+          </div>
+          <div id="signalSelectors">
+            <!-- Will be populated dynamically with CAN message types and signals -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Include Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<!-- Include graph_view.js for HTTP polling-based data fetching -->
+<script src="/static/js/graph_view.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // HTTP polling-based data fetching (handled by graph_view.js)
+    
+    // Note: Graph initialization is now handled by graph_view.js
+    
+    // Mode flags
+    let zoomWithScroll = false;
+    let zoomRange = false;
+    let autoRange = true;
+    
+    // Time window
+    let startTime = 0;
+    let endTime = 60;
+    let timeWindow = endTime - startTime;
+    
+    // Data tracking variables
+    let globalMinTime = Infinity;
+    let globalMaxTime = -Infinity;
+    // Track last timestamp for each signal to detect gaps
+    let lastTimestamps = {};
+    
+    // For tracking whether we've received any data
+    let dataReceived = false;
+    
+    // Update live data indicator function (make it globally available)
+    function updateDataIndicator(status) {
+      const indicator = document.getElementById('liveDataIndicator');
+      const statusText = document.getElementById('dataStatusText');
+      
+      switch(status) {
+        case 'receiving':
+          indicator.className = 'data-indicator receiving';
+          statusText.textContent = 'Receiving Data';
+          break;
+        case 'active':
+          indicator.className = 'data-indicator active';
+          statusText.textContent = 'Live Data';
+          break;
+        case 'paused':
+          indicator.className = 'data-indicator inactive';
+          statusText.textContent = 'Paused';
+          break;
+        case 'warning':
+          indicator.className = 'data-indicator receiving';
+          statusText.textContent = 'Slow Data';
+          break;
+        default:
+          indicator.className = 'data-indicator inactive';
+          statusText.textContent = 'No Data';
+      }
+    }
+    
+    // Make function globally available for graph_view.js
+    window.updateDataIndicator = updateDataIndicator;
+    
+    // Initialize indicator
+    updateDataIndicator('inactive');
+    
+    // Debug message function
+    function logDebug(message) {
+      console.log(`[Graph] ${new Date().toISOString()}: ${message}`);
+    }
+    
+    // Function to fetch and populate available signal types
+    function fetchSignalTypes() {
+      logDebug("Fetching signal types...");
+      fetch('/get_can_message_types')
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            logDebug(`Received message types: ${Object.keys(data.message_types).length} message types`);
+            populateSignalCheckboxes(data.message_types);
+          } else {
+            logDebug(`Error in response: ${JSON.stringify(data)}`);
+          }
+        })
+        .catch(error => {
+          logDebug(`Error fetching CAN message types: ${error}`);
+          console.error('Error fetching CAN message types:', error);
+        });
+    }
+    
+    // Function to populate the signal checkboxes
+    function populateSignalCheckboxes(messageTypes) {
+      const signalSelectorsDiv = document.getElementById('signalSelectors');
+      signalSelectorsDiv.innerHTML = '';
+      
+      Object.keys(messageTypes).sort().forEach(messageType => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message-type mb-3';
+        
+        const messageHeader = document.createElement('div');
+        messageHeader.className = 'message-header d-flex justify-content-between';
+        
+        const messageLabel = document.createElement('h5');
+        messageLabel.textContent = messageType;
+        messageLabel.className = 'mb-2';
+        
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'btn btn-sm btn-outline-info toggle-btn';
+        toggleBtn.textContent = 'Toggle All';
+        toggleBtn.dataset.messageType = messageType;
+        
+        messageHeader.appendChild(messageLabel);
+        messageHeader.appendChild(toggleBtn);
+        messageDiv.appendChild(messageHeader);
+        
+        const signalsDiv = document.createElement('div');
+        signalsDiv.className = 'signals pl-3';
+        
+        Object.keys(messageTypes[messageType]).sort().forEach(signalName => {
+          const signalType = messageTypes[messageType][signalName];
+          
+          // Remove the type check to show all signals
+          const checkboxDiv = document.createElement('div');
+          checkboxDiv.className = 'form-check';
+          
+          const checkboxInput = document.createElement('input');
+          checkboxInput.type = 'checkbox';
+          checkboxInput.className = 'form-check-input signal-checkbox';
+          checkboxInput.id = `${messageType}.${signalName}`;
+          checkboxInput.dataset.messageType = messageType;
+          checkboxInput.dataset.signalName = signalName;
+          
+          const checkboxLabel = document.createElement('label');
+          checkboxLabel.className = 'form-check-label';
+          checkboxLabel.htmlFor = `${messageType}.${signalName}`;
+          checkboxLabel.textContent = `${signalName} (${signalType})`;  // Show signal type in label
+          
+          checkboxDiv.appendChild(checkboxInput);
+          checkboxDiv.appendChild(checkboxLabel);
+          signalsDiv.appendChild(checkboxDiv);
+          
+          // Add event listener to checkbox
+          checkboxInput.addEventListener('change', function() {
+            const id = `${this.dataset.messageType}.${this.dataset.signalName}`;
+            const signalName = `${this.dataset.messageType}.${this.dataset.signalName}`;
+            
+            if (this.checked) {
+              // Add signal using the new graph_view.js API
+              const randomColor = getRandomColor();
+              console.log('Attempting to add signal:', id, 'graphView available:', !!window.graphView);
+              if (window.graphView && window.graphView.addSignal) {
+                window.graphView.addSignal(id, signalName, randomColor);
+                logDebug(`Added signal ${id} to graph`);
+              } else {
+                console.error('graphView not available, window.graphView:', window.graphView);
+                // Fallback: try again after a short delay in case scripts are still loading
+                setTimeout(() => {
+                  if (window.graphView && window.graphView.addSignal) {
+                    window.graphView.addSignal(id, signalName, randomColor);
+                    logDebug(`Added signal ${id} to graph (delayed)`);
+                  }
+                }, 100);
+              }
+            } else {
+              // Remove signal using the new graph_view.js API
+              console.log('Attempting to remove signal:', id, 'graphView available:', !!window.graphView);
+              if (window.graphView && window.graphView.removeSignal) {
+                window.graphView.removeSignal(id);
+                logDebug(`Removed signal ${id} from graph`);
+              } else {
+                console.error('graphView not available for removal, window.graphView:', window.graphView);
+              }
+            }
+          });
+        });
+        
+        messageDiv.appendChild(signalsDiv);
+        signalSelectorsDiv.appendChild(messageDiv);
+        
+        // Add event listener to toggle button
+        toggleBtn.addEventListener('click', function() {
+          const messageType = this.dataset.messageType;
+          const checkboxes = document.querySelectorAll(`.signal-checkbox[data-message-type="${messageType}"]`);
+          
+          // Check if all are checked
+          const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+          
+          // Toggle all checkboxes
+          checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+            // Trigger change event
+            const event = new Event('change');
+            cb.dispatchEvent(event);
+          });
+        });
+      });
+    }
+    
+    // Utility function to generate random colors
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+    
+    // HTTP polling status management
+    let lastDataTime = 0;
+    let dataReceiveCheckInterval;
+    
+    function startDataStatusChecking() {
+      updateDataIndicator('active');
+      logDebug('HTTP polling status checking started');
+      
+      // Check for data activity every 2 seconds
+      dataReceiveCheckInterval = setInterval(() => {
+        const now = Date.now();
+        if (now - lastDataTime > 5000) { // No data for 5 seconds
+          updateDataIndicator('inactive');
+        } else if (now - lastDataTime > 2000) { // Slow data
+          updateDataIndicator('warning');
+        } else {
+        updateDataIndicator('active');
+        }
+      }, 2000);
+    }
+    
+    // Start checking data status
+    startDataStatusChecking();
+    
+    // Note: CAN message handling is now done by graph_view.js using HTTP polling
+    // This provides better performance and memory management with proper downsampling
+    
+    // Function to update the active button states
+    function updateButtonStates(activeButtonId) {
+      // Remove active class from all buttons
+      document.querySelectorAll('.control-button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      // Add active class to the selected button
+      if (activeButtonId) {
+        document.getElementById(activeButtonId).classList.add('active');
+      }
+    }
+    
+    // Function to show/hide appropriate input fields based on mode
+    function showInputsForMode(mode) {
+      const zoomInputs = document.getElementById('zoomInputs');
+      const liveScrollInputs = document.getElementById('liveScrollInputs');
+      
+      if (mode === 'zoom') {
+        zoomInputs.style.display = 'flex';
+        liveScrollInputs.style.display = 'none';
+      } else if (mode === 'liveScroll') {
+        zoomInputs.style.display = 'none';
+        liveScrollInputs.style.display = 'flex';
+      } else if (mode === 'showAll') {
+        // Hide all inputs for show all mode
+        zoomInputs.style.display = 'none';
+        liveScrollInputs.style.display = 'none';
+      } else {
+        // Default: show zoom inputs
+        zoomInputs.style.display = 'flex';
+        liveScrollInputs.style.display = 'none';
+      }
+    }
+    
+    // Event listeners for control buttons
+    // Pause/Resume toggle button
+    const pauseBtn = document.getElementById('pauseResumeBtn');
+    const pauseIcon = document.getElementById('pauseResumeIcon');
+    const pauseText = document.getElementById('pauseResumeText');
+    let isPaused = false;
+
+    pauseBtn.addEventListener('click', function() {
+      if (!isPaused) {
+        // Pause polling
+        if (window.graphView && window.graphView.stopPolling) {
+          window.graphView.stopPolling();
+        }
+        isPaused = true;
+        pauseIcon.className = 'fa fa-play mr-1';
+        pauseText.textContent = 'Resume';
+        updateDataIndicator('paused');
+        logDebug('Polling paused by user');
+      } else {
+        // Resume polling
+        if (window.graphView && window.graphView.startPolling) {
+          window.graphView.startPolling();
+        }
+        isPaused = false;
+        pauseIcon.className = 'fa fa-pause mr-1';
+        pauseText.textContent = 'Pause';
+        logDebug('Polling resumed by user');
+      }
+    });
+
+    document.getElementById('zoomBtn').addEventListener('click', function() {
+      // Show zoom inputs and get values
+      showInputsForMode('zoom');
+      const startTime = parseFloat(document.getElementById('startTime').value) || 0;
+      const endTime = parseFloat(document.getElementById('endTime').value) || 60;
+      
+      if (window.graphView && window.graphView.setZoomMode) {
+        window.graphView.setZoomMode(startTime, endTime);
+        updateButtonStates('zoomBtn');
+        logDebug(`Zoom mode activated: fixed range [${startTime}, ${endTime}]`);
+      }
+    });
+    
+    document.getElementById('zoomScrollBtn').addEventListener('click', function() {
+      // Show live scroll inputs and get values
+      showInputsForMode('liveScroll');
+      const timeDifferential = parseFloat(document.getElementById('timeDifferential').value) || 10;
+      
+      if (window.graphView && window.graphView.setLiveScrollMode) {
+        // Use actual current time from data, not user input
+        window.graphView.setLiveScrollMode(timeDifferential);
+        updateButtonStates('zoomScrollBtn');
+        logDebug(`Live Scroll mode activated: showing last ${timeDifferential}s from current data time`);
+      }
+    });
+    
+    // Event listener for auto range button - REMOVED as per user request
+    // Auto Range functionality has been removed
+    
+    // Event listener for show all data button
+    document.getElementById('showAllDataBtn').addEventListener('click', function() {
+      // Hide all inputs for show all mode
+      showInputsForMode('showAll');
+      
+      if (window.graphView && window.graphView.showAllData) {
+        window.graphView.showAllData();
+        updateButtonStates('showAllDataBtn');
+        logDebug('Show all data activated');
+      }
+    });
+    
+    // Apply Range button removed - functionality integrated into Zoom and Live Scroll buttons
+    
+    // Add Enter key functionality for input fields
+    document.getElementById('startTime').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        // Trigger zoom mode with current values
+        const startTime = parseFloat(document.getElementById('startTime').value) || 0;
+        const endTime = parseFloat(document.getElementById('endTime').value) || 60;
+        
+        if (window.graphView && window.graphView.setZoomMode) {
+          window.graphView.setZoomMode(startTime, endTime);
+          updateButtonStates('zoomBtn');
+          logDebug(`Zoom mode activated via Enter: fixed range [${startTime}, ${endTime}]`);
+        }
+      }
+    });
+    
+    document.getElementById('endTime').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        // Trigger zoom mode with current values
+        const startTime = parseFloat(document.getElementById('startTime').value) || 0;
+        const endTime = parseFloat(document.getElementById('endTime').value) || 60;
+        
+        if (window.graphView && window.graphView.setZoomMode) {
+          window.graphView.setZoomMode(startTime, endTime);
+          updateButtonStates('zoomBtn');
+          logDebug(`Zoom mode activated via Enter: fixed range [${startTime}, ${endTime}]`);
+        }
+      }
+    });
+    
+    document.getElementById('timeDifferential').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        // Trigger live scroll mode with current value
+        const timeDifferential = parseFloat(document.getElementById('timeDifferential').value) || 10;
+        
+        if (window.graphView && window.graphView.setLiveScrollMode) {
+          window.graphView.setLiveScrollMode(timeDifferential);
+          updateButtonStates('zoomScrollBtn');
+          logDebug(`Live Scroll mode activated via Enter: showing last ${timeDifferential}s from current data time`);
+        }
+      }
+    });
+    
+    // Select all / Clear all buttons
+    document.getElementById('selectAllBtn').addEventListener('click', function() {
+      const checkboxes = document.querySelectorAll('.signal-checkbox');
+      checkboxes.forEach(cb => {
+        if (!cb.checked) {
+          cb.checked = true;
+          // Trigger change event
+          const event = new Event('change');
+          cb.dispatchEvent(event);
+        }
+      });
+      logDebug('Selected all signals');
+    });
+    
+    document.getElementById('clearAllBtn').addEventListener('click', function() {
+      const checkboxes = document.querySelectorAll('.signal-checkbox');
+      checkboxes.forEach(cb => {
+        if (cb.checked) {
+          cb.checked = false;
+          // Trigger change event
+          const event = new Event('change');
+          cb.dispatchEvent(event);
+        }
+      });
+      logDebug('Cleared all signals');
+    });
+    
+    // Initialize by fetching signal types
+    fetchSignalTypes();
+    logDebug('Graph view initialized');
+  });
+</script>
+{% endblock %} 

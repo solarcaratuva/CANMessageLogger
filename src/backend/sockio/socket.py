@@ -10,11 +10,9 @@ log.setLevel(logging.ERROR)
 app = Flask(__name__, template_folder='../../frontend/html', static_folder='../../frontend/static')
 socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
 
-
 @app.route('/')
 def index():
-    return render_template('debug_dashboard.html') # default page
-
+    return render_template('debug_dashboard.html')
 
 @socketio.on('connect')
 def handle_connect():
@@ -24,4 +22,3 @@ def handle_connect():
 @socketio.on('disconnect')
 def handle_disconnect():
     print("Client disconnected.")
-
