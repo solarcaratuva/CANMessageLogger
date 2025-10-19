@@ -4,9 +4,8 @@ from flask import Flask, request, redirect, send_file, send_from_directory
 import webbrowser
 
 SETUP_PORT = 5499
-SOCKETIO_PORT = 5500
 
-def launch_startup_options(run_server_callback):
+def launch_startup_options(run_server_callback, socketio_port=5500):
     """A minimal local setup server that collects options then launches the real app."""
     
     BASE_DIR = Path(__file__).resolve().parent 
@@ -22,7 +21,7 @@ def launch_startup_options(run_server_callback):
     
     @setup_app.route("/static/<path:filename>")
     def static_files(filename):
-        return send_from_directory("frontend/static", filename)
+        return send_from_directory(STATIC_DIR, filename)
 
     def _shutdown(flask_request):
         func = flask_request.environ.get("werkzeug.server.shutdown")
@@ -49,7 +48,7 @@ def launch_startup_options(run_server_callback):
 
         # Close the setup server and redirect to the real app
         threading.Timer(0.25, lambda: _shutdown(request)).start()
-        return redirect(f"http://localhost:{SOCKETIO_PORT}", code=302)
+        return redirect(f"http://localhost:{socketio_port}", code=302)
 
     # Open browser to setup UI and run the startup options server 
     webbrowser.open(f"http://localhost:{SETUP_PORT}")
