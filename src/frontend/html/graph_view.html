@@ -208,6 +208,34 @@
     // For tracking whether we've received any data
     let dataReceived = false;
     
+    // Load saved state from localStorage
+    let savedState = null;
+    if (window.graphView && window.graphView.loadStateFromStorage) {
+      savedState = window.graphView.loadStateFromStorage();
+      console.log('Loaded saved state:', savedState);
+    }
+    
+    // Restore view mode and configs from storage
+    if (window.graphView && window.graphView.restoreViewModeFromStorage) {
+      window.graphView.restoreViewModeFromStorage();
+    }
+    
+    // Restore input values from storage
+    if (window.graphView && window.graphView.loadInputValuesFromStorage) {
+      const savedInputs = window.graphView.loadInputValuesFromStorage();
+      if (savedInputs) {
+        if (savedInputs.startTime !== undefined) {
+          document.getElementById('startTime').value = savedInputs.startTime;
+        }
+        if (savedInputs.endTime !== undefined) {
+          document.getElementById('endTime').value = savedInputs.endTime;
+        }
+        if (savedInputs.timeDifferential !== undefined) {
+          document.getElementById('timeDifferential').value = savedInputs.timeDifferential;
+        }
+      }
+    }
+    
     // Update live data indicator function (make it globally available)
     function updateDataIndicator(status) {
       const indicator = document.getElementById('liveDataIndicator');
@@ -271,6 +299,10 @@
       const signalSelectorsDiv = document.getElementById('signalSelectors');
       signalSelectorsDiv.innerHTML = '';
       
+      // Get saved signals to restore checkbox states
+      const savedSignals = savedState && savedState.signals ? savedState.signals.map(s => s.id) : [];
+      console.log('Restoring checkboxes for saved signals:', savedSignals);
+      
       Object.keys(messageTypes).sort().forEach(messageType => {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message-type mb-3';
@@ -307,6 +339,12 @@
           checkboxInput.id = `${messageType}.${signalName}`;
           checkboxInput.dataset.messageType = messageType;
           checkboxInput.dataset.signalName = signalName;
+          
+          // Restore checkbox state if it was previously selected
+          const signalId = `${messageType}.${signalName}`;
+          if (savedSignals.includes(signalId)) {
+            checkboxInput.checked = true;
+          }
           
           const checkboxLabel = document.createElement('label');
           checkboxLabel.className = 'form-check-label';
@@ -354,6 +392,28 @@
         
         messageDiv.appendChild(signalsDiv);
         signalSelectorsDiv.appendChild(messageDiv);
+      });
+      
+      // After populating checkboxes, restore the saved signals
+      if (savedState && savedState.signals && savedState.signals.length > 0) {
+        console.log('Restoring saved signals...');
+        savedState.signals.forEach(signal => {
+          // Trigger the checkbox change event to add the signal
+          const checkbox = document.getElementById(signal.id);
+          if (checkbox && checkbox.checked) {
+            // Add signal using the saved color
+            if (window.graphView && window.graphView.addSignal) {
+              window.graphView.addSignal(signal.id, signal.name, signal.color);
+              logDebug(`Restored signal ${signal.id} from localStorage`);
+            }
+          }
+        });
+      }
+      
+      // Add toggle button event listeners after signals are restored
+      Object.keys(messageTypes).sort().forEach(messageType => {
+        const toggleBtn = document.querySelector(`button[data-message-type="${messageType}"]`);
+        if (!toggleBtn) return;
         
         // Add event listener to toggle button
         toggleBtn.addEventListener('click', function() {
@@ -451,7 +511,16 @@
     const pauseBtn = document.getElementById('pauseResumeBtn');
     const pauseIcon = document.getElementById('pauseResumeIcon');
     const pauseText = document.getElementById('pauseResumeText');
+    
+    // Restore pause state from localStorage
     let isPaused = false;
+    if (window.graphView && window.graphView.loadPauseStateFromStorage) {
+      isPaused = window.graphView.loadPauseStateFromStorage();
+      if (isPaused) {
+        pauseIcon.className = 'fa fa-play mr-1';
+        pauseText.textContent = 'Resume';
+      }
+    }
 
     pauseBtn.addEventListener('click', function() {
       if (!isPaused) {
@@ -464,6 +533,10 @@
         pauseText.textContent = 'Resume';
         updateDataIndicator('paused');
         logDebug('Polling paused by user');
+        // Save pause state
+        if (window.graphView && window.graphView.savePauseStateToStorage) {
+          window.graphView.savePauseStateToStorage(true);
+        }
       } else {
         // Resume polling
         if (window.graphView && window.graphView.startPolling) {
@@ -473,6 +546,10 @@
         pauseIcon.className = 'fa fa-pause mr-1';
         pauseText.textContent = 'Pause';
         logDebug('Polling resumed by user');
+        // Save pause state
+        if (window.graphView && window.graphView.savePauseStateToStorage) {
+          window.graphView.savePauseStateToStorage(false);
+        }
       }
     });
 
@@ -481,6 +558,11 @@
       showInputsForMode('zoom');
       const startTime = parseFloat(document.getElementById('startTime').value) || 0;
       const endTime = parseFloat(document.getElementById('endTime').value) || 60;
+      
+      // Save input values
+      if (window.graphView && window.graphView.saveInputValuesToStorage) {
+        window.graphView.saveInputValuesToStorage({ startTime, endTime, timeDifferential: parseFloat(document.getElementById('timeDifferential').value) || 10 });
+      }
       
       if (window.graphView && window.graphView.setZoomMode) {
         window.graphView.setZoomMode(startTime, endTime);
@@ -493,6 +575,11 @@
       // Show live scroll inputs and get values
       showInputsForMode('liveScroll');
       const timeDifferential = parseFloat(document.getElementById('timeDifferential').value) || 10;
+      
+      // Save input values
+      if (window.graphView && window.graphView.saveInputValuesToStorage) {
+        window.graphView.saveInputValuesToStorage({ startTime: parseFloat(document.getElementById('startTime').value) || 0, endTime: parseFloat(document.getElementById('endTime').value) || 60, timeDifferential });
+      }
       
       if (window.graphView && window.graphView.setLiveScrollMode) {
         // Use actual current time from data, not user input
@@ -587,6 +674,54 @@
       });
       logDebug('Cleared all signals');
     });
+    
+    // Restore view mode and button states after a short delay to ensure UI is ready
+    setTimeout(() => {
+      if (window.graphView && window.graphView.restoreViewModeFromStorage) {
+        const savedViewMode = localStorage.getItem('graphView:viewMode');
+        if (savedViewMode) {
+          console.log('Restoring view mode:', savedViewMode);
+          
+          // Update button states based on saved view mode
+          switch(savedViewMode) {
+            case 'live':
+              updateButtonStates(null); // No button active for default live mode
+              showInputsForMode('zoom');
+              break;
+            case 'liveScroll':
+              updateButtonStates('zoomScrollBtn');
+              showInputsForMode('liveScroll');
+              // Restore live scroll mode
+              const timeDiff = parseFloat(document.getElementById('timeDifferential').value) || 10;
+              if (window.graphView.setLiveScrollMode) {
+                window.graphView.setLiveScrollMode(timeDiff);
+              }
+              break;
+            case 'zoom':
+              updateButtonStates('zoomBtn');
+              showInputsForMode('zoom');
+              // Restore zoom mode
+              const startT = parseFloat(document.getElementById('startTime').value) || 0;
+              const endT = parseFloat(document.getElementById('endTime').value) || 60;
+              if (window.graphView.setZoomMode) {
+                window.graphView.setZoomMode(startT, endT);
+              }
+              break;
+            case 'showAll':
+              updateButtonStates('showAllDataBtn');
+              showInputsForMode('showAll');
+              if (window.graphView.showAllData) {
+                window.graphView.showAllData();
+              }
+              break;
+            case 'manual':
+              updateButtonStates(null);
+              showInputsForMode('zoom');
+              break;
+          }
+        }
+      }
+    }, 500);
     
     // Initialize by fetching signal types
     fetchSignalTypes();
