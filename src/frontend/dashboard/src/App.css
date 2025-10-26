@@ -1,0 +1,24 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.app-container {
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: #eee;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.grid-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.grid-full {
+  margin-top: 1rem;
+}
