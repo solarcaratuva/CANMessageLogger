@@ -79,7 +79,7 @@
     </header>
 
     <div id="errorCard" class="wide-container text-center mt-4">
-        <h2>Error Messages!</h2>
+        <h2 id="errorCardTitle">Loading...</h2>
         <div id="latestAlert" class="alert alert-info text-left mx-auto" 
              style="display: inline-block; max-width: 95%; white-space: nowrap; overflow-x: auto;">
             Loading most recent alert...
@@ -106,6 +106,7 @@
         // Function to set page title and active navigation based on current URL
         function setPageTitleAndActiveNav() {
             const pageTitleElement = document.getElementById('pageTitle');
+            const errorCardTitleElement = document.getElementById('errorCardTitle');
             const currentPath = window.location.pathname;
             
             // Remove active class from all nav items
@@ -129,6 +130,10 @@
                     pageTitle = 'Graphs';
                     activeNavId = 'nav-graphs';
                     break;
+                case '/graph_view':
+                    pageTitle = 'Graph View';
+                    activeNavId = 'nav-graphs';
+                    break;
                 default:
                     // Extract page name from URL path
                     const pathSegments = currentPath.split('/').filter(segment => segment);
@@ -141,9 +146,14 @@
                     }
             }
             
-            // Set the page title
+            // Set the page title in navbar
             if (pageTitleElement) {
                 pageTitleElement.textContent = pageTitle;
+            }
+            
+            // Set the error card title
+            if (errorCardTitleElement) {
+                errorCardTitleElement.textContent = pageTitle;
             }
             
             // Set the active navigation item
