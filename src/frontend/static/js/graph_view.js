@@ -1,3 +1,13 @@
+// LocalStorage keys for state persistence
+const STORAGE_KEYS = {
+    ACTIVE_SIGNALS: 'graphView:activeSignals',
+    VIEW_MODE: 'graphView:viewMode',
+    IS_PAUSED: 'graphView:isPaused',
+    LIVE_SCROLL_CONFIG: 'graphView:liveScrollConfig',
+    ZOOM_CONFIG: 'graphView:zoomConfig',
+    INPUT_VALUES: 'graphView:inputValues'
+};
+
 // HTTP polling configuration
 const POLLING_INTERVAL = 100; // milliseconds (0.1 seconds for very responsive live updates)
 let pollingActive = false;
@@ -34,6 +44,127 @@ let globalRequestCounter = 0;
 let visibleInFlight = false;
 let visiblePending = null; // { startTime, endTime, zoomLevel, viewportWidth }
 let lastVisibleRequestId = 0;
+
+// State persistence functions
+function saveStateToStorage() {
+    try {
+        // Save active signals (just the metadata, not the data arrays)
+        const signalsToSave = [];
+        activeSignals.forEach((info, signalId) => {
+            signalsToSave.push({
+                id: signalId,
+                name: info.name,
+                color: info.color
+            });
+        });
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_SIGNALS, JSON.stringify(signalsToSave));
+        
+        // Save view mode
+        localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
+        
+        // Save live scroll config
+        localStorage.setItem(STORAGE_KEYS.LIVE_SCROLL_CONFIG, JSON.stringify({
+            enabled: liveScrollConfig.enabled,
+            timeDifferential: liveScrollConfig.timeDifferential
+        }));
+        
+        // Save zoom config
+        localStorage.setItem(STORAGE_KEYS.ZOOM_CONFIG, JSON.stringify({
+            enabled: zoomConfig.enabled,
+            fixedStartTime: zoomConfig.fixedStartTime,
+            fixedEndTime: zoomConfig.fixedEndTime
+        }));
+        
+        console.log('Graph view state saved to localStorage');
+    } catch (e) {
+        console.error('Failed to save graph view state:', e);
+    }
+}
+
+function loadStateFromStorage() {
+    try {
+        // Load active signals
+        const savedSignals = localStorage.getItem(STORAGE_KEYS.ACTIVE_SIGNALS);
+        if (savedSignals) {
+            const signals = JSON.parse(savedSignals);
+            console.log('Loaded saved signals from localStorage:', signals);
+            return { signals };
+        }
+    } catch (e) {
+        console.error('Failed to load graph view state:', e);
+    }
+    return { signals: [] };
+}
+
+function restoreViewModeFromStorage() {
+    try {
+        // Restore view mode
+        const savedViewMode = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
+        if (savedViewMode) {
+            viewMode = savedViewMode;
+            console.log('Restored view mode:', viewMode);
+        }
+        
+        // Restore live scroll config
+        const savedLiveScrollConfig = localStorage.getItem(STORAGE_KEYS.LIVE_SCROLL_CONFIG);
+        if (savedLiveScrollConfig) {
+            const config = JSON.parse(savedLiveScrollConfig);
+            liveScrollConfig.timeDifferential = config.timeDifferential || 10;
+            console.log('Restored live scroll config:', config);
+        }
+        
+        // Restore zoom config
+        const savedZoomConfig = localStorage.getItem(STORAGE_KEYS.ZOOM_CONFIG);
+        if (savedZoomConfig) {
+            const config = JSON.parse(savedZoomConfig);
+            zoomConfig.fixedStartTime = config.fixedStartTime || 0;
+            zoomConfig.fixedEndTime = config.fixedEndTime || 60;
+            console.log('Restored zoom config:', config);
+        }
+    } catch (e) {
+        console.error('Failed to restore view mode from storage:', e);
+    }
+}
+
+function savePauseStateToStorage(isPaused) {
+    try {
+        localStorage.setItem(STORAGE_KEYS.IS_PAUSED, JSON.stringify(isPaused));
+    } catch (e) {
+        console.error('Failed to save pause state:', e);
+    }
+}
+
+function loadPauseStateFromStorage() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEYS.IS_PAUSED);
+        if (saved !== null) {
+            return JSON.parse(saved);
+        }
+    } catch (e) {
+        console.error('Failed to load pause state:', e);
+    }
+    return false; // Default to not paused
+}
+
+function saveInputValuesToStorage(values) {
+    try {
+        localStorage.setItem(STORAGE_KEYS.INPUT_VALUES, JSON.stringify(values));
+    } catch (e) {
+        console.error('Failed to save input values:', e);
+    }
+}
+
+function loadInputValuesFromStorage() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEYS.INPUT_VALUES);
+        if (saved) {
+            return JSON.parse(saved);
+        }
+    } catch (e) {
+        console.error('Failed to load input values:', e);
+    }
+    return null;
+}
 
 // Initialize Plotly graph
 const graphDiv = document.getElementById('graphContainer');
@@ -484,6 +615,9 @@ function addSignal(signalId, signalName, color) {
     // Build or update the plot using react
     rebuildPlot();
     
+    // Save state to localStorage
+    saveStateToStorage();
+    
     // Start polling if this is the first signal
     if (activeSignals.size === 1) {
         startPolling();
@@ -508,6 +642,9 @@ function removeSignal(signalId) {
     activeSignals.delete(signalId);
     rebuildPlot();
     
+    // Save state to localStorage
+    saveStateToStorage();
+    
     // Stop polling if no signals remain
     if (activeSignals.size === 0) {
         stopPolling();
@@ -521,6 +658,7 @@ function setLiveMode() {
     liveScrollConfig.enabled = false;
     zoomConfig.enabled = false;
     console.log('Switched to live scrolling mode (updates continue)');
+    saveStateToStorage(); // Save state
     applyViewMode();
     // Immediately request live data
     if (pollingActive && activeSignals.size > 0) {
@@ -560,6 +698,7 @@ function setLiveScrollMode(timeDifferential) {
     zoomConfig.enabled = false;
     
     console.log(`Switched to live scroll mode: showing last ${timeDifferential}s from current data time ${currentTime.toFixed(1)} (${startTime.toFixed(1)}-${currentTime.toFixed(1)}), scrolls by ${liveScrollConfig.scrollIncrement}s every 0.1 seconds`);
+    saveStateToStorage(); // Save state
     applyViewMode();
     startLiveScrolling();
     
@@ -582,6 +721,7 @@ function setZoomMode(startTime, endTime) {
     liveScrollConfig.enabled = false;
     
     console.log(`Switched to zoom mode: fixed range ${startTime}-${endTime} (updates continue)`);
+    saveStateToStorage(); // Save state
     applyViewMode();
     
     // Immediately request data for the zoom range
@@ -597,6 +737,7 @@ function setManualMode() {
     liveScrollConfig.enabled = false;
     zoomConfig.enabled = false;
     console.log('Switched to manual mode (updates continue)');
+    saveStateToStorage(); // Save state
     // Don't apply view mode here - let user control the range
     // But request data for current visible range
     if (pollingActive && activeSignals.size > 0) {
@@ -615,6 +756,7 @@ function showAllData() {
     liveScrollConfig.enabled = false;
     zoomConfig.enabled = false;
     console.log('Switched to show all data mode (updates continue)');
+    saveStateToStorage(); // Save state
     applyViewMode();
     // Immediately request all data
     if (pollingActive && activeSignals.size > 0) {
@@ -633,7 +775,13 @@ window.graphView = {
     setLiveScrollMode,
     setZoomMode,
     setManualMode,
-    showAllData
+    showAllData,
+    loadStateFromStorage,
+    restoreViewModeFromStorage,
+    savePauseStateToStorage,
+    loadPauseStateFromStorage,
+    saveInputValuesToStorage,
+    loadInputValuesFromStorage
 };
 
 // Debug logging
