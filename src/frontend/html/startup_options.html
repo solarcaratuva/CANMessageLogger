@@ -65,8 +65,123 @@
         </div>
     </fieldset>
 
+    <fieldset id="hardwareStatusFieldset" style="display: none;">
+        <legend>Hardware Status</legend>
+        <div id="hardwareStatus" style="padding: 0.5rem; border-radius: 4px; font-weight: 600;">
+            Checking hardware...
+        </div>
+    </fieldset>
+
     <button type="submit" onclick="return validateForm()">Launch App</button>
     </form>
 
-    <script src="/static/js/startup_options.js"></script>
+    <script>
+    function validateForm() {
+        let isValid = true;
+        
+        // Validate input file if visible
+        const inputFileFieldset = document.getElementById('inputFileFieldset');
+        const inputFile = document.getElementById('inputFile');
+        const inputFileError = document.getElementById('inputFileError');
+        
+        if (inputFileFieldset.style.display !== 'none' && inputFile.value.trim()) {
+            const inputFileName = inputFile.value.trim().toLowerCase();
+            const validInputExtensions = ['.log', '.txt', '.db'];
+            const hasValidInputExt = validInputExtensions.some(ext => inputFileName.endsWith(ext));
+            
+            if (!hasValidInputExt) {
+                inputFileError.style.display = 'block';
+                isValid = false;
+            } else {
+                inputFileError.style.display = 'none';
+            }
+        } else {
+            inputFileError.style.display = 'none';
+        }
+        
+        // Validate output DB if provided
+        const outputDB = document.getElementById('outputDB');
+        const outputDBError = document.getElementById('outputDBError');
+        
+        if (outputDB.value.trim()) {
+            const outputFileName = outputDB.value.trim().toLowerCase();
+            if (!outputFileName.endsWith('.db')) {
+                outputDBError.style.display = 'block';
+                isValid = false;
+            } else {
+                outputDBError.style.display = 'none';
+            }
+        } else {
+            outputDBError.style.display = 'none';
+        }
+        
+        return isValid;
+    }
+
+    function updateInputFileState() {
+        const logTypeRadio = document.querySelector('input[name="logType"]:checked');
+        const logType = logTypeRadio ? logTypeRadio.value : '';
+        const inputFileFieldset = document.getElementById('inputFileFieldset');
+        const inputFile = document.getElementById('inputFile');
+        const requiredLabel = document.getElementById('inputFileRequiredLabel');
+        const inputFileError = document.getElementById('inputFileError');
+        const hardwareStatusFieldset = document.getElementById('hardwareStatusFieldset');
+        const requiredTypes = ['pastlog', 'db', 'mock_livelog'];
+        
+        if (requiredTypes.includes(logType)) {
+            inputFileFieldset.style.display = '';
+            inputFile.required = true;
+            requiredLabel.style.display = '';
+        } else {
+            inputFileFieldset.style.display = 'none';
+            inputFile.required = false;
+            requiredLabel.style.display = 'none';
+            inputFile.value = '';
+            inputFileError.style.display = 'none';
+        }
+        
+        // Show hardware status for hardware-dependent modes
+        if (logType === 'livelog' || logType === 'radio') {
+            hardwareStatusFieldset.style.display = '';
+            checkHardwareStatus(logType);
+        } else {
+            hardwareStatusFieldset.style.display = 'none';
+        }
+    }
+    
+    async function checkHardwareStatus(logType) {
+        const statusDiv = document.getElementById('hardwareStatus');
+        statusDiv.innerHTML = 'Checking hardware...';
+        statusDiv.style.backgroundColor = '#f0f0f0';
+        statusDiv.style.color = '#333';
+        
+        try {
+            const response = await fetch('/validate-hardware', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ logType: logType })
+            });
+            
+            const result = await response.json();
+            
+            if (result.valid) {
+                statusDiv.innerHTML = `${result.message}`;
+                statusDiv.style.backgroundColor = '#e8f5e8';
+                statusDiv.style.color = '#2e7d32';
+            } else {
+                statusDiv.innerHTML = `${result.message}`;
+                statusDiv.style.backgroundColor = '#ffebee';
+                statusDiv.style.color = '#d32f2f';
+            }
+        } catch (error) {
+            statusDiv.innerHTML = 'Could not check hardware status';
+            statusDiv.style.backgroundColor = '#ffebee';
+            statusDiv.style.color = '#d32f2f';
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', updateInputFileState);
+    </script>
 </body>

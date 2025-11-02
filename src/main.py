@@ -12,6 +12,7 @@ from backend.input import consumer, logfile_producer, live_log_producer, radio_p
 from functools import partial
 from backend.sockio import debug_dashboard, alert_manager  # noqa: F401 (ensure handlers are registered)
 from startup_server import launch_startup_options
+from backend.startup_validation import validate_and_exit_on_error
 
 from backend.sockio import debug_dashboard, alert_manager, graph_view 
 
@@ -31,6 +32,10 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 def run_server(args):
+    # Validate startup requirements early - this prevents wasted thread creation
+    input_file_path = args.inputFile[0] if args.inputFile else None
+    validate_and_exit_on_error(args.logType, input_file_path)
+    
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     db_dir = './CANDatabases'
     if not os.path.exists(db_dir):
@@ -67,26 +72,16 @@ def run_server(args):
 
     dbcs.load_dbc_files()
 
-    if args.inputFile and not os.path.exists(args.inputFile[0]):
-        print(f"The input file '{args.inputFile[0]}' does not exist.")
-        sys.exit()
-
     datafile_path = args.inputFile[0] if args.inputFile else None
 
     database_path = f"./CANDatabases/can_database_{timestamp}.db"
     if args.outputDB:
         database_path = args.outputDB[0]
     if not database_path.endswith(".db"):
-        print("Need to specify a .db file for the output database")
+        print("[STARTUP] Error: Need to specify a .db file for the output database")
         sys.exit()
 
     if args.logType == "db":
-        if not args.inputFile:
-            print("The '--inputFile' option is required when 'db' is provided.")
-            sys.exit()
-        if not (args.inputFile[0].endswith(".db")):
-            print("Need to specify a .db file")
-            sys.exit()
         database_path = args.inputFile[0]
 
     DbConnection.setup_the_db_path(database_path)
@@ -94,9 +89,6 @@ def run_server(args):
     dbconn.setup_the_tables()
 
     if args.logType == "pastlog":
-        if not args.inputFile or not (args.inputFile[0].endswith(".txt") or args.inputFile[0].endswith(".log")):
-            print("For 'pastlog', need a .txt or .log file as --inputFile")
-            sys.exit()
         logfile_producer.process_logfile(datafile_path)
         consumer.process_data()
 
@@ -105,9 +97,6 @@ def run_server(args):
         socketio.start_background_task(target=live_log_producer.listen_to_serial)
 
     elif args.logType == "mock_livelog":
-        if not args.inputFile or not (args.inputFile[0].endswith(".txt") or args.inputFile[0].endswith(".log")):
-            print("For 'mock_livelog', need a .txt or .log file as --inputFile")
-            sys.exit()
         socketio.start_background_task(target=consumer.process_data_live)
         socketio.start_background_task(target=partial(logfile_producer.process_logfile_live, datafile_path))
 
