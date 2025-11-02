@@ -1,7 +1,9 @@
 from pathlib import Path
 import threading
-from flask import Flask, request, redirect, send_file, send_from_directory
+from flask import Flask, request, redirect, send_file, send_from_directory, render_template_string
 import webbrowser
+import re
+from backend.submodule_automation import initialize_submodule, get_submodule_branches
 
 SETUP_PORT = 5499
 
@@ -17,7 +19,39 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
 
     @setup_app.route("/", methods=["GET"])
     def index():
-        return send_file("frontend/html/startup_options.html")
+        # Initialize submodule and get available branches
+        
+        initialize_submodule()
+        branches = get_submodule_branches()
+        
+        # Read the HTML file and inject branches
+        html_path = BASE_DIR / "frontend" / "html" / "startup_options.html"
+        with open(html_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        
+        # Generate radio buttons for branches
+        branch_options = ""
+        for i, branch in enumerate(branches):
+            checked = 'checked' if branch == 'main' else ''
+            branch_options += f'''
+            <div class="radio-option">
+                <input type="radio" name="set_dbc_branch" id="{branch}" value="{branch}" {checked}>
+                <label for="{branch}">{branch}</label>
+            </div>'''
+        
+        # Replace the hardcoded DBC branch section
+        dbc_section = f'''
+    <fieldset>
+        <legend>DBC Branch</legend>
+        <div class="radio-group">{branch_options}
+        </div>
+    </fieldset>'''
+        
+        # Find and replace the DBC branch fieldset
+        pattern = r'<fieldset>\s*<legend>DBC Branch</legend>.*?</fieldset>'
+        html_content = re.sub(pattern, dbc_section, html_content, flags=re.DOTALL)
+        
+        return html_content
     
     @setup_app.route("/static/<path:filename>")
     def static_files(filename):
