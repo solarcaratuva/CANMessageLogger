@@ -3,6 +3,7 @@ from backend.submodule_automation import gitPull
 import time
 import os
 import webbrowser
+import traceback
 
 import backend.dbcs as dbcs
 from backend.sockio.socket import socketio, app
@@ -10,9 +11,16 @@ from backend.sockio.socket import socketio, app
 from backend.db_connection import DbConnection
 from backend.input import consumer, logfile_producer, live_log_producer, radio_producer
 from functools import partial
+from flask import jsonify
 
 from backend.sockio import debug_dashboard, alert_manager, graph_view 
+import backend.input.logfile_producer as logfile_producer
 
+@app.errorhandler(Exception)
+def handle_all_exceptions(e):
+    print("Flask caught an unhandled exception:")
+    traceback.print_exc()
+    return jsonify({"error": str(e)}), 500
 
 def main():
     timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -91,7 +99,11 @@ def main():
     PORT = 5500
     print(f"Starting socketio server,\033[1;31m open localhost:{PORT} in your browser \033[0m")
     webbrowser.open(f'http://localhost:{PORT}')  # Open the URL in the default browser
-    socketio.run(app, debug=False, allow_unsafe_werkzeug=True, host="0.0.0.0", port=PORT)  # to run the sockio io app, .run is blocking! No code below this
+
+    app.debug = True
+    app.config['PROPAGATE_EXCEPTIONS'] = True
+    # to run the sockio io app, .run is blocking! No code below this
+    socketio.run(app, debug=True, use_reloader=False, allow_unsafe_werkzeug=True, host="0.0.0.0", port=PORT)
 
 
 def cli_message_reader() -> argparse.ArgumentParser:

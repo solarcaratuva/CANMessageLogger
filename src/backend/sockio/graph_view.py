@@ -1,5 +1,5 @@
 import numpy as np
-from flask import render_template, jsonify, request
+from flask import jsonify, request
 from ..db_connection import DbConnection as dbconnect
 from ..dbcs import get_messages_from_dbcs
 from ..downsampling import largest_triangle_three_buckets
@@ -157,11 +157,11 @@ def handle_visible_range_request(data):
 
 @app.route('/graph_view')
 def graph_view():
-    return render_template('graph_view.html')
+    return jsonify({"page": "graph_view", "status": "ok"})
 
 @app.route('/link2')
 def link2():
-    return render_template('link2.html')
+    return jsonify({"page": "link2", "status": "ok"})
 
 
 @app.route('/get_can_message_types', methods=['GET'])

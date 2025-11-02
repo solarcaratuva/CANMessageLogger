@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify
+from flask import request, jsonify
 import backend.alert_checker as alertChecker
 from backend.db_connection import DbConnection
 import backend.dbcs as dbcs
@@ -13,7 +13,7 @@ alertsCreated = 0
 
 @app.route('/alert_manager')
 def alert_manager():
-    return render_template('alert_manager.html')
+    return jsonify({"ok": "alert_manager", "status": "ok"})
 
 
 @app.route('/parse_dbc_fields', methods=['POST'])

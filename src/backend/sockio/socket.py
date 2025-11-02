@@ -1,18 +1,30 @@
-from flask import Flask, render_template
+from flask import Flask, jsonify
 from flask_socketio import SocketIO
+from flask_cors import CORS
 
 # disables excessive debug logging from SocketIO
 import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
+#flask functions as API only now
+app = Flask(__name__)
+
+#enable CORS for React frontend
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+
 # `app` and `socketio` represent the REST API connection, and are used in other files in sockio/
-app = Flask(__name__, template_folder='../../frontend/html', static_folder='../../frontend/static')
-socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
+socketio = SocketIO(app, cors_allowed_origins="http://localhost:3000", logger=False, engineio_logger=False)
 
 @app.route('/')
 def index():
-    return render_template('debug_dashboard.html')
+    return jsonify({"message": "Flask backend is working",
+                   "status": "ok"})
+
+@app.route('/api/test')
+def test_api():
+    return jsonify({"message": "Flask backend is working",
+                   "status": "ok"})
 
 @socketio.on('connect')
 def handle_connect():
