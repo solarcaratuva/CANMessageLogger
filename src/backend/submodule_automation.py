@@ -56,15 +56,15 @@ def get_submodule_branches() -> list[str]:
         return ['main']  # Fallback to main
 
 
-def set_submodule_branch(branch: str, online: bool) -> None:
+def set_submodule_branch(branch: str) -> None:
     """Change the branch. If online then git pull as well. Should be run upon submission of the startup form."""
     try:
         repo_path = os.path.join(REPO_ROOT, SUBMODULE_PATH)
         repo = git.Repo(repo_path)
         
-        print(f"[GIT] Switching to branch '{branch}' (online: {online})")
+        print(f"[GIT] Switching to branch '{branch}'")
         
-        if online and is_connected():
+        if is_connected():
             # Online mode: fetch and pull
             origin = repo.remote(name='origin')
             origin.fetch()

@@ -2,6 +2,7 @@ from pathlib import Path
 import threading
 from flask import Flask, request, redirect, send_file, send_from_directory, render_template_string
 import webbrowser
+import re
 from backend.submodule_automation import initialize_submodule, get_submodule_branches
 
 SETUP_PORT = 5499
@@ -19,12 +20,9 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
     @setup_app.route("/", methods=["GET"])
     def index():
         # Initialize submodule and get available branches
-        try:
-            initialize_submodule()
-            branches = get_submodule_branches()
-        except Exception as e:
-            print(f"[STARTUP] Error getting branches: {e}")
-            branches = ['main']  # Fallback
+        
+        initialize_submodule()
+        branches = get_submodule_branches()
         
         # Read the HTML file and inject branches
         html_path = BASE_DIR / "frontend" / "html" / "startup_options.html"
@@ -50,7 +48,6 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
     </fieldset>'''
         
         # Find and replace the DBC branch fieldset
-        import re
         pattern = r'<fieldset>\s*<legend>DBC Branch</legend>.*?</fieldset>'
         html_content = re.sub(pattern, dbc_section, html_content, flags=re.DOTALL)
         
