@@ -1,10 +1,10 @@
 import argparse
 import sys
+from backend.submodule_automation import initialize_submodule, get_submodule_branches, set_submodule_branch, is_connected
 import time
 import os
+import git
 import webbrowser
-
-from backend.submodule_automation import gitPull
 import backend.dbcs as dbcs
 from backend.sockio.socket import socketio, app as socketio_app
 from backend.db_connection import DbConnection
@@ -36,11 +36,34 @@ def run_server(args):
     if not os.path.exists(db_dir):
         os.makedirs(db_dir)
 
-    submodule_path = os.path.relpath("resources/CAN-messages")
-    success, message = gitPull(args.set_dbc_branch, submodule_path=submodule_path)
-    print("[GIT]", message)
-    if not success:
-        print("[GIT ERROR] Continuing anyway...")
+    # Initialize submodule at startup
+    initialize_submodule()
+    
+    # Get available branches
+    available_branches = get_submodule_branches()
+    
+    set_submodule_branch(args.set_dbc_branch)
+    print(f"[STARTUP] Successfully set DBC branch to: {args.set_dbc_branch}")
+    
+    # Print detailed verification info
+    submodule_path = os.path.join("resources", "CAN-messages")
+    if os.path.exists(submodule_path):
+        repo = git.Repo(submodule_path)
+        current_branch = repo.active_branch.name
+        current_commit = repo.head.commit.hexsha[:8]
+        commit_message = repo.head.commit.message.strip()
+        commit_date = repo.head.commit.committed_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        
+        print(f"[VERIFICATION] Current branch: {current_branch}")
+        print(f"[VERIFICATION] Current commit: {current_commit}")
+        print(f"[VERIFICATION] Commit message: {commit_message}")
+        print(f"[VERIFICATION] Commit date: {commit_date}")
+        
+        # List DBC files in the submodule
+        dbc_files = [f for f in os.listdir(submodule_path) if f.endswith('.dbc')]
+    else:
+        print("[VERIFICATION] Submodule directory not found!")
+        
 
     dbcs.load_dbc_files()
 
