@@ -30,6 +30,19 @@ console.log("WheelboardCard:", WheelboardCard);
 
 const Dashboard = () => {
   const [telemetry, setTelemetry] = useState(generateAllTelemetry());
+  
+
+  //state manager for socketIO connection
+  const [isConnected, setIsConnected] = useState(socket.connected);
+  //state manager based on CAN file uploads
+  const [canFileData, setCanFileData] = useState(null);
+
+  //managing react connection states with SocketIO
+  useEffect(() => {
+    //auto connect on mount
+    socket.connect();
+  }
+  );
 
   // Update telemetry every second
   useEffect(() => {

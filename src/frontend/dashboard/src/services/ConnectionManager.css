@@ -1,0 +1,243 @@
+/* ============================================
+   ConnectionManager.css
+   Real-time connection status indicator
+   ============================================ */
+
+.connection-manager {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: Arial, sans-serif;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.3s ease-in;
+}
+
+/* Connected State */
+.connection-manager.connected {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.4);
+}
+
+/* Disconnected State */
+.connection-manager.disconnected {
+  background: rgba(244, 67, 54, 0.15);
+  border-color: rgba(244, 67, 54, 0.4);
+}
+
+/* Connecting State (Optional) */
+.connection-manager.connecting {
+  background: rgba(255, 193, 7, 0.15);
+  border-color: rgba(255, 193, 7, 0.4);
+}
+
+/* Status Container */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #eee;
+}
+
+/* Connection Indicator Dot */
+.connection-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.connection-indicator.connected {
+  background-color: #4caf50;
+  color: #4caf50;
+}
+
+.connection-indicator.disconnected {
+  background-color: #f44336;
+  color: #f44336;
+}
+
+.connection-indicator.connecting {
+  background-color: #ffc107;
+  color: #ffc107;
+}
+
+/* Status Text */
+.connection-text {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.95);
+  }
+}
+
+/* Spinner for connecting state */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.connection-spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #ffc107;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+
+/* Large Screens (1200px+) */
+@media (min-width: 1200px) {
+  .connection-manager {
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .connection-status {
+    font-size: 15px;
+  }
+
+  .connection-text {
+    font-size: 14px;
+  }
+}
+
+/* Tablets (768px - 1023px) */
+@media (max-width: 1023px) {
+  .connection-manager {
+    padding: 0.875rem 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .connection-status {
+    font-size: 13px;
+  }
+
+  .connection-text {
+    font-size: 12px;
+  }
+}
+
+/* Mobile Devices (max 767px) */
+@media (max-width: 767px) {
+  .connection-manager {
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.8rem;
+    gap: 8px;
+  }
+
+  .connection-status {
+    font-size: 12px;
+    gap: 8px;
+  }
+
+  .connection-indicator {
+    width: 8px;
+    height: 8px;
+  }
+
+  .connection-text {
+    font-size: 11px;
+  }
+}
+
+/* Extra Small Devices (max 480px) */
+@media (max-width: 480px) {
+  .connection-manager {
+    padding: 0.625rem 0.875rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .connection-status {
+    font-size: 11px;
+  }
+
+  .connection-text {
+    font-size: 10px;
+  }
+}
+
+/* ============================================
+   Accessibility
+   ============================================ */
+
+/* Focus styles for keyboard navigation */
+.connection-manager:focus-visible {
+  outline: 2px solid #4caf50;
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .connection-manager {
+    animation: none;
+  }
+
+  .connection-indicator {
+    animation: none;
+  }
+
+  .connection-spinner {
+    animation: none;
+    border-top-color: #ffc107;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  .connection-manager.connected {
+    background: rgba(76, 175, 80, 0.3);
+    border-color: #4caf50;
+  }
+
+  .connection-manager.disconnected {
+    background: rgba(244, 67, 54, 0.3);
+    border-color: #f44336;
+  }
+
+  .connection-manager.connecting {
+    background: rgba(255, 193, 7, 0.3);
+    border-color: #ffc107;
+  }
+
+  .connection-text {
+    font-weight: 700;
+  }
+}
