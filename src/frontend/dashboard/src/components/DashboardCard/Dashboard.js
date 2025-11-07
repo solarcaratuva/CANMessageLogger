@@ -37,12 +37,30 @@ const Dashboard = () => {
   //state manager based on CAN file uploads
   const [canFileData, setCanFileData] = useState(null);
 
-  //managing react connection states with SocketIO
+  //managing react's connection states with SocketIO
   useEffect(() => {
     //auto connect on mount
     socket.connect();
-  }
-  );
+
+    function onConnect(){
+      setIsConnected(true);
+    }
+
+    function onDisconnet(){
+      setIsConnected(false);
+    }
+
+    //event state listeners and associated function calls
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+
+    //cleanup function (disconnet from socketIO server)
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.disconnect();
+    };
+  }, []);
 
   // Update telemetry every second
   useEffect(() => {
