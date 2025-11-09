@@ -1,0 +1,96 @@
+/* Base container */
+.motor-component {
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+  text-align: center;
+  width: 100%;
+  max-width: 480px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.motor-component:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Header */
+.motor-component h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+/* Card layout */
+.motor-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.motor-card {
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  padding: 16px;
+  transition: background-color 0.2s ease;
+}
+
+.motor-card:hover {
+  background-color: #f0f2f5;
+}
+
+/* Text styles */
+.motor-card p {
+  font-size: 0.9rem;
+  color: #777;
+  margin-bottom: 6px;
+}
+
+.motor-card h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #333;
+  margin: 4px 0;
+}
+
+.motor-card h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #555;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Colors for specific motor cards */
+.motor-card.braking h2,
+.motor-card.braking h3 {
+  color: #ef4444; /* red */
+}
+
+.motor-card.manual-versus-cruise h2,
+.motor-card.manual-versus-cruise h3 {
+  color: #3b82f6; /* blue */
+}
+
+.motor-card.peddals h2,
+.motor-card.peddals h3 {
+  color: #10b981; /* green */
+}
+
+.motor-card.rpm_throttle h2,
+.motor-card.rpm_throttle h3 {
+  color: #8b5cf6; /* purple */
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .motor-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .motor-component {
+    max-width: 100%;
+  }
+}
