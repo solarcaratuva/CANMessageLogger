@@ -1,0 +1,30 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body.alert-active {
+    background: #fff3cd  !important;
+    background-image: none !important;
+}
+
+.wide-container.alert-highlight {
+    background-color: #eed202 !important; 
+    border: 1px solid #ffeeba;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+body.alert-active-red {
+    background: #f8d7da !important; /* Light red */
+    background-image: none !important;
+}
+
+.wide-container.alert-critical {
+    background-color: #cc3300 !important;
+    border: 1px solid #f5c6cb;
+    border-radius: 8px;
+    padding: 20px;
+}
+
