@@ -93,22 +93,3 @@ def validate_startup_requirements(log_type: str, input_file_path: Optional[str])
             errors.append("Radio device not found. Please connect radio for radio mode.")
     
     return errors
-
-
-def validate_and_exit_on_error(log_type: str, input_file_path: Optional[str]) -> None:
-    """
-    Validates startup requirements and exits with error message if validation fails.
-    Used by CLI mode for immediate feedback.
-    
-    Args:
-        log_type: The type of logging mode
-        input_file_path: Path to input file (if required)
-    """
-    errors = validate_startup_requirements(log_type, input_file_path)
-    
-    if errors:
-        print("ERROR: Validation failed:")
-        for error in errors:
-            print(f"  - {error}")
-        print("\nPlease fix these issues and try again.")
-        exit(1)

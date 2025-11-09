@@ -12,7 +12,7 @@ from backend.input import consumer, logfile_producer, live_log_producer, radio_p
 from functools import partial
 from backend.sockio import debug_dashboard, alert_manager  # noqa: F401 (ensure handlers are registered)
 from startup_server import launch_startup_options
-from backend.startup_validation import validate_and_exit_on_error
+from backend.startup_validation import validate_startup_requirements
 
 from backend.sockio import debug_dashboard, alert_manager, graph_view 
 
@@ -34,7 +34,13 @@ def build_parser() -> argparse.ArgumentParser:
 def run_server(args):
     # Validate startup requirements early - this prevents wasted thread creation
     input_file_path = args.inputFile[0] if args.inputFile else None
-    validate_and_exit_on_error(args.logType, input_file_path)
+    errors = validate_startup_requirements(args.logType, input_file_path) 
+    if errors:
+        print("ERROR: Validation failed:")
+        for error in errors:
+            print(f"  - {error}")
+        print("\nPlease fix these issues and try again.")
+        exit(1)
     
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     db_dir = './CANDatabases'
