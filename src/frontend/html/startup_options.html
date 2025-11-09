@@ -72,7 +72,7 @@
         </div>
     </fieldset>
 
-    <button type="button" onclick="handleFormSubmit()">Launch App</button>
+    <button type="button" id="launchButton" onclick="handleFormSubmit()">Launch App</button>
     </form>
 
     <script>
@@ -139,9 +139,28 @@
     }
 
     async function handleFormSubmit() {
+        const launchButton = document.getElementById('launchButton');
+        
+        // Don't proceed if button is disabled
+        if (launchButton.disabled) {
+            return;
+        }
+        
         const isValid = await validateForm();
         if (isValid) {
             document.querySelector('form').submit();
+        }
+    }
+
+    function updateLaunchButtonState(enabled, buttonText) {
+        const launchButton = document.getElementById('launchButton');
+        launchButton.disabled = !enabled;
+        launchButton.textContent = buttonText;
+        
+        if (enabled) {
+            launchButton.title = '';
+        } else {
+            launchButton.title = 'Hardware requirements not met';
         }
     }
 
@@ -170,9 +189,13 @@
         // Show hardware status for hardware-dependent modes
         if (logType === 'livelog' || logType === 'radio') {
             hardwareStatusFieldset.style.display = '';
+            // Initially disable the button for hardware modes until validation completes
+            updateLaunchButtonState(false, 'Checking hardware...');
             checkHardwareStatus(logType);
         } else {
             hardwareStatusFieldset.style.display = 'none';
+            // Enable the button for non-hardware modes
+            updateLaunchButtonState(true, 'Launch App');
         }
     }
     
@@ -197,19 +220,29 @@
                 statusDiv.innerHTML = `${result.message}`;
                 statusDiv.style.backgroundColor = '#e8f5e8';
                 statusDiv.style.color = '#2e7d32';
+                // Enable launch button when hardware is found
+                updateLaunchButtonState(true, 'Launch App');
             } else {
                 statusDiv.innerHTML = `${result.message}`;
                 statusDiv.style.backgroundColor = '#ffebee';
                 statusDiv.style.color = '#d32f2f';
+                // Disable launch button when hardware is not found
+                updateLaunchButtonState(false, `Cannot launch - ${result.message}`);
             }
         } catch (error) {
             statusDiv.innerHTML = 'Could not check hardware status';
             statusDiv.style.backgroundColor = '#ffebee';
             statusDiv.style.color = '#d32f2f';
+            // Disable launch button on error
+            updateLaunchButtonState(false, 'Cannot launch - Hardware check failed');
         }
     }
 
     
-    document.addEventListener('DOMContentLoaded', updateInputFileState);
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize button as enabled for non-hardware modes
+        updateLaunchButtonState(true, 'Launch App');
+        updateInputFileState();
+    });
     </script>
 </body>
