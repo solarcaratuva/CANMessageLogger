@@ -41,6 +41,43 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
         
         return jsonify({"valid": True, "message": "No hardware validation needed"})
 
+    @setup_app.route("/validate-file", methods=["POST"])
+    def validate_file():
+        """AJAX endpoint for real-time file existence validation"""
+        file_path = request.json.get("filePath")
+        log_type = request.json.get("logType")
+        
+        if not file_path or not file_path.strip():
+            return jsonify({"valid": True, "message": ""})  # Empty is valid, will be handled by required field
+        
+        file_path = file_path.strip()
+        
+        # Check if file exists
+        if not os.path.exists(file_path):
+            return jsonify({
+                "valid": False,
+                "message": f"File '{file_path}' does not exist"
+            })
+        
+        # Check file extension requirements based on log type
+        if log_type in ["pastlog", "mock_livelog"]:
+            if not (file_path.lower().endswith('.log') or file_path.lower().endswith('.txt')):
+                return jsonify({
+                    "valid": False,
+                    "message": f"File must be .log or .txt for {log_type} mode"
+                })
+        elif log_type == "db":
+            if not file_path.lower().endswith('.db'):
+                return jsonify({
+                    "valid": False,
+                    "message": "Database file must end with .db"
+                })
+        
+        return jsonify({
+            "valid": True,
+            "message": f"File '{file_path}' exists"
+        })
+
     @setup_app.route("/", methods=["GET"])
     def index():
         # Initialize submodule and get available branches

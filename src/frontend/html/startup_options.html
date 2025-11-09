@@ -72,28 +72,48 @@
         </div>
     </fieldset>
 
-    <button type="submit" onclick="return validateForm()">Launch App</button>
+    <button type="button" onclick="handleFormSubmit()">Launch App</button>
     </form>
 
     <script>
-    function validateForm() {
+    async function validateForm() {
         let isValid = true;
         
-        // Validate input file if visible
+        // Validate input file if visible and has content
         const inputFileFieldset = document.getElementById('inputFileFieldset');
         const inputFile = document.getElementById('inputFile');
         const inputFileError = document.getElementById('inputFileError');
+        const logTypeRadio = document.querySelector('input[name="logType"]:checked');
+        const logType = logTypeRadio ? logTypeRadio.value : '';
         
         if (inputFileFieldset.style.display !== 'none' && inputFile.value.trim()) {
-            const inputFileName = inputFile.value.trim().toLowerCase();
-            const validInputExtensions = ['.log', '.txt', '.db'];
-            const hasValidInputExt = validInputExtensions.some(ext => inputFileName.endsWith(ext));
+            const filePath = inputFile.value.trim();
             
-            if (!hasValidInputExt) {
+            try {
+                const response = await fetch('/validate-file', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        filePath: filePath,
+                        logType: logType 
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (!result.valid) {
+                    inputFileError.innerHTML = result.message;
+                    inputFileError.style.display = 'block';
+                    isValid = false;
+                } else {
+                    inputFileError.style.display = 'none';
+                }
+            } catch (error) {
+                inputFileError.innerHTML = 'Could not validate file';
                 inputFileError.style.display = 'block';
                 isValid = false;
-            } else {
-                inputFileError.style.display = 'none';
             }
         } else {
             inputFileError.style.display = 'none';
@@ -116,6 +136,13 @@
         }
         
         return isValid;
+    }
+
+    async function handleFormSubmit() {
+        const isValid = await validateForm();
+        if (isValid) {
+            document.querySelector('form').submit();
+        }
     }
 
     function updateInputFileState() {
@@ -181,6 +208,7 @@
             statusDiv.style.color = '#d32f2f';
         }
     }
+
     
     document.addEventListener('DOMContentLoaded', updateInputFileState);
     </script>
