@@ -12,6 +12,12 @@ import GraphsCard from "../GraphsCard/GraphsCard";
 import ErrorsCard from "../ErrorsCard/ErrorsCard";
 import WheelboardCard from "../WheelboardCard/WheelboardCard";
 
+import { socket } from "../../services/socket";
+
+const onDisconnect = () => {
+  if (socket && socket.connected) socket.disconnect();
+};
+
 
 // DEBUG: Log what each component is
 console.log("Header:", Header);
