@@ -1,22 +1,7 @@
 <head>
     <meta charset="utf-8"/>
     <title>Startup Options</title>
-    <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 2rem; background-image: url('/static/solarcarimage.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed; min-height: 100vh; }
-    form { max-width: 640px; display: grid; gap: 1rem; }
-    fieldset { border: 2px solid #333; border-radius: 8px; padding: 1rem; background-color: rgba(255, 255, 255, 0.9); backdrop-filter: blur(5px); }
-    legend { font-weight: 600; margin-bottom: 0.5rem; color: #333; background-color: rgba(255, 255, 255, 0.95); padding: 0.25rem 0.5rem; border-radius: 4px; }
-    label { display: block; font-weight: 600; margin-bottom: 0.25rem; color: #333; }
-    .radio-group { display: flex; flex-direction: column; gap: 0.5rem; }
-    .radio-option { display: flex; align-items: center; gap: 0.5rem; }
-    .radio-option input[type="radio"] { margin: 0; }
-    .radio-option label { font-weight: normal; margin: 0; cursor: pointer; color: #333; }
-    input[type="text"] { width: 100%; padding: 0.5rem; border: 1px solid #666; border-radius: 4px; background-color: rgba(255, 255, 255, 0.95); }
-    small { color: #555; }
-    .error { color: #d00; font-weight: 600; display: none; margin-top: 0.25rem; }
-    button { padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid #333; cursor: pointer; background-color: rgba(255, 255, 255, 0.95); color: #333; font-weight: 600; }
-    h1 { color: #333; background-color: rgba(255, 255, 255, 0.9); backdrop-filter: blur(5px); padding: 1rem; border-radius: 8px; display: inline-block; border: 2px solid #333; font-weight: 600; }
-    </style>
+    <link rel="stylesheet" href="/static/style/startup_options.css">
 </head>
 <body>
     <h1>Configure & Launch</h1>
@@ -83,71 +68,5 @@
     <button type="submit" onclick="return validateForm()">Launch App</button>
     </form>
 
-    <script>
-    function validateForm() {
-        let isValid = true;
-        
-        // Validate input file if visible
-        const inputFileFieldset = document.getElementById('inputFileFieldset');
-        const inputFile = document.getElementById('inputFile');
-        const inputFileError = document.getElementById('inputFileError');
-        
-        if (inputFileFieldset.style.display !== 'none' && inputFile.value.trim()) {
-            const inputFileName = inputFile.value.trim().toLowerCase();
-            const validInputExtensions = ['.log', '.txt', '.db'];
-            const hasValidInputExt = validInputExtensions.some(ext => inputFileName.endsWith(ext));
-            
-            if (!hasValidInputExt) {
-                inputFileError.style.display = 'block';
-                isValid = false;
-            } else {
-                inputFileError.style.display = 'none';
-            }
-        } else {
-            inputFileError.style.display = 'none';
-        }
-        
-        // Validate output DB if provided
-        const outputDB = document.getElementById('outputDB');
-        const outputDBError = document.getElementById('outputDBError');
-        
-        if (outputDB.value.trim()) {
-            const outputFileName = outputDB.value.trim().toLowerCase();
-            if (!outputFileName.endsWith('.db')) {
-                outputDBError.style.display = 'block';
-                isValid = false;
-            } else {
-                outputDBError.style.display = 'none';
-            }
-        } else {
-            outputDBError.style.display = 'none';
-        }
-        
-        return isValid;
-    }
-
-    function updateInputFileState() {
-        const logTypeRadio = document.querySelector('input[name="logType"]:checked');
-        const logType = logTypeRadio ? logTypeRadio.value : '';
-        const inputFileFieldset = document.getElementById('inputFileFieldset');
-        const inputFile = document.getElementById('inputFile');
-        const requiredLabel = document.getElementById('inputFileRequiredLabel');
-        const inputFileError = document.getElementById('inputFileError');
-        const requiredTypes = ['pastlog', 'db', 'mock_livelog'];
-        
-        if (requiredTypes.includes(logType)) {
-            inputFileFieldset.style.display = '';
-            inputFile.required = true;
-            requiredLabel.style.display = '';
-        } else {
-            inputFileFieldset.style.display = 'none';
-            inputFile.required = false;
-            requiredLabel.style.display = 'none';
-            inputFile.value = '';
-            inputFileError.style.display = 'none';
-        }
-    }
-    
-    document.addEventListener('DOMContentLoaded', updateInputFileState);
-    </script>
+    <script src="/static/js/startup_options.js"></script>
 </body>
