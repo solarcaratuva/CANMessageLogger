@@ -1,8 +1,9 @@
 from backend.db_connection import DbConnection
 from backend.can_message import CanMessage
 from backend.sockio.socket import socketio
-import json
+from backend.dbcs import get_fault_signals
 from datetime import datetime
+import json
 
 
 def fetchActiveAlerts():
@@ -23,10 +24,8 @@ def checkAlertsAgainstCanMsg(can_message: CanMessage, raw_data: bytes):
     
     logger_db = DbConnection()
     
-    automatic_faults_json = "faultMessages.json" 
-    with open(automatic_faults_json, "r") as f:
-        data = json.load(f)
-    all_faults = [fault for faults in data["automatic_faults"].values() for fault in faults]
+    # Get all fault signals dynamically from DBC files
+    all_faults = get_fault_signals()
 
     for fault in all_faults:
         if (fault in can_message.sigDict and can_message.sigDict[fault] == 1):

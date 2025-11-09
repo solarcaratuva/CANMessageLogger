@@ -74,14 +74,26 @@
     }
 
     function fillAlertDiv(latest) {
-        latestAlertDiv.innerHTML = `
-            <strong>Alert:</strong> ${latest.name} — ${latest.signal} |
-            <strong>Value:</strong> ${latest.fail_cause} |
+        const alertLabel = latest.name
+        ? `${latest.name} — ${latest.signal}`
+        : latest.signal;
+
+        const isFault = latest.fail_cause &&
+                latest.fail_cause.trim().toUpperCase() === "AUTO FAULT";
+
+        const valuePart = (!isFault && latest.fail_cause)
+            ? `<strong>Value:</strong> ${latest.fail_cause} |`
+            : '';
+        
+            latestAlertDiv.innerHTML = `
+            <strong>Alert:</strong> ${alertLabel} |
+            ${valuePart}
             <strong>CAN Msg ID:</strong> ${latest.category} (${latest.can_message_id}) |
             <strong>CAN Data:</strong> ${latest.can_message_data} |
             <strong>Timestamp:</strong> ${Math.round(latest.can_message_timestamp)}
             <button class="btn btn-sm btn-outline-dark float-right ml-3" id="clearAlertBtn">Clear</button>
-        `;
+        `; 
+
         latestAlertDiv.classList.remove('alert-info');
         latestAlertDiv.classList.add('alert-danger');
 
@@ -128,7 +140,6 @@
                 if (activeAutoId) {
                     // Find the alert matching the stored active ID within the current triggered list
                     const activeFault = triggered.find(alert => alert.id.toString() === activeAutoId);
-
                     if (activeFault) {
                         // The active fault IS still triggered. Display it and stop further processing.
                         console.log(`Active auto-fault ${activeAutoId} found in triggered list. Rendering it.`);

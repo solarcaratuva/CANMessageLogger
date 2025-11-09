@@ -31,3 +31,23 @@ def get_messages_from_dbcs() -> dict:
                 else:
                     res[message.name][signal.name] = "int"
     return res
+
+
+def get_fault_signals() -> list[str]:
+    """
+    Returns a list of all signal names that are faults.
+    A signal is considered a fault if its comment contains 'fault' (case insensitive).
+    """
+    fault_signals = []
+    
+    if DBCs is None:
+        return fault_signals
+    
+    for dbc in DBCs:
+        for message in dbc.messages:
+            for signal in message.signals:
+                # Check if the signal has a comment and if it contains 'fault' (case insensitive)
+                if signal.comment and 'fault' in signal.comment.lower():
+                    fault_signals.append(signal.name)
+    
+    return fault_signals
