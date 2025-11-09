@@ -2,6 +2,7 @@
     <meta charset="utf-8"/>
     <title>Startup Options</title>
     <link rel="stylesheet" href="/static/style/startup_options.css">
+    <script src="/static/js/startup_options.js"></script>
 </head>
 <body>
     <h1>Configure & Launch</h1>
@@ -65,8 +66,15 @@
         </div>
     </fieldset>
 
-    <button type="submit" onclick="return validateForm()">Launch App</button>
+    <fieldset id="hardwareStatusFieldset" style="display: none;">
+        <legend>Hardware Status</legend>
+        <div id="hardwareStatus" style="padding: 0.5rem; border-radius: 4px; font-weight: 600;">
+            Checking hardware...
+        </div>
+    </fieldset>
+
+    <button type="button" id="launchButton" onclick="handleFormSubmit()">Launch App</button>
     </form>
 
-    <script src="/static/js/startup_options.js"></script>
+
 </body>
