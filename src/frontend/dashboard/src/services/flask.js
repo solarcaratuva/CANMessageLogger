@@ -5,9 +5,10 @@ const BACKEND_URL = "http://localhost:5500/"
 
 export const getTableNames = async () => {
     try{
-        let response = await axios.get((`${BACKEND_URL}/get_table_names`));
-        if(Array.isArray(response.table_names))
-        return response.table_names.filter
+        const response = await axios.get((`${BACKEND_URL}/get_table_names`));
+        console.log('raw API data', response);
+        if(Array.isArray(response.data.table_names))
+        return response.data.table_names.filter
         //TO-DO: filter out tables that we do not need
         (name => ![].includes(name));
     } catch(error){

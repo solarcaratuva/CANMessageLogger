@@ -1,29 +1,54 @@
 .large-container {
-    border: 1px solid #ddd;
-    padding: 15px;
-    height: 700px;
-    overflow-y: auto;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-height: 600px;
 }
 
 .small-container {
-    border: 1px solid #ddd;
+    background: white;
+    border-radius: 8px;
     padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     overflow-y: auto;
 }
 
 .card {
+    border: 1px solid #ddd;
+    border-radius: 4px;
     margin-bottom: 15px;
 }
 
 .card-header {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
     cursor: move;
+}
+
+.card-body {
+    padding: 15px;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 .checkbox-wrapper {
     margin-bottom: 10px;
 }
 
+.checkbox-wrapper input {
+    margin-right: 8px;
+}
+
+.separator {
+    margin: 15px 0;
+    border-top: 1px solid #ddd;
+}
+
 .time-elapsed {
-    color: #6c757d;
-    font-size: 0.8em;
+    color: #666;
+    font-size: 0.9em;
+    font-style: italic;
 }

@@ -11,16 +11,15 @@ log.setLevel(logging.ERROR)
 app = Flask(__name__)
 
 #enable CORS for React frontend
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+CORS(app)
 
 # `app` and `socketio` represent the REST API connection, and are used in other files in sockio/
 socketio = SocketIO(app, cors_allowed_origins="http://localhost:3000", logger=False, engineio_logger=False)
 
 @app.route('/')
 def index():
-    return jsonify({"message": "Flask backend is working",
-                   "status": "ok"})
-
+    return render_template(debug_dashboard.html);
+                   
 @app.route('/api/test')
 def test_api():
     return jsonify({"message": "Flask backend is working",

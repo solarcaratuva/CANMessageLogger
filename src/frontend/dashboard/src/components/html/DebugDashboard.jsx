@@ -2,74 +2,136 @@ import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import Sortable from 'sortablejs';
 import './DebugDashboard.css';
-import axios from 'axios';
-import { getLatestMessag, getTableNames, BACKEND_URL } from '../../services/flask';
+import { getLatestMessage, getTableNames, BACKEND_URL } from '../../services/flask';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const DebugDashboard = () => {
     const [tableNames, setTableNames] = useState([]);
     const [checkedTables, setCheckedTables] = useState(["MotorCommands", "DashboardCommands"]);
     const [tableMessages, setTableMessages] = useState({});
     const [searchQuery, setSearchQuery] = useState('');
+    const [lastReceivedTime, setLastReceivedTime] = useState({});
+    const [lastTimeStamp, setLastTimeStamp] = useState({});
+    
     const socketRef = useRef(null);
     const messageContainerRef = useRef(null);
+    const maxMessagesPerTable = 1;
 
+    // Fetch table names on mount
     useEffect(() => {
-        //establish socketIO connection
-        //using reference avoids updating reloading when socket is updated
+        const fetchTableNames = async () => {
+            try {
+                const data = await getTableNames();
+                if (Array.isArray(data.table_names)) {
+                    // Filter out unwanted tables
+                    const filtered = data.table_names.filter(
+                        name => !["sqlite_sequence", "Alerts", "TriggeredAlerts"].includes(name)
+                    );
+                    setTableNames(filtered);
+                }
+            } catch (error) {
+                console.error('Error fetching table names:', error);
+                setTableNames([]);
+            }
+        };
+
+        fetchTableNames();
+    }, []);
+
+    // Setup socket connection and sortable
+    useEffect(() => {
+        // Establish socketIO connection
         socketRef.current = io(BACKEND_URL);
 
         socketRef.current.on('new-messages', (data) => {
-            if (data.messages){
+            if (data.messages) {
                 data.messages.forEach(displayMessage);
             }
         });
 
-        //sortable intilization
-        //will allow message containers to be dragged and dropped
-        if(messageContainerRef.current){
+        // Sortable initialization
+        if (messageContainerRef.current) {
             new Sortable(messageContainerRef.current, {
                 handle: '.card-header',
                 animation: 150,
+                onStart: (evt) => {
+                    evt.item.style.opacity = '0.5';
+                },
+                onEnd: (evt) => {
+                    evt.item.style.opacity = '1';
+                }
             });
         }
 
-    const fetchTableNames = async () => {
-        try{
-            const names = await getTableNames();
-            setTableNames(names);
-        } catch(error){
-            console.error('Error fetching table names inside DebugDashbor.jsx', error);
-            setTableNames([]);
-        }
-    };
-
-    fetchTableNames();
-
-        //cleanup, disconnects components
+        // Cleanup
         return () => {
-            if(socketRef.current){
+            if (socketRef.current) {
                 socketRef.current.disconnect();
             }
         };
     }, []);
 
-        const displayMessage = (data) => {
-        const { table_name: tableName } = data;
+    // Poll for latest messages
+    useEffect(() => {
+        const fetchLatestMessages = async () => {
+            try {
+                const batchData = await getLatestMessage();
+                if (batchData.messages) {
+                    batchData.messages.forEach(displayMessage);
+                }
+            } catch (error) {
+                console.error('Message fetch error:', error);
+            }
+        };
 
-        setTableMessages(prevMessages => {
-            const updatedMessages = { ...prevMessages };
+        const messageInterval = setInterval(fetchLatestMessages, 1000);
+        
+        return () => clearInterval(messageInterval);
+    }, []);
+
+    // Update elapsed time display
+    useEffect(() => {
+        const updateInterval = setInterval(() => {
+            setLastReceivedTime(prev => ({ ...prev })); // Trigger re-render
+        }, 1000);
+
+        return () => clearInterval(updateInterval);
+    }, []);
+
+    const displayMessage = (data) => {
+        const { table_name: tableName, timestamp } = data;
+
+        // Prevent duplicate messages
+        setLastTimeStamp(prev => {
+            if (prev[tableName] === timestamp) return prev;
             
-            if (!updatedMessages[tableName]) {
-                updatedMessages[tableName] = [];
-            }
+            const newTimestamps = { ...prev, [tableName]: timestamp };
+            
+            // Update received time
+            setLastReceivedTime(prevTime => ({
+                ...prevTime,
+                [tableName]: Date.now()
+            }));
 
-            // Add new message, limit to last 5 messages per table
-            updatedMessages[tableName].unshift(data);
-            if (updatedMessages[tableName].length > 5) {
-                updatedMessages[tableName].pop();
-            }
+            // Update messages
+            setTableMessages(prevMessages => {
+                const updatedMessages = { ...prevMessages };
+                
+                if (!updatedMessages[tableName]) {
+                    updatedMessages[tableName] = [];
+                }
 
-            return updatedMessages;
+                updatedMessages[tableName].push(data);
+                
+                // Limit to max messages per table
+                if (updatedMessages[tableName].length > maxMessagesPerTable) {
+                    updatedMessages[tableName].shift();
+                }
+
+                return updatedMessages;
+            });
+
+            return newTimestamps;
         });
     };
 
@@ -94,14 +156,31 @@ const DebugDashboard = () => {
             .join('\n');
     };
 
-    
+    const getElapsedTime = (tableName) => {
+        const now = Date.now();
+        const lastTime = lastReceivedTime[tableName];
+        if (!lastTime) return "Just now";
+
+        const elapsed = Math.floor((now - lastTime) / 1000);
+        if (elapsed < 60) {
+            return `${elapsed} seconds ago`;
+        }
+        return `${Math.floor(elapsed / 60)} minutes ago`;
+    };
+
     const filteredTableNames = tableNames.filter(name => 
         name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // Determine which tables to show
+    const visibleTables = checkedTables.length === 0 
+        ? Object.keys(tableMessages) 
+        : checkedTables;
+
     return (
         <div className="container-fluid mt-4">
             <div className="row">
+                {/* Left large container */}
                 <div className="col-md-8">
                     <div 
                         ref={messageContainerRef} 
@@ -109,20 +188,28 @@ const DebugDashboard = () => {
                         id="messageContainer"
                     >
                         {Object.entries(tableMessages)
-                            .filter(([tableName]) => 
-                                checkedTables.length === 0 || checkedTables.includes(tableName)
-                            )
+                            .filter(([tableName]) => visibleTables.includes(tableName))
                             .map(([tableName, messages]) => (
-                                <div key={tableName} className="card mt-3" id={`card_${tableName}`}>
+                                <div 
+                                    key={tableName} 
+                                    className="card mt-3" 
+                                    id={`card_${tableName}`}
+                                >
                                     <div className="card-header">{tableName}</div>
                                     <div className="card-body" id={`cardBody_${tableName}`}>
                                         {messages.map((msg, index) => (
                                             <div key={index} className="message mb-2">
-                                                <span className="time-elapsed">
-                                                    {new Date(msg.timestamp).toLocaleString()}
-                                                </span>
-                                                <br />
-                                                {formatMessageContent(msg)}
+                                                {msg.timestamp !== -1 ? (
+                                                    <>
+                                                        <span className="time-elapsed">
+                                                            {getElapsedTime(tableName)}
+                                                        </span>
+                                                        <br />
+                                                        {formatMessageContent(msg)}
+                                                    </>
+                                                ) : (
+                                                    "No Messages Received"
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -131,9 +218,10 @@ const DebugDashboard = () => {
                         }
                     </div>
                 </div>
+
+                {/* Right smaller containers */}
                 <div className="col-md-4">
-                    {/* Checkbox section remains the same as previous implementation */}
-                    <div className="small-container" style={{ height: '600px' }}>
+                    <div className="small-container" id="checkbox-container" style={{ height: '600px' }}>
                         <div className="text-container">
                             <h5>Message Types</h5>
                             <input
@@ -147,7 +235,7 @@ const DebugDashboard = () => {
                         <hr className="separator" />
                         <div className="small-container mt-4" style={{ height: '350px' }}>
                             <div className="text-container">
-                                <form>
+                                <form id="table-names-form">
                                     {filteredTableNames.map(name => (
                                         <div key={name} className="checkbox-wrapper">
                                             <input
