@@ -7,6 +7,10 @@ import webbrowser
 import re
 from backend.submodule_automation import initialize_submodule, get_submodule_branches
 from backend.startup_validation import validate_startup_requirements
+import tkinter as tk
+from tkinter import filedialog
+import subprocess
+import sys
 
 SETUP_PORT = 5499
 
@@ -44,23 +48,108 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
 
     @setup_app.route("/validate-file", methods=["POST"])
     def validate_file():
-        """AJAX endpoint for validating selected file name (pre-upload)."""
-        file_name = request.json.get("fileName", "")
+        """AJAX endpoint to validate a server-local file path and extension."""
         log_type = request.json.get("logType")
-        file_name = file_name.strip().lower()
+        # Accept either 'filePath' or legacy 'fileName'
+        file_path = request.json.get("filePath") or request.json.get("fileName") or ""
+        raw = file_path.strip()
+        lower = raw.lower()
 
-        if not file_name:
+        if not raw:
             return jsonify({"valid": True, "message": ""})
 
+        # Extension checks based on mode
         if log_type in ["pastlog", "mock_livelog"]:
-            if not (file_name.endswith('.log') or file_name.endswith('.txt')):
+            if not (lower.endswith('.log') or lower.endswith('.txt')):
                 return jsonify({"valid": False, "message": f"File must be .log or .txt for {log_type} mode"})
         elif log_type == "db":
-            if not file_name.endswith('.db'):
+            if not lower.endswith('.db'):
                 return jsonify({"valid": False, "message": "Database file must end with .db"})
 
-        # For other modes, any extension is acceptable or file not required
+        # Existence check for server-local path
+        if not os.path.exists(raw):
+            return jsonify({"valid": False, "message": f"File '{raw}' does not exist on server"})
+
         return jsonify({"valid": True, "message": ""})
+
+    @setup_app.route("/browse-file", methods=["POST"])
+    def browse_file():
+        """Open a native file dialog on the server to select a local file."""
+
+        log_type = (request.json or {}).get("logType")
+
+        try:
+            # Apple - uses AppleScript
+            if sys.platform == "darwin":
+                file_types = []
+                if log_type in ("pastlog", "mock_livelog"):
+                    file_types = ["log", "txt"]
+                elif log_type == "db":
+                    file_types = ["db"]
+
+                if file_types:
+                    type_filter = ', '.join([f'"{ext}"' for ext in file_types])
+                    applescript = f'''
+                        tell application "System Events"
+                            activate
+                            set theFile to choose file with prompt "Select input file" of type {{{type_filter}}}
+                            return POSIX path of theFile
+                        end tell
+                    '''
+                else:
+                    applescript = '''
+                        tell application "System Events"
+                            activate
+                            set theFile to choose file with prompt "Select input file"
+                            return POSIX path of theFile
+                        end tell
+                    '''
+
+                result = subprocess.run(
+                    ["osascript", "-e", applescript],
+                    capture_output=True,
+                    text=True,
+                    timeout=300  # 5 minute timeout for user to select file
+                )
+
+                if result.returncode == 0:
+                    selected = result.stdout.strip()
+                    if selected:
+                        return jsonify({"success": True, "path": selected})
+                    else:
+                        return jsonify({"success": False, "path": "", "message": "No file selected"})
+                else:
+                    # User cancelled
+                    return jsonify({"success": False, "path": "", "message": "File selection cancelled"})
+
+            else:
+                # Linux/Windows - uses tkinter
+                root = tk.Tk()
+                root.withdraw()
+
+                filetypes = []
+                if log_type in ("pastlog", "mock_livelog"):
+                    filetypes = [("Log files", "*.log *.txt"), ("All files", "*.*")]
+                elif log_type == "db":
+                    filetypes = [("SQLite DB", "*.db"), ("All files", "*.*")]
+                else:
+                    filetypes = [("All files", "*.*")]
+
+                selected = filedialog.askopenfilename(
+                    title="Select input file",
+                    filetypes=filetypes
+                )
+
+                root.destroy()
+
+                if not selected:
+                    return jsonify({"success": False, "path": "", "message": "No file selected"})
+                return jsonify({"success": True, "path": selected})
+
+        except subprocess.TimeoutExpired:
+            return jsonify({"success": False, "path": "", "message": "File selection timed out"})
+        except Exception as e:
+            return jsonify({"success": False, "path": "", "message": str(e)})
 
     @setup_app.route("/", methods=["GET"])
     def index():
@@ -115,27 +204,15 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
         # Create opts object to match the structure that argparse would provide for CLI usage
         opts = Opts()
         opts.logType = request.form.get("logType")
-        # Handle uploaded file (file chooser). For required modes we expect a file upload.
-        uploaded_file = request.files.get("inputFile")
-        saved_path = None
-        if uploaded_file and uploaded_file.filename:
-            # Ensure uploads directory exists
-            uploads_dir = Path("uploads")
-            uploads_dir.mkdir(exist_ok=True)
-            # Sanitize filename (basic) and prepend timestamp for uniqueness
-            raw_name = os.path.basename(uploaded_file.filename)
-            ts = time.strftime("%Y%m%d_%H%M%S")
-            safe_name = f"{ts}_{raw_name}".replace(" ", "_")
-            saved_path = str(uploads_dir / safe_name)
-            uploaded_file.save(saved_path)
-        # For downstream code expecting list with path
-        opts.inputFile = [saved_path] if saved_path else None
+        # Read server-local path chosen via Tkinter or typed by user
+        input_path = (request.form.get("inputFile") or "").strip()
+        opts.inputFile = [input_path] if input_path else None
         outputDB = request.form.get("outputDB") or ""
         opts.outputDB = [outputDB] if outputDB.strip() else None
         opts.set_dbc_branch = request.form.get("set_dbc_branch") or "main"
 
         # Server-side validation as safety net
-        input_file_path = saved_path if saved_path else None
+        input_file_path = input_path if input_path else None
         validation_errors = validate_startup_requirements(opts.logType, input_file_path)
         # Additional check: required modes must have uploaded file
         required_modes = ["pastlog","mock_livelog","db"]
