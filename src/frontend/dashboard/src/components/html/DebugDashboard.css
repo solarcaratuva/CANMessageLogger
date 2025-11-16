@@ -1,0 +1,29 @@
+.large-container {
+    border: 1px solid #ddd;
+    padding: 15px;
+    height: 700px;
+    overflow-y: auto;
+}
+
+.small-container {
+    border: 1px solid #ddd;
+    padding: 15px;
+    overflow-y: auto;
+}
+
+.card {
+    margin-bottom: 15px;
+}
+
+.card-header {
+    cursor: move;
+}
+
+.checkbox-wrapper {
+    margin-bottom: 10px;
+}
+
+.time-elapsed {
+    color: #6c757d;
+    font-size: 0.8em;
+}
