@@ -7,8 +7,6 @@ import webbrowser
 import re
 from backend.submodule_automation import initialize_submodule, get_submodule_branches
 from backend.startup_validation import validate_startup_requirements
-import tkinter as tk
-from tkinter import filedialog
 import subprocess
 import sys
 
@@ -71,86 +69,51 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
             return jsonify({"valid": False, "message": f"File '{raw}' does not exist on server"})
 
         return jsonify({"valid": True, "message": ""})
-
+        
     @setup_app.route("/browse-file", methods=["POST"])
     def browse_file():
         """Open a native file dialog on the server to select a local file."""
-
         log_type = (request.json or {}).get("logType")
+        # Run a helper Python process that opens Tkinter dialog in its own main thread
+        helper_code = r"""
+import sys
+import tkinter as tk
+from tkinter import filedialog
 
+log_type = sys.argv[1] if len(sys.argv) > 1 else ""
+root = tk.Tk()
+        root.withdraw()
+        # Try to ensure dialog is visible/topmost across platforms
         try:
-            # Apple - uses AppleScript
-            if sys.platform == "darwin":
-                file_types = []
-                if log_type in ("pastlog", "mock_livelog"):
-                    file_types = ["log", "txt"]
-                elif log_type == "db":
-                    file_types = ["db"]
+            root.attributes('-topmost', True)
+            root.lift()
+            root.focus_force()
+            root.update()
+        except Exception:
+            pass
 
-                if file_types:
-                    type_filter = ', '.join([f'"{ext}"' for ext in file_types])
-                    applescript = f'''
-                        tell application "System Events"
-                            activate
-                            set theFile to choose file with prompt "Select input file" of type {{{type_filter}}}
-                            return POSIX path of theFile
-                        end tell
-                    '''
-                else:
-                    applescript = '''
-                        tell application "System Events"
-                            activate
-                            set theFile to choose file with prompt "Select input file"
-                            return POSIX path of theFile
-                        end tell
-                    '''
+filetypes = []
+if log_type in ("pastlog", "mock_livelog"):
+    filetypes = [("Log files", "*.log *.txt"), ("All files", "*.*")]
+elif log_type == "db":
+    filetypes = [("SQLite DB", "*.db"), ("All files", "*.*")]
+else:
+    filetypes = [("All files", "*.*")]
 
-                result = subprocess.run(
-                    ["osascript", "-e", applescript],
-                    capture_output=True,
-                    text=True,
-                    timeout=300  # 5 minute timeout for user to select file
-                )
-
-                if result.returncode == 0:
-                    selected = result.stdout.strip()
-                    if selected:
-                        return jsonify({"success": True, "path": selected})
-                    else:
-                        return jsonify({"success": False, "path": "", "message": "No file selected"})
-                else:
-                    # User cancelled
-                    return jsonify({"success": False, "path": "", "message": "File selection cancelled"})
-
-            else:
-                # Linux/Windows - uses tkinter
-                root = tk.Tk()
-                root.withdraw()
-
-                filetypes = []
-                if log_type in ("pastlog", "mock_livelog"):
-                    filetypes = [("Log files", "*.log *.txt"), ("All files", "*.*")]
-                elif log_type == "db":
-                    filetypes = [("SQLite DB", "*.db"), ("All files", "*.*")]
-                else:
-                    filetypes = [("All files", "*.*")]
-
-                selected = filedialog.askopenfilename(
-                    title="Select input file",
-                    filetypes=filetypes
-                )
-
-                root.destroy()
-
-                if not selected:
-                    return jsonify({"success": False, "path": "", "message": "No file selected"})
-                return jsonify({"success": True, "path": selected})
-
-        except subprocess.TimeoutExpired:
-            return jsonify({"success": False, "path": "", "message": "File selection timed out"})
+path = filedialog.askopenfilename(title="Select input file", filetypes=filetypes, initialdir='.')
+print(path, end="")
+"""
+        try:
+            proc = subprocess.run([sys.executable, "-c", helper_code, (log_type or "")], capture_output=True, text=True)
+            if proc.returncode != 0:
+                return jsonify({"success": False, "path": "", "message": proc.stderr.strip() or "Dialog failed"})
+            selected = (proc.stdout or "").strip()
+            if not selected:
+                return jsonify({"success": False, "path": "", "message": "No file selected"})
+            return jsonify({"success": True, "path": selected})
         except Exception as e:
             return jsonify({"success": False, "path": "", "message": str(e)})
-
+    
     @setup_app.route("/", methods=["GET"])
     def index():
         # Initialize submodule and get available branches
@@ -195,6 +158,8 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
         func = flask_request.environ.get("werkzeug.server.shutdown")
         if func:
             func()
+
+            
 
     @setup_app.route("/start", methods=["POST"])
     def start():
@@ -244,3 +209,5 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
     # Open browser to setup UI and run the startup options server 
     webbrowser.open(f"http://localhost:{SETUP_PORT}")
     setup_app.run(host="127.0.0.1", port=SETUP_PORT, debug=False)
+
+    
