@@ -18,7 +18,7 @@ socketio = SocketIO(app, cors_allowed_origins="http://localhost:3000", logger=Fa
 
 @app.route('/')
 def index():
-    return render_template(debug_dashboard.html);
+    return render_template('debug_dashboard.html')
                    
 @app.route('/api/test')
 def test_api():
