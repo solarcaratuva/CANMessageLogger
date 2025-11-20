@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from flask_socketio import SocketIO
 from flask_cors import CORS
 
@@ -8,7 +8,7 @@ log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
 #flask functions as API only now
-app = Flask(__name__)
+app = Flask(__name__, template_folder='../../frontend/html', static_folder='../../frontend/static')
 
 #enable CORS for React frontend
 CORS(app)
