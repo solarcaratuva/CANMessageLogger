@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { generateAllTelemetry } from "../../util/fakeData";
+import {generateAllTelemetry} from "../../util/fakeData"
 import "./Dashboard.css";
-import Header from "../Header/Header";
+import Header from "../Header/Header"
 import SpeedCard from "../SpeedCard/SpeedCard";
 import CanValuesCard from "../CanValuesCard/CanValuesCard";
 import HeartbeatCard from "../HeartbeatCard/HeartbeatCard";
-import LteStatusCard from "../LteStatusCard/LteStatusCard";
+import { LteStatusCard } from "../LteStatusCard/networkStatus";
+import { xbeeRadioSatus } from "../LteStatusCard/networkStatus";
 import GpsCard from "../GpsCard/GpsCard";
 import ImuCard from "../ImuCard/ImuCard";
 import GraphsCard from "../GraphsCard/GraphsCard";
 import ErrorsCard from "../ErrorsCard/ErrorsCard";
 import WheelboardCard from "../WheelboardCard/WheelboardCard";
+import { BACKEND_URL } from "../../../services/flask";
 
-import { socket } from "../../services/socket";
+import {io} from "socket.io-client";
+
+//socket io connection handler
+const socket = io(BACKEND_URL);
 
 const onDisconnect = () => {
   if (socket && socket.connected) socket.disconnect();
@@ -27,16 +32,12 @@ console.log("HeartbeatCard:", HeartbeatCard);
 console.log("LteStatusCard:", LteStatusCard);
 console.log("GpsCard:", GpsCard);
 console.log("ImuCard:", ImuCard);
-{/*
 console.log("GraphsCard:", GraphsCard);
 console.log("ErrorsCard:", ErrorsCard);
 console.log("WheelboardCard:", WheelboardCard); 
-  */}
-
 
 const Dashboard = () => {
   const [telemetry, setTelemetry] = useState(generateAllTelemetry());
-  
 
   //state manager for socketIO connection
   const [isConnected, setIsConnected] = useState(socket.connected);
@@ -88,7 +89,7 @@ const Dashboard = () => {
           max={telemetry.speed.max}
           min={telemetry.speed.min}
           average={telemetry.speed.average}
-          showOnlyCurrent={false}
+          showOnlyCurrent={true}
         />
         <CanValuesCard
           canValues={telemetry.canValues}
@@ -103,9 +104,10 @@ const Dashboard = () => {
       </div>
 
 
-      {/* Row 3: LTE & Wheelboard */}
+      {/* Row 3: LTE, XBEE, & Wheelboard */}
       <div className="grid-row">
         <LteStatusCard lteStatus={telemetry.lteStatus} />
+        <xbeeRadioSatus xbeeStatus={telemetry.xbeeRadioSatus}/>
         <WheelboardCard wheelboard={telemetry.wheelboard} />
       </div>
 

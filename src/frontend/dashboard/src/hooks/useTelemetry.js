@@ -6,6 +6,7 @@ export default function useTelemetry() {
   const [errors, setErrors] = useState([]);
   const [heartbeat, setHeartbeat] = useState({ board1: true, board2: true });
   const [lteStatus, setLteStatus] = useState({ lastMessageSec: 5 });
+  const [xbeeStatus, setXbeeStatus] = useState({ lastMessageSec : 5});
   const [wheelboard, setWheelboard] = useState({ hazards: false, turnSignal: "Off" });
 
   useEffect(() => {
@@ -18,6 +19,7 @@ export default function useTelemetry() {
       setErrors(Math.random() > 0.9 ? ["Motor Overheat"] : []);
       setHeartbeat({ board1: Math.random() > 0.1, board2: Math.random() > 0.1 });
       setLteStatus({ lastMessageSec: Math.floor(Math.random() * 10) });
+      setXbeeStatus({lastMessageSec : Math.floor(Math.random() * 10)});
       setWheelboard({
         hazards: Math.random() > 0.8,
         turnSignal: Math.random() > 0.5 ? "Left" : "Off",
@@ -27,5 +29,5 @@ export default function useTelemetry() {
     return () => clearInterval(interval);
   }, []);
 
-  return { speed, canValues, errors, heartbeat, lteStatus, wheelboard };
+  return { speed, canValues, errors, heartbeat, lteStatus, xbeeStatus, wheelboard };
 }
