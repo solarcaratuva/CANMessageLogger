@@ -1,44 +1,45 @@
 async function validateForm() {
     let isValid = true;
-    
-    // Validate input file if visible and has content
     const inputFileFieldset = document.getElementById('inputFileFieldset');
     const inputFile = document.getElementById('inputFile');
     const inputFileError = document.getElementById('inputFileError');
     const logTypeRadio = document.querySelector('input[name="logType"]:checked');
     const logType = logTypeRadio ? logTypeRadio.value : '';
-    
-    if (inputFileFieldset.style.display !== 'none' && inputFile.value.trim()) {
-        const filePath = inputFile.value.trim();
-        
-        try {
-            const response = await fetch('/validate-file', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    filePath: filePath,
-                    logType: logType 
-                })
-            });
-            
-            const result = await response.json();
-            
-            if (!result.valid) {
-                inputFileError.innerHTML = result.message;
+
+    if (inputFileFieldset.style.display !== 'none') {
+        // Required modes must have a file selected
+        const requiredTypes = ['pastlog','db','mock_livelog'];
+        if (requiredTypes.includes(logType)) {
+            if (!inputFile.value || inputFile.value.trim().length === 0) {
+                inputFileError.innerHTML = 'Please select a file';
+                inputFileError.style.display = 'block';
+                return false;
+            }
+        }
+        if (inputFile.value && inputFile.value.trim().length > 0) {
+            const filePath = inputFile.value.trim();
+            try {
+                const response = await fetch('/validate-file', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filePath, logType })
+                });
+                const result = await response.json();
+                if (!result.valid) {
+                    inputFileError.innerHTML = result.message;
+                    inputFileError.style.display = 'block';
+                    isValid = false;
+                } else {
+                    inputFileError.style.display = 'none';
+                }
+            } catch (err) {
+                inputFileError.innerHTML = 'Could not validate file';
                 inputFileError.style.display = 'block';
                 isValid = false;
-            } else {
-                inputFileError.style.display = 'none';
             }
-        } catch (error) {
-            inputFileError.innerHTML = 'Could not validate file';
-            inputFileError.style.display = 'block';
-            isValid = false;
+        } else {
+            inputFileError.style.display = 'none';
         }
-    } else {
-        inputFileError.style.display = 'none';
     }
     
     // Validate output DB if provided
@@ -104,6 +105,7 @@ function updateInputFileState() {
         inputFileFieldset.style.display = 'none';
         inputFile.required = false;
         requiredLabel.style.display = 'none';
+        // Clear any previous selection
         inputFile.value = '';
         inputFileError.style.display = 'none';
     }
@@ -165,4 +167,30 @@ document.addEventListener('DOMContentLoaded', function() {
     updateLaunchButtonState(true, 'Launch App');
     updateInputFileState();
 });
+
+async function browseForFile() {
+    const logTypeRadio = document.querySelector('input[name="logType"]:checked');
+    const logType = logTypeRadio ? logTypeRadio.value : '';
+    const inputFile = document.getElementById('inputFile');
+    const inputFileError = document.getElementById('inputFileError');
+
+    try {
+        const response = await fetch('/browse-file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ logType })
+        });
+        const data = await response.json();
+        if (data.success && data.path) {
+            inputFile.value = data.path;
+            inputFileError.style.display = 'none';
+        } else if (data.message) {
+            inputFileError.innerHTML = data.message;
+            inputFileError.style.display = 'block';
+        }
+    } catch (err) {
+        inputFileError.innerHTML = 'Could not open file dialog';
+        inputFileError.style.display = 'block';
+    }
+}
 

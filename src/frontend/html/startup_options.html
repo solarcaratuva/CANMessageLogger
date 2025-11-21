@@ -36,8 +36,11 @@
 
     <fieldset id="inputFileFieldset" style="display:none;">
         <label for="inputFile">Input File <span id="inputFileRequiredLabel" style="color:#c00;">(required)</span></label>
-        <input type="text" id="inputFile" name="inputFile" placeholder="e.g. ./logs/sample.log" />
-        <div id="inputFileError" class="error">Input file must end with .log, .txt, or .db</div>
+        <div class="input-with-button">
+            <input type="text" id="inputFile" name="inputFile" placeholder="e.g. /path/to/file.log" />
+            <button type="button" id="browseButton" onclick="browseForFile()">Browse…</button>
+        </div>
+        <div id="inputFileError" class="error">Input file must be a .log, .txt, or .db file</div>
         <small>Required for pastlog/mock_livelog (.log/.txt) and db (.db).</small>
     </fieldset>
 
