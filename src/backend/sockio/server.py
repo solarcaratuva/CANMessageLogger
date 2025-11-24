@@ -1,6 +1,5 @@
-from flask import Flask, render_template, jsonify
-from flask_socketio import SocketIO
-from flask_cors import CORS
+from flask import Flask, render_template
+from flask_socketio import SocketIO, emit
 
 # disables excessive debug logging from SocketIO
 import logging
@@ -9,12 +8,11 @@ log.setLevel(logging.ERROR)
 
 # `app` and `socketio` represent the REST API connection, and are used in other files in sockio/
 app = Flask(__name__)
-CORS(app) # fixes Access-Control-Allow-Origin
 socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
 
 @app.route("/")
-def health():
-    return jsonify({"status": "ok", "service": "CAN backend"})
+def index():
+    return "Socket.IO test backend is running"
 
 @socketio.on('connect')
 def handle_connect():
@@ -24,3 +22,11 @@ def handle_connect():
 @socketio.on('disconnect')
 def handle_disconnect():
     print("Client disconnected.")
+
+@socketio.on("ping_from_client")
+def handle_ping(data):
+    print("got ping:", data)
+    emit("pong_from_server", {"ok": True})
+
+if __name__ == "__main__":
+    socketio.run(app, host="0.0.0.0", port=5000)
