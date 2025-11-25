@@ -11,7 +11,7 @@ alert_definitions = dict() # {1: alert1, 2: alert2, 3: alert3, ...}
 alertsCreated = 0
 
 
-@app.route('/alert_manager')
+@app.route('/logger/alert_manager')
 def alert_manager():
     return render_template('alert_manager.html')
 
