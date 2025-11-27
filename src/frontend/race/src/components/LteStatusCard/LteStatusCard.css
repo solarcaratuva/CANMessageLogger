@@ -2,12 +2,10 @@
   background: #222;
   padding: 1rem;
   border-radius: 8px;
-  margin-bottom: 1rem;
 }
 
 .card h3 {
   font-size: 1.3rem;
-  margin-bottom: 0.5rem;
 }
 
 .card p {

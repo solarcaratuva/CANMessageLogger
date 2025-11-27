@@ -1,0 +1,38 @@
+.card {
+  background: #222;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 0;
+}
+
+.card h3 {
+  font-size: 1.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.card p {
+  margin: 0.3rem 0;
+}
+
+.primary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)); /* 3 columns */
+  gap: 0.5rem;
+}
+
+.stat {
+  border-radius: 8px;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.value {
+    margin: 0;
+}
+
+.title-label {
+    display: flex;
+    justify-content: center;
+}
+
+.card-primary   { grid-area: primary; }

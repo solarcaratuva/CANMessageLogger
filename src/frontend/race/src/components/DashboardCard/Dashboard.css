@@ -200,3 +200,63 @@ html, body, #root {
     gap: 2rem;
   }
 }
+
+
+
+/* Map components to grid areas */
+.grid-primary {
+  grid-area: primary;
+}
+
+.grid-secondary {
+  grid-area: secondary;
+}
+
+.grid-imu {
+  grid-area: imu;
+}
+
+.grid-lte {
+  grid-area: lte;
+}
+
+
+
+/* Two-column layout with independent vertical stacking */
+.dashboard-columns {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  align-items: stretch;
+}
+
+/* Left column: big primary card */
+.dashboard-left {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Right column: stacked smaller cards */
+.dashboard-right {
+  flex: 1.2;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (max-width: 1023px) {
+  .dashboard-columns {
+    flex-direction: column;
+  }
+}
+
+.secondary-info {
+  display: flex;
+  gap: 1rem;
+}
+
+.secondary-info > * {
+  flex: 1;
+}
