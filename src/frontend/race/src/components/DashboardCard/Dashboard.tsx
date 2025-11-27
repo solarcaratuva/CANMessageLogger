@@ -2,11 +2,11 @@ import "./Dashboard.css";
 
 import Header from "../Header/Header";
 import PrimaryInfoCard from "../PrimaryInfoCard/PrimaryInfoCard";
-import SecondaryInfoCard from "../SecondaryInfoCard/SecondaryInfoCard";
 import ImuCard from "../ImuCard/ImuCard";
-import LteStatusCard from "../LteStatusCard/LteStatusCard"
 import BpsCard from "../BpsCard/BpsCard"
 import MotorCard from "../MotorCard/MotorCard"
+import TransmissionStatusCard from "../TransmissionStatusCard/TransmissionStatusCard";
+import DiagnosticsCard from "../DiagnosticsCard/DiagnosticsCard"
 
 const Dashboard = () => {
   return (
@@ -22,12 +22,12 @@ const Dashboard = () => {
             <MotorCard />
           </div>
           
-          <LteStatusCard />
         </div>
 
         {/* Right column */}
         <div className="dashboard-right">
-          <SecondaryInfoCard />
+          <DiagnosticsCard />
+
           <ImuCard />
         </div>
       </div>

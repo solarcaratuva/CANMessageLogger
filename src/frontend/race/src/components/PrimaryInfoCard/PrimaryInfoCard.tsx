@@ -4,7 +4,6 @@ import "./PrimaryInfoCard.css";
 export default function PrimaryInfoCard({  }) {
   return (
     <section className="card card-primary">
-          <h3 className="title-label">Primary</h3>
           <div className="primary-grid">
             <div className="stat">Speed
                 <h1 className="value">34.4 mph</h1>
