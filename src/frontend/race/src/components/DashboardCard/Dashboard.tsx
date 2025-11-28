@@ -1,17 +1,19 @@
 import "./Dashboard.css";
 
-import Header from "../Header/Header";
 import PrimaryInfoCard from "../PrimaryInfoCard/PrimaryInfoCard";
 import ImuCard from "../ImuCard/ImuCard";
 import BpsCard from "../BpsCard/BpsCard"
 import MotorCard from "../MotorCard/MotorCard"
-import TransmissionStatusCard from "../TransmissionStatusCard/TransmissionStatusCard";
 import DiagnosticsCard from "../DiagnosticsCard/DiagnosticsCard"
+import GpsCard from "../GpsCard/GpsCard";
+import BpsSocGraphCard from "../BpsSocGraphCard/BpsSocGraphCard";
 
 const Dashboard = () => {
   return (
     <div className="app-container">
-      <Header />
+      <header className="header">
+        <h1>UVA Solar Car Dashboard</h1>
+      </header>
 
       <div className="dashboard-columns">
         {/* Left column */}
@@ -21,6 +23,11 @@ const Dashboard = () => {
             <BpsCard />
             <MotorCard />
           </div>
+
+          <div className="secondary-info">
+            {/* <ImuCard />
+            <GpsCard /> */}
+          </div>
           
         </div>
 
@@ -28,7 +35,8 @@ const Dashboard = () => {
         <div className="dashboard-right">
           <DiagnosticsCard />
 
-          <ImuCard />
+          <BpsSocGraphCard />
+
         </div>
       </div>
     </div>

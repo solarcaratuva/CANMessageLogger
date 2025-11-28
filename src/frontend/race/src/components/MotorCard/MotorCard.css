@@ -21,7 +21,7 @@
 }
 
 .block-label {
-  font-size: 0.85rem;
+  font-size: 1.15rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   opacity: 0.7;
@@ -30,7 +30,7 @@
 .secondary-row {
   display: flex;
   justify-content: space-between;
-  font-size: 0.78rem;
+  font-size: 1.18rem;
   margin: 0.15rem 0;
 }
 
