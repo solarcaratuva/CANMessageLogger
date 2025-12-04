@@ -1,9 +1,11 @@
 from pathlib import Path
 import threading
-from flask import Flask, request, redirect, send_file, send_from_directory, render_template_string
+import os
+from flask import Flask, request, redirect, send_file, send_from_directory, render_template_string, jsonify
 import webbrowser
 import re
 from backend.submodule_automation import initialize_submodule, get_submodule_branches
+from backend.startup_validation import validate_startup_requirements
 
 SETUP_PORT = 5499
 
@@ -16,6 +18,65 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
     STATIC_DIR = (FRONTEND_DIR / "static").resolve()
     
     setup_app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="/static")
+
+    @setup_app.route("/validate-hardware", methods=["POST"])
+    def validate_hardware():
+        """AJAX endpoint for real-time hardware validation"""
+        log_type = request.json.get("logType")
+        
+        if log_type == "livelog":
+            from backend.startup_validation import get_st_link_port
+            port = get_st_link_port()
+            return jsonify({
+                "valid": port is not None,
+                "message": f"ST-Link found on {port}" if port else "ST-Link device not found"
+            })
+        elif log_type == "radio":
+            from backend.startup_validation import get_radio_port
+            port = get_radio_port()
+            return jsonify({
+                "valid": port is not None,
+                "message": f"Radio found on {port}" if port else "Radio device not found"
+            })
+        
+        return jsonify({"valid": True, "message": "No hardware validation needed"})
+
+    @setup_app.route("/validate-file", methods=["POST"])
+    def validate_file():
+        """AJAX endpoint for real-time file existence validation"""
+        file_path = request.json.get("filePath")
+        log_type = request.json.get("logType")
+        
+        if not file_path or not file_path.strip():
+            return jsonify({"valid": True, "message": ""})  # Empty is valid, will be handled by required field
+        
+        file_path = file_path.strip()
+        
+        # Check if file exists
+        if not os.path.exists(file_path):
+            return jsonify({
+                "valid": False,
+                "message": f"File '{file_path}' does not exist"
+            })
+        
+        # Check file extension requirements based on log type
+        if log_type in ["pastlog", "mock_livelog"]:
+            if not (file_path.lower().endswith('.log') or file_path.lower().endswith('.txt')):
+                return jsonify({
+                    "valid": False,
+                    "message": f"File must be .log or .txt for {log_type} mode"
+                })
+        elif log_type == "db":
+            if not file_path.lower().endswith('.db'):
+                return jsonify({
+                    "valid": False,
+                    "message": "Database file must end with .db"
+                })
+        
+        return jsonify({
+            "valid": True,
+            "message": f"File '{file_path}' exists"
+        })
 
     @setup_app.route("/", methods=["GET"])
     def index():
@@ -75,6 +136,20 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
         outputDB = request.form.get("outputDB") or ""
         opts.outputDB = [outputDB] if outputDB.strip() else None
         opts.set_dbc_branch = request.form.get("set_dbc_branch") or "main"
+
+        # Server-side validation as safety net
+        input_file_path = inputFile if inputFile.strip() else None
+        validation_errors = validate_startup_requirements(opts.logType, input_file_path)
+        
+        if validation_errors:
+            print("Error in startup", validation_errors)
+            
+            # Return simple JSON error
+            return jsonify({
+                "success": False,
+                "errors": validation_errors
+            }), 400
+        
 
         # Capture the shutdown function within the request context
         shutdown_func = request.environ.get("werkzeug.server.shutdown")
