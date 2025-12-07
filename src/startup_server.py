@@ -115,21 +115,33 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
         # Create opts object to match the structure that argparse would provide for CLI usage
         opts = Opts()
         opts.logType = request.form.get("logType")
+
         # Handle uploaded file (file chooser). For required modes we expect a file upload.
+
+        # temp_upload folder is created because browsers can't store direct paths to file
+        # so we just keep 1 file named "user_uploaded_file" which gets overwritten each run
         uploaded_file = request.files.get("inputFile")
         saved_path = None
         if uploaded_file and uploaded_file.filename:
             # Ensure uploads directory exists
-            uploads_dir = Path("uploads")
+            uploads_dir = Path("temp_upload")
             uploads_dir.mkdir(exist_ok=True)
-            # Sanitize filename (basic) and prepend timestamp for uniqueness
-            raw_name = os.path.basename(uploaded_file.filename)
-            ts = time.strftime("%Y%m%d_%H%M%S")
-            safe_name = f"{ts}_{raw_name}".replace(" ", "_")
+
+            # Clear out any existing files so we truly only ever have one
+            for f in uploads_dir.iterdir():
+                if f.is_file():
+                    f.unlink()
+
+            # Always use the same name, optionally preserving extension
+            ext = Path(uploaded_file.filename).suffix  
+            safe_name = f"user_uploaded_file{ext}" if ext else "user_uploaded_file"
+
             saved_path = str(uploads_dir / safe_name)
             uploaded_file.save(saved_path)
+
         # For downstream code expecting list with path
         opts.inputFile = [saved_path] if saved_path else None
+
         outputDB = request.form.get("outputDB") or ""
         opts.outputDB = [outputDB] if outputDB.strip() else None
         opts.set_dbc_branch = request.form.get("set_dbc_branch") or "main"
