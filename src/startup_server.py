@@ -136,7 +136,7 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
             ext = Path(uploaded_file.filename).suffix  
             safe_name = f"user_uploaded_file{ext}" if ext else "user_uploaded_file"
 
-            saved_path = str(uploads_dir / safe_name)
+            saved_path = str(os.path.join(uploads_dir, safe_name))
             uploaded_file.save(saved_path)
 
         # For downstream code expecting list with path
