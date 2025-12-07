@@ -10,19 +10,19 @@ async function validateForm() {
         // Required modes must have a file selected
         const requiredTypes = ['pastlog','db','mock_livelog'];
         if (requiredTypes.includes(logType)) {
-            if (!inputFile.value || inputFile.value.trim().length === 0) {
+            if (!inputFile.files || inputFile.files.length === 0) {
                 inputFileError.innerHTML = 'Please select a file';
                 inputFileError.style.display = 'block';
                 return false;
             }
         }
-        if (inputFile.value && inputFile.value.trim().length > 0) {
-            const filePath = inputFile.value.trim();
+        if (inputFile.files && inputFile.files.length > 0) {
+            const fileName = inputFile.files[0].name.toLowerCase();
             try {
                 const response = await fetch('/validate-file', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filePath, logType })
+                    body: JSON.stringify({ fileName, logType })
                 });
                 const result = await response.json();
                 if (!result.valid) {
@@ -167,30 +167,4 @@ document.addEventListener('DOMContentLoaded', function() {
     updateLaunchButtonState(true, 'Launch App');
     updateInputFileState();
 });
-
-async function browseForFile() {
-    const logTypeRadio = document.querySelector('input[name="logType"]:checked');
-    const logType = logTypeRadio ? logTypeRadio.value : '';
-    const inputFile = document.getElementById('inputFile');
-    const inputFileError = document.getElementById('inputFileError');
-
-    try {
-        const response = await fetch('/browse-file', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ logType })
-        });
-        const data = await response.json();
-        if (data.success && data.path) {
-            inputFile.value = data.path;
-            inputFileError.style.display = 'none';
-        } else if (data.message) {
-            inputFileError.innerHTML = data.message;
-            inputFileError.style.display = 'block';
-        }
-    } catch (err) {
-        inputFileError.innerHTML = 'Could not open file dialog';
-        inputFileError.style.display = 'block';
-    }
-}
 

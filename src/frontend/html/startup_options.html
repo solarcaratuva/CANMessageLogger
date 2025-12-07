@@ -6,7 +6,7 @@
 </head>
 <body>
     <h1>Configure & Launch</h1>
-    <form method="POST" action="/start">
+    <form method="POST" action="/start" enctype="multipart/form-data">
     <fieldset>
         <legend>Log Type</legend>
         <div class="radio-group">
@@ -36,10 +36,7 @@
 
     <fieldset id="inputFileFieldset" style="display:none;">
         <label for="inputFile">Input File <span id="inputFileRequiredLabel" style="color:#c00;">(required)</span></label>
-        <div class="input-with-button">
-            <input type="text" id="inputFile" name="inputFile" placeholder="e.g. /path/to/file.log" />
-            <button type="button" id="browseButton" onclick="browseForFile()">Browse…</button>
-        </div>
+        <input type="file" id="inputFile" name="inputFile" accept=".log,.txt,.db" />
         <div id="inputFileError" class="error">Input file must be a .log, .txt, or .db file</div>
         <small>Required for pastlog/mock_livelog (.log/.txt) and db (.db).</small>
     </fieldset>
