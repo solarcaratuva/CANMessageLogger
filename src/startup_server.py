@@ -168,7 +168,7 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
         shutdown_func = request.environ.get("werkzeug.server.shutdown")
 
         # Launch the real server in a new thread
-        t = threading.Thread(target=lambda: run_server_callback(opts), daemon=True)
+        t = threading.Thread(target=lambda: run_server_callback(opts))
         t.start()
 
         # Close the setup server and redirect to the real app
