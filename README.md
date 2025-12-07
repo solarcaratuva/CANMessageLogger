@@ -4,14 +4,19 @@ This program is for logging, filtering, and analyzing recorded or live CAN messa
 
 ## Installation
 
-TODO
+1. Clone the GitHub repo.
+2. Navigate to the root directory of the cloned repo (`CANMessageLogger`)
+3. Run the command `pip install -r requirements.txt` to install all dependencies
+4. Continue to "Starting the program" for instructions on starting the server.
 
 ## Starting the program
 
 Run the following commands in a command prompt in the directory of this project: 
 
 1. Activate the virtual environment by running the command `.\.venv\Scripts\activate` (on Mac instead run `source ./venv/bin/activate`). 
-2. To start the program, run the command `py .\src\main.py [data source] [flags...]`; if `py` isn't recognized, try `python` or `python3`. Specifying the data source is a required positional argument, while flags are largely optional and can be in any order. 
+2. When launching the program, settings for the server can either be input directly via command line flags, or through a startup UI.
+    * To start the program with the startup UI run the command `py .\src\main.py`. See "Navigating the user interface" for next steps.
+    * To start the server directly with command line flags run the command `py .\src\main.py [data source] [flags...]`; if `py` isn't recognized, try `python` or `python3`. Specifying the data source is a required positional argument, while flags are largely optional and can be in any order. 
 
 **Data Source**
 
@@ -29,9 +34,26 @@ User must include the data source type that will be used to set up the database.
 
 ## Navigating the user interface
 
-TODO
+1. The user interface will be launched by default upon startup by running `py .\src\main.py` with no flags. If flags are included, the startup options UI will not be launched. 
+2. The startup options UI contains options to modify the same settings as set by the flags, including: 
+    * Log Type (pastlog, livelog, mock_livelog, db, radio)
+    * Input File
+    * Output File/DB
+    * DBC Branch.
+3. Selecting an input file is required for logTypes of pastlog, mock_livelog, and db. To select a file, click the Choose File button within the input file dialog box to launch a standard file explorer window.
+4. For the rest of the desired inputs, select the radio style buttons for each option, and press the `Launch App` button to start the main server. The browser will automatically redirect to the main application in the same tab.
 
 ## Overview of the Backend (for New Developers)
+
+### Startup Flow
+
+The program supports two startup modes:
+
+1. **UI Mode (default)**: Running `py .\src\main.py` with no arguments launches a setup server (`startup_server.py`) on port 5499. This opens a browser to a configuration UI where users select options. Upon clicking "Launch App", the setup server validates inputs, starts the main server in a new thread, and redirects the browser to the main application on port 5500.
+
+2. **CLI Mode**: Running with command-line arguments (e.g., `py .\src\main.py pastlog -i logfile.txt`) bypasses the UI and directly starts the main server with the provided configuration.
+
+### Data Processing
 
 The backend uses a Producer-Consumer software pattern to produce CAN message entries from a given data source, and consume them into a central database SQLite file (CDB). The *consumer* module and various *producer* modules are kept in the `\src\backend\input` directory.
 
