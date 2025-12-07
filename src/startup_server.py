@@ -1,6 +1,7 @@
 from pathlib import Path
 import threading
 import os
+import time
 from flask import Flask, request, redirect, send_file, send_from_directory, render_template_string, jsonify
 import webbrowser
 import re
@@ -43,40 +44,23 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
 
     @setup_app.route("/validate-file", methods=["POST"])
     def validate_file():
-        """AJAX endpoint for real-time file existence validation"""
-        file_path = request.json.get("filePath")
+        """AJAX endpoint for validating selected file name (pre-upload)."""
+        file_name = request.json.get("fileName", "")
         log_type = request.json.get("logType")
-        
-        if not file_path or not file_path.strip():
-            return jsonify({"valid": True, "message": ""})  # Empty is valid, will be handled by required field
-        
-        file_path = file_path.strip()
-        
-        # Check if file exists
-        if not os.path.exists(file_path):
-            return jsonify({
-                "valid": False,
-                "message": f"File '{file_path}' does not exist"
-            })
-        
-        # Check file extension requirements based on log type
+        file_name = file_name.strip().lower()
+
+        if not file_name:
+            return jsonify({"valid": True, "message": ""})
+
         if log_type in ["pastlog", "mock_livelog"]:
-            if not (file_path.lower().endswith('.log') or file_path.lower().endswith('.txt')):
-                return jsonify({
-                    "valid": False,
-                    "message": f"File must be .log or .txt for {log_type} mode"
-                })
+            if not (file_name.endswith('.log') or file_name.endswith('.txt')):
+                return jsonify({"valid": False, "message": f"File must be .log or .txt for {log_type} mode"})
         elif log_type == "db":
-            if not file_path.lower().endswith('.db'):
-                return jsonify({
-                    "valid": False,
-                    "message": "Database file must end with .db"
-                })
-        
-        return jsonify({
-            "valid": True,
-            "message": f"File '{file_path}' exists"
-        })
+            if not file_name.endswith('.db'):
+                return jsonify({"valid": False, "message": "Database file must end with .db"})
+
+        # For other modes, any extension is acceptable or file not required
+        return jsonify({"valid": True, "message": ""})
 
     @setup_app.route("/", methods=["GET"])
     def index():
@@ -131,15 +115,44 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
         # Create opts object to match the structure that argparse would provide for CLI usage
         opts = Opts()
         opts.logType = request.form.get("logType")
-        inputFile = request.form.get("inputFile") or ""
-        opts.inputFile = [inputFile] if inputFile.strip() else None
+
+        # Handle uploaded file (file chooser). For required modes we expect a file upload.
+
+        # temp_upload folder is created because browsers can't store direct paths to file
+        # so we just keep 1 file named "user_uploaded_file" which gets overwritten each run
+        uploaded_file = request.files.get("inputFile")
+        saved_path = None
+        if uploaded_file and uploaded_file.filename:
+            # Ensure uploads directory exists
+            uploads_dir = Path("temp_upload")
+            uploads_dir.mkdir(exist_ok=True)
+
+            # Clear out any existing files so we truly only ever have one
+            for f in uploads_dir.iterdir():
+                if f.is_file():
+                    f.unlink()
+
+            # Always use the same name, optionally preserving extension
+            ext = Path(uploaded_file.filename).suffix  
+            safe_name = f"user_uploaded_file{ext}" if ext else "user_uploaded_file"
+
+            saved_path = str(os.path.join(uploads_dir, safe_name))
+            uploaded_file.save(saved_path)
+
+        # For downstream code expecting list with path
+        opts.inputFile = [saved_path] if saved_path else None
+
         outputDB = request.form.get("outputDB") or ""
         opts.outputDB = [outputDB] if outputDB.strip() else None
         opts.set_dbc_branch = request.form.get("set_dbc_branch") or "main"
 
         # Server-side validation as safety net
-        input_file_path = inputFile if inputFile.strip() else None
+        input_file_path = saved_path if saved_path else None
         validation_errors = validate_startup_requirements(opts.logType, input_file_path)
+        # Additional check: required modes must have uploaded file
+        required_modes = ["pastlog","mock_livelog","db"]
+        if opts.logType in required_modes and not input_file_path:
+            validation_errors.append(f"Input file is required for {opts.logType} mode")
         
         if validation_errors:
             print("Error in startup", validation_errors)
