@@ -6,7 +6,7 @@ import SpeedCard from "../SpeedCard/SpeedCard";
 import CanValuesCard from "../CanValuesCard/CanValuesCard";
 import HeartbeatCard from "../HeartbeatCard/HeartbeatCard";
 import { LteStatusCard } from "../LteStatusCard/networkStatus";
-import { xbeeRadioSatus } from "../LteStatusCard/networkStatus";
+import { xbeeRadioStatus } from "../LteStatusCard/networkStatus";
 import GpsCard from "../GpsCard/GpsCard";
 import ImuCard from "../ImuCard/ImuCard";
 import GraphsCard from "../GraphsCard/GraphsCard";
@@ -107,7 +107,7 @@ const Dashboard = () => {
       {/* Row 3: LTE, XBEE, & Wheelboard */}
       <div className="grid-row">
         <LteStatusCard lteStatus={telemetry.lteStatus} />
-        <xbeeRadioSatus xbeeStatus={telemetry.xbeeRadioSatus}/>
+        <xbeeRadioStatus xbeeStatus={telemetry.xbeeRadioSatus}/>
         <WheelboardCard wheelboard={telemetry.wheelboard} />
       </div>
 
