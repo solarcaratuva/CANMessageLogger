@@ -110,8 +110,7 @@ def run_server(args):
         socketio.start_background_task(target=consumer.process_data_live)
         socketio.start_background_task(target=radio_producer.listen_to_radio)
 
-    print(f"Starting socketio server, \033[1;31mopen localhost:{SOCKETIO_PORT} in your browser\033[0m")
-    webbrowser.open(f'http://localhost:{SOCKETIO_PORT}')
+    print(f"Starting socketio server on localhost:{SOCKETIO_PORT}")
     socketio.run(socketio_app, debug=False, allow_unsafe_werkzeug=True, host="0.0.0.0", port=SOCKETIO_PORT)
 
 def main():
