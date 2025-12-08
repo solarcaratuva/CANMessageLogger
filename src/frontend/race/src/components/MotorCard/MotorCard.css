@@ -1,0 +1,39 @@
+/* src/components/SecondaryInfoCard/SecondaryInfoCard.css */
+
+.card-secondary {
+  background: #1b1b1b;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.secondary-title {
+  text-align: center;
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.9;
+}
+
+
+.secondary-block {
+  background: #242424;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+.block-label {
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+.secondary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.18rem;
+  margin: 0.15rem 0;
+}
+
+.secondary-value {
+  font-weight: 500;
+}

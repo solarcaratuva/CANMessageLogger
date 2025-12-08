@@ -155,7 +155,7 @@ def handle_visible_range_request(data):
     except Exception as e:
         socketio.emit('data_range_error', { 'message': f"Error fetching visible range: {str(e)}" })
 
-@app.route('/graph_view')
+@app.route('/logger/graph_view')
 def graph_view():
     return render_template('graph_view.html')
 

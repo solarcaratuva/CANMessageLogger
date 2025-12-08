@@ -1,0 +1,74 @@
+.tx-card {
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.tx-title {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.tx-row {
+  margin-bottom: 0.5rem;
+}
+
+.tx-connection-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+/* left side: dot + label */
+.tx-connection-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* the dot itself */
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+}
+
+/* online = green */
+.status-online {
+  background: #2ecc71;
+  box-shadow: 0 0 6px rgba(46, 204, 113, 0.7);
+}
+
+/* offline = red */
+.status-offline {
+  background: #e74c3c;
+  box-shadow: 0 0 6px rgba(231, 76, 60, 0.7);
+}
+
+.tx-label {
+  font-weight: 500;
+}
+
+/* right side metrics */
+.tx-connection-metrics {
+  display: flex;
+  gap: 0.75rem;
+  opacity: 0.85;
+}
+
+.tx-metric {
+  white-space: nowrap;
+}
+
+/* pill for PRIMARY link */
+.tx-primary-pill {
+  margin-left: 0.4rem;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid #2ecc71;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
