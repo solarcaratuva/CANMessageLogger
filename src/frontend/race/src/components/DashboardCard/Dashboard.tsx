@@ -18,7 +18,14 @@ const Dashboard = () => {
       <div className="dashboard-columns">
         {/* Left column */}
         <div className="dashboard-left">
-          <PrimaryInfoCard />
+          <PrimaryInfoCard primaryInfo={{
+            speed: 34.2,
+            soc: 56.53,
+            power_in: 13.4,
+            net_power: 13.1,
+            batt_curr: 0.14,
+            batt_volt: 14.4,
+          }}/>
           <div className="secondary-info">
             <BpsCard />
             <MotorCard />
