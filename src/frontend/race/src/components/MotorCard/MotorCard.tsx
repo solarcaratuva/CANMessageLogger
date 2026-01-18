@@ -1,20 +1,24 @@
 import "./MotorCard.css";
 
-export default function MotorCard() {
-  const motor = {
-    batteryVoltage: 133.8,
-    batteryCurrent: -11.9,
-    motorCurrent: 32.0,
-    motorRpm: 1450,
-    fetTemp: 42.3,
-    pwmDuty: 47.5,
-    acceleratorPosition: 23.0,
-    regenPosition: 0.0,
-    powerMode: "RUN",
-    controlMode: "TORQUE",
-    regenEnabled: false,
-  };
+type motor = {
+    batteryVoltage: number;
+    batteryCurrent: number;
+    motorCurrent: number;
+    motorRpm: number;
+    fetTemp: number;
+    pwmDuty: number;
+    acceleratorPosition: number;
+    regenPosition: number;
+    powerMode: string;
+    controlMode: string;
+    regenEnabled: boolean;
+}
 
+type motorProps = {
+    motor: motor;
+}
+
+export default function MotorCard({motor}: motorProps) {
   return (
     <div className="secondary-block">
         <h4 className="block-label">Motor</h4>

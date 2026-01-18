@@ -1,45 +1,45 @@
 import './DiagnosticsCard.css'
 import ConnectionRow from '../TransmissionStatusCard/TransmissionStatusCard';
 
-export default function DiagnosticsCard() {
-    const heartbeat = {
-        wheel: true,
-        power: false,
-        telemetry: true,
-      };
+type heartbeatProps = {
+    wheel: boolean;
+    power: boolean;
+    telemetry: boolean;
+}
 
-    const xbee = {
-        name: "XBee",
-        lastMs: 120,
-        bytesPerSec: 45.3,
-        isPrimary: true,
-        isOnline: true,
-    }
-    const lte = {
-        name: "LTE",
-        lastMs: 840,
-        bytesPerSec: 12.1,
-        isPrimary: false,
-        isOnline: false,
-    }
+type xbeeProps = {
+    name: string;
+    lastMs: number;
+    bytesPerSec: number;
+    isPrimary: boolean;
+    isOnline: boolean;
+}
 
-    const faults = [
-    {
-        id: 1,
-        source: "BPS",
-        code: "Low_Cell_Voltage_Fault",
-        label: "Low cell voltage",
-        severity: "fault",   // "fault" | "warning"
-    },
-    {
-        id: 2,
-        source: "Motor",
-        code: "overheat_level",
-        label: "Motor overheat",
-        severity: "warning",
-    },
-    ];
+type lteProps = {
+    name: string;
+    lastMs: number;
+    bytesPerSec: number;
+    isPrimary: boolean;
+    isOnline: boolean;
+}
 
+type faultsProps = {
+    id: number;
+    source: string;
+    code: string;
+    label: string;
+    severity: string;
+}[]
+
+type DiagnosticProps = {
+    heartbeat: heartbeatProps,
+    xbee: xbeeProps,
+    lte: lteProps,
+    faults: faultsProps,
+}
+
+
+export default function DiagnosticsCard({ heartbeat, xbee, lte, faults }: DiagnosticProps) {
 
     return (
         <div className="card">

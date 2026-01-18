@@ -1,17 +1,21 @@
 import "./BpsCard.css";
 
-export default function BpsCard() {
-  const bms = {
-    packVoltage: 134.2,
-    packCurrent: -12.3,
-    soc: 56.5,
-    dischargeRelayClosed: true,
-    chargeRelayClosed: false,
-    chargerSafety: true,
-    chargePowerSignal: false,
-    balancingActive: true,
-  };
+type bps = {
+    packVoltage: number;
+    packCurrent: number;
+    soc: number;
+    dischargeRelayClosed: boolean;
+    chargeRelayClosed: boolean;
+    chargerSafety: boolean;
+    chargePowerSignal: boolean;
+    balancingActive: boolean;
+}
 
+type bpsCardProps = {
+    bps: bps;
+}
+
+export default function BpsCard({ bps }: bpsCardProps) {
   return (
     <div className="secondary-block">
         <h4 className="block-label">BPS</h4>
@@ -19,56 +23,56 @@ export default function BpsCard() {
         <div className="secondary-row">
         <span>Pack Voltage</span>
         <span className="secondary-value">
-            {bms.packVoltage} V
+            {bps.packVoltage} V
         </span>
         </div>
 
         <div className="secondary-row">
         <span>Pack Current</span>
         <span className="secondary-value">
-            {bms.packCurrent} A
+            {bps.packCurrent} A
         </span>
         </div>
 
         <div className="secondary-row">
         <span>Pack SoC</span>
         <span className="secondary-value">
-            {bms.soc} %
+            {bps.soc} %
         </span>
         </div>
 
         <div className="secondary-row">
         <span>Discharge Relay</span>
         <span className="secondary-value">
-            {String(bms.dischargeRelayClosed)}
+            {String(bps.dischargeRelayClosed)}
         </span>
         </div>
 
         <div className="secondary-row">
         <span>Charge Relay</span>
         <span className="secondary-value">
-            {String(bms.chargeRelayClosed)}
+            {String(bps.chargeRelayClosed)}
         </span>
         </div>
 
         <div className="secondary-row">
         <span>Charger Safety</span>
         <span className="secondary-value">
-            {String(bms.chargerSafety)}
+            {String(bps.chargerSafety)}
         </span>
         </div>
 
         <div className="secondary-row">
         <span>Charge Power Signal</span>
         <span className="secondary-value">
-            {String(bms.chargePowerSignal)}
+            {String(bps.chargePowerSignal)}
         </span>
         </div>
 
         <div className="secondary-row">
         <span>Balancing</span>
         <span className="secondary-value">
-            {String(bms.balancingActive)}
+            {String(bps.balancingActive)}
         </span>
         </div>
     </div>
