@@ -7,7 +7,7 @@ This program is for logging, filtering, and analyzing recorded or live CAN messa
 1. Clone the GitHub repo.
 2. Navigate to the root directory of the cloned repo (`CANMessageLogger`)
 3. Create a virtual environment via `python -m venv venv`
-4. Activate the virtual environment (see Step 1 in "Starting the Program" for command)
+4. Activate the virtual environment by running the command `.\.venv\Scripts\activate` (on Mac instead run `source ./venv/bin/activate`). 
 5. Run the command `pip install -r requirements.txt` to install all dependencies
 6. Continue to "Starting the program" for instructions on starting the server.
 
@@ -15,7 +15,7 @@ This program is for logging, filtering, and analyzing recorded or live CAN messa
 
 Run the following commands in a command prompt in the directory of this project: 
 
-1. Activate the virtual environment by running the command `.\.venv\Scripts\activate` (on Mac instead run `source ./venv/bin/activate`). 
+1. Activate the virtual environment (should be activated already, but you can reference step 4 in "Installation")
 2. When launching the program, settings for the server can either be input directly via command line flags, or through a startup UI.
     * To start the program with the startup UI run the command `py .\src\main.py`. See "Navigating the user interface" for next steps.
     * To start the server directly with command line flags run the command `py .\src\main.py [data source] [flags...]`; if `py` isn't recognized, try `python` or `python3`. Specifying the data source is a required positional argument, while flags are largely optional and can be in any order. 
