@@ -6,8 +6,10 @@ This program is for logging, filtering, and analyzing recorded or live CAN messa
 
 1. Clone the GitHub repo.
 2. Navigate to the root directory of the cloned repo (`CANMessageLogger`)
-3. Run the command `pip install -r requirements.txt` to install all dependencies
-4. Continue to "Starting the program" for instructions on starting the server.
+3. Create a virtual environment via `python -m venv venv`
+4. Activate the virtual environment (see Step 1 in "Starting the Program" for command)
+5. Run the command `pip install -r requirements.txt` to install all dependencies
+6. Continue to "Starting the program" for instructions on starting the server.
 
 ## Starting the program
 
