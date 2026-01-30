@@ -6,46 +6,82 @@ import MotorCard from "../MotorCard/MotorCard"
 import DiagnosticsCard from "../DiagnosticsCard/DiagnosticsCard"
 import BpsSocGraphCard from "../BpsSocGraphCard/BpsSocGraphCard";
 
-const heartbeat = {
-  wheel: true,
-  power: false,
-  telemetry: true,
-};
+// Type definitions
+export type PrimaryInfo = {
+  speed: number;
+  soc: number;
+  power_in: number;
+  net_power: number;
+  batt_curr: number;
+  batt_volt: number;
+}
 
-const xbee = {
-  name: "XBee",
-  lastMs: 120,
-  bytesPerSec: 45.3,
-  isPrimary: true,
-  isOnline: true,
-};
+export type BPS = {
+  packVoltage: number;
+  packCurrent: number;
+  soc: number;
+  dischargeRelayClosed: boolean;
+  chargeRelayClosed: boolean;
+  chargerSafety: boolean;
+  chargePowerSignal: boolean;
+  balancingActive: boolean;
+}
 
-const lte = {
-  name: "LTE",
-  lastMs: 840,
-  bytesPerSec: 12.1,
-  isPrimary: false,
-  isOnline: false,
-};
+export type Motor = {
+  batteryVoltage: number;
+  batteryCurrent: number;
+  motorCurrent: number;
+  motorRpm: number;
+  fetTemp: number;
+  pwmDuty: number;
+  acceleratorPosition: number;
+  regenPosition: number;
+  powerMode: string;
+  controlMode: string;
+  regenEnabled: boolean;
+}
 
-const faults = [
-  {
-    id: 1,
-    source: "BPS",
-    code: "Low_Cell_Voltage_Fault",
-    label: "Low cell voltage",
-    severity: "fault",
-  },
-  {
-    id: 2,
-    source: "Motor",
-    code: "overheat_level",
-    label: "Motor overheat",
-    severity: "warning",
-  },
-];
+export type Heartbeat = {
+  wheel: boolean;
+  power: boolean;
+  telemetry: boolean;
+}
 
-const Dashboard = () => {
+export type ConnectionInfo = {
+  name: string;
+  lastMs: number;
+  bytesPerSec: number;
+  isPrimary: boolean;
+  isOnline: boolean;
+}
+
+export type Fault = {
+  id: number;
+  source: string;
+  code: string;
+  label: string;
+  severity: string;
+}
+
+export type DashboardProps = {
+  primaryInfo: PrimaryInfo;
+  bps: BPS;
+  motor: Motor;
+  heartbeat: Heartbeat;
+  xbee: ConnectionInfo;
+  lte: ConnectionInfo;
+  faults: Fault[];
+}
+
+const Dashboard = ({ 
+  primaryInfo, 
+  bps, 
+  motor, 
+  heartbeat, 
+  xbee, 
+  lte, 
+  faults 
+}: DashboardProps) => {
   return (
     <div className="app-container">
       <header className="header">
@@ -55,38 +91,10 @@ const Dashboard = () => {
       <div className="dashboard-columns">
         {/* Left column */}
         <div className="dashboard-left">
-          <PrimaryInfoCard primaryInfo={{
-            speed: 34.2,
-            soc: 56.53,
-            power_in: 13.4,
-            net_power: 13.1,
-            batt_curr: 0.14,
-            batt_volt: 14.4,
-          }}/>
+          <PrimaryInfoCard primaryInfo={primaryInfo}/>
           <div className="secondary-info">
-            <BpsCard bps={{
-              packVoltage: 134.2,
-              packCurrent: -12.3,
-              soc: 56.5,
-              dischargeRelayClosed: true,
-              chargeRelayClosed: false,
-              chargerSafety: true,
-              chargePowerSignal: false,
-              balancingActive: true,
-            }}/>
-            <MotorCard motor={{
-              batteryVoltage: 133.8,
-              batteryCurrent: -11.9,
-              motorCurrent: 32.0,
-              motorRpm: 1451,
-              fetTemp: 42.3,
-              pwmDuty: 47.5,
-              acceleratorPosition: 23.0,
-              regenPosition: 0.0,
-              powerMode: "RUN",
-              controlMode: "TORQUE",
-              regenEnabled: false,
-            }}/>
+            <BpsCard bps={bps}/>
+            <MotorCard motor={motor}/>
           </div>
 
           <div className="secondary-info">
