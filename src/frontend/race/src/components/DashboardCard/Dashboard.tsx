@@ -5,6 +5,7 @@ import BpsCard from "../BpsCard/BpsCard"
 import MotorCard from "../MotorCard/MotorCard"
 import DiagnosticsCard from "../DiagnosticsCard/DiagnosticsCard"
 import BpsSocGraphCard from "../BpsSocGraphCard/BpsSocGraphCard";
+import ApiStatusCard from "../ApiStatusCard/ApiStatusCard";
 
 // Type definitions
 export type PrimaryInfo = {
@@ -106,6 +107,8 @@ const Dashboard = ({
 
         {/* Right column */}
         <div className="dashboard-right">
+          <ApiStatusCard apiUrl="/api/test" />
+          
           <DiagnosticsCard
             heartbeat={heartbeat}
             xbee={xbee}

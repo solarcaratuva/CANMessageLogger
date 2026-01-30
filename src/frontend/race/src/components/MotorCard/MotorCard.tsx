@@ -1,6 +1,6 @@
 import "./MotorCard.css";
 
-type motor = {
+type Motor = {
     batteryVoltage: number;
     batteryCurrent: number;
     motorCurrent: number;
@@ -14,90 +14,90 @@ type motor = {
     regenEnabled: boolean;
 }
 
-type motorProps = {
-    motor: motor;
+type MotorProps = {
+    motor: Motor;
 }
 
-export default function MotorCard({motor}: motorProps) {
+export default function MotorCard({ motor }: MotorProps) {
   return (
     <div className="secondary-block">
         <h4 className="block-label">Motor</h4>
 
         <div className="secondary-row">
-        <span>Motor RPM</span>
-        <span className="secondary-value">
-            {motor.motorRpm} rpm
-        </span>
+          <span>Motor RPM</span>
+          <span className="secondary-value">
+              {motor?.motorRpm ?? 0} rpm
+          </span>
         </div>
 
         <div className="secondary-row">
-        <span>Motor Current</span>
-        <span className="secondary-value">
-            {motor.motorCurrent} A
-        </span>
+          <span>Motor Current</span>
+          <span className="secondary-value">
+              {motor?.motorCurrent ?? 0} A
+          </span>
         </div>
 
         <div className="secondary-row">
-        <span>Battery V (MC)</span>
-        <span className="secondary-value">
-            {motor.batteryVoltage} V
-        </span>
+          <span>Battery V (MC)</span>
+          <span className="secondary-value">
+              {motor?.batteryVoltage ?? 0} V
+          </span>
         </div>
 
         <div className="secondary-row">
-        <span>Battery I (MC)</span>
-        <span className="secondary-value">
-            {motor.batteryCurrent} A
-        </span>
+          <span>Battery I (MC)</span>
+          <span className="secondary-value">
+              {motor?.batteryCurrent ?? 0} A
+          </span>
         </div>
 
         <div className="secondary-row">
-        <span>FET Temp</span>
-        <span className="secondary-value">
-            {motor.fetTemp} °C
-        </span>
+          <span>FET Temp</span>
+          <span className="secondary-value">
+              {motor?.fetTemp ?? 0} °C
+          </span>
         </div>
 
         <div className="secondary-row">
-        <span>PWM Duty</span>
-        <span className="secondary-value">
-            {motor.pwmDuty} %
-        </span>
+          <span>PWM Duty</span>
+          <span className="secondary-value">
+              {motor?.pwmDuty ?? 0} %
+          </span>
         </div>
 
         <div className="secondary-row">
-        <span>Accel Position</span>
-        <span className="secondary-value">
-            {motor.acceleratorPosition} %
-        </span>
+          <span>Accel Position</span>
+          <span className="secondary-value">
+              {motor?.acceleratorPosition ?? 0} %
+          </span>
         </div>
 
         <div className="secondary-row">
-        <span>Regen Position</span>
-        <span className="secondary-value">
-            {motor.regenPosition} %
-        </span>
+          <span>Regen Position</span>
+          <span className="secondary-value">
+              {motor?.regenPosition ?? 0} %
+          </span>
         </div>
 
         <div className="secondary-row">
-        <span>Power Mode</span>
-        <span className="secondary-value">
-            {motor.powerMode}
-        </span>
+          <span>Power Mode</span>
+          <span className="secondary-value">
+              {motor?.powerMode ?? 'STANDBY'}
+          </span>
         </div>
 
         <div className="secondary-row">
-        <span>Control Mode</span>
-        <span className="secondary-value">
-            {motor.controlMode}
-        </span>
+          <span>Control Mode</span>
+          <span className="secondary-value">
+              {motor?.controlMode ?? 'TORQUE'}
+          </span>
         </div>
 
         <div className="secondary-row">
-        <span>Regen</span>
-        <span className="secondary-value">
-            {String(motor.regenEnabled)}
-        </span>
+          <span>Regen</span>
+          <span className="secondary-value">
+              {String(motor?.regenEnabled ?? false)}
+          </span>
         </div>
     </div>
   );

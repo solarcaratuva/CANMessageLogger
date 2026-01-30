@@ -1,13 +1,13 @@
 import './DiagnosticsCard.css'
 import ConnectionRow from '../TransmissionStatusCard/TransmissionStatusCard';
 
-type heartbeatProps = {
+type HeartbeatProps = {
     wheel: boolean;
     power: boolean;
     telemetry: boolean;
 }
 
-type xbeeProps = {
+type ConnectionProps = {
     name: string;
     lastMs: number;
     bytesPerSec: number;
@@ -15,15 +15,7 @@ type xbeeProps = {
     isOnline: boolean;
 }
 
-type lteProps = {
-    name: string;
-    lastMs: number;
-    bytesPerSec: number;
-    isPrimary: boolean;
-    isOnline: boolean;
-}
-
-type faultsProps = {
+type FaultProps = {
     id: number;
     source: string;
     code: string;
@@ -32,14 +24,17 @@ type faultsProps = {
 }[]
 
 type DiagnosticProps = {
-    heartbeat: heartbeatProps,
-    xbee: xbeeProps,
-    lte: lteProps,
-    faults: faultsProps,
+    heartbeat?: HeartbeatProps,
+    xbee?: ConnectionProps,
+    lte?: ConnectionProps,
+    faults?: FaultProps,
 }
 
-
 export default function DiagnosticsCard({ heartbeat, xbee, lte, faults }: DiagnosticProps) {
+    const safeHeartbeat = heartbeat ?? { wheel: false, power: false, telemetry: false };
+    const safeXbee = xbee ?? { name: 'XBee', lastMs: 0, bytesPerSec: 0, isPrimary: true, isOnline: false };
+    const safeLte = lte ?? { name: 'LTE', lastMs: 0, bytesPerSec: 0, isPrimary: false, isOnline: false };
+    const safeFaults = faults ?? [];
 
     return (
         <div className="card">
@@ -47,77 +42,72 @@ export default function DiagnosticsCard({ heartbeat, xbee, lte, faults }: Diagno
 
             <h4 className="sub-label">Transmission Status</h4>
 
-                <div className="tx-row">
-                    <ConnectionRow label="XBee" status={xbee} />
-                </div>
-                <div className="tx-row">
-                    <ConnectionRow label="LTE" status={lte} />
-                </div>
+            <div className="tx-row">
+                <ConnectionRow label="XBee" status={safeXbee} />
+            </div>
+            <div className="tx-row">
+                <ConnectionRow label="LTE" status={safeLte} />
+            </div>
 
             <hr className="card-separator" />
             <h4 className="sub-label">Heartbeat Status</h4>
             <div className="heartbeat-section">
                 <div className="heartbeat-row">
-                <span className="tx-label">Wheel Board</span>
-                <span className={`hb-status ${heartbeat.wheel ? "hb-ok" : "hb-bad"}`}>
-                    <span className="hb-dot" />
-                    {heartbeat.wheel ? "Alive" : "No heartbeat"}
-                </span>
+                    <span className="tx-label">Wheel Board</span>
+                    <span className={`hb-status ${safeHeartbeat.wheel ? "hb-ok" : "hb-bad"}`}>
+                        <span className="hb-dot" />
+                        {safeHeartbeat.wheel ? "Alive" : "No heartbeat"}
+                    </span>
                 </div>
 
                 <div className="heartbeat-row">
-                <span className="tx-label">Power Board</span>
-                <span className={`hb-status ${heartbeat.power ? "hb-ok" : "hb-bad"}`}>
-                    <span className="hb-dot" />
-                    {heartbeat.power ? "Alive" : "No heartbeat"}
-                </span>
+                    <span className="tx-label">Power Board</span>
+                    <span className={`hb-status ${safeHeartbeat.power ? "hb-ok" : "hb-bad"}`}>
+                        <span className="hb-dot" />
+                        {safeHeartbeat.power ? "Alive" : "No heartbeat"}
+                    </span>
                 </div>
 
                 <div className="heartbeat-row">
-                <span className="tx-label">Telemetry Board</span>
-                <span
-                    className={`hb-status ${
-                    heartbeat.telemetry ? "hb-ok" : "hb-bad"
-                    }`}
-                >
-                    <span className="hb-dot" />
-                    {heartbeat.telemetry ? "Alive" : "No heartbeat"}
-                </span>
+                    <span className="tx-label">Telemetry Board</span>
+                    <span className={`hb-status ${safeHeartbeat.telemetry ? "hb-ok" : "hb-bad"}`}>
+                        <span className="hb-dot" />
+                        {safeHeartbeat.telemetry ? "Alive" : "No heartbeat"}
+                    </span>
                 </div>
             </div>
 
             <hr className="card-separator" />
             
             <h4 className="sub-label">
-            Faults & Errors{" "}
-            <span className={`fault-count-badge ${faults.length ? "has-faults" : ""}`}>
-                {faults.length} active
-            </span>
+                Faults & Errors{" "}
+                <span className={`fault-count-badge ${safeFaults.length ? "has-faults" : ""}`}>
+                    {safeFaults.length} active
+                </span>
             </h4>
 
             <div className="fault-list">
-            {faults.length === 0 ? (
-                <div className="fault-row fault-row-empty">No active faults</div>
-            ) : (
-                faults.map(f => (
-                <div key={f.id} className="fault-row">
-                    <span className={`fault-pill fault-pill-${f.source.toLowerCase()}`}>
-                    {f.source}
-                    </span>
-                    <span className="fault-label">{f.label}</span>
-                    <span
-                    className={
-                        "fault-severity " +
-                        (f.severity === "fault" ? "fault-severity-critical" : "fault-severity-warning")
-                    }
-                    >
-                    {f.severity === "fault" ? "FAULT" : "WARN"}
-                    </span>
-                </div>
-                ))
-            )}
+                {safeFaults.length === 0 ? (
+                    <div className="fault-row fault-row-empty">No active faults</div>
+                ) : (
+                    safeFaults.map(f => (
+                        <div key={f.id} className="fault-row">
+                            <span className={`fault-pill fault-pill-${f.source?.toLowerCase() ?? 'unknown'}`}>
+                                {f.source ?? 'Unknown'}
+                            </span>
+                            <span className="fault-label">{f.label ?? 'Unknown fault'}</span>
+                            <span
+                                className={
+                                    "fault-severity " +
+                                    ((f.severity ?? '') === "fault" ? "fault-severity-critical" : "fault-severity-warning")
+                                }
+                            >
+                                {(f.severity ?? '') === "fault" ? "FAULT" : "WARN"}
+                            </span>
+                        </div>
+                    ))
+                )}
             </div>
-
         </div>
     )
 }

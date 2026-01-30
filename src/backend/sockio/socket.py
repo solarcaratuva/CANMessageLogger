@@ -19,6 +19,11 @@ def index():
 def logger_index():
     return render_template('debug_dashboard.html')
 
+#api test endpoint
+@app.route('/api/test'){
+    def test_api():
+        return rednder_template('api_status.html')
+}
 
 @socketio.on('connect')
 def handle_connect():

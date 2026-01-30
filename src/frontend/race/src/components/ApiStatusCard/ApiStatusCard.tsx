@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import './ApiStatusCard.css';
 
 type ApiStatusCardProps = {
   apiUrl?: string;
