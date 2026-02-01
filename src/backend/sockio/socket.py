@@ -1,5 +1,8 @@
 from flask import Flask, render_template, jsonify, redirect
 from flask_socketio import SocketIO
+import boto3
+from botocore.exceptions import ClientError
+from src.tests.testData.py import create_json, telemetry
 
 # disables excessive debug logging from SocketIO
 import logging
@@ -19,11 +22,17 @@ def index():
 def logger_index():
     return render_template('debug_dashboard.html')
 
-#api test endpoint
-@app.route('/api/test'){
-    def test_api():
-        return rednder_template('api_status.html')
-}
+#api test endpoint: html page
+@app.route('/api/test')
+def test_api():
+    return render_template('api_status.html')
+
+#app test endpoint: json data
+@app.route ('/api/json')
+def test_json():
+    #saves the telmetry python dict into json file for future reference
+    create_json(telemetry, "telemetry.json"); 
+    return jsonify(telemetry);
 
 @socketio.on('connect')
 def handle_connect():

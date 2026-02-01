@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import io, { Socket } from "socket.io-client";
 
 type ApiStatusCardProps = {
   apiUrl?: string;
@@ -8,6 +9,9 @@ type ApiStatusCardProps = {
 const ApiStatusCard = ({ apiUrl = '/api/test' }: ApiStatusCardProps) => {
   const [status, setStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [responseTime, setResponseTime] = useState<number | null>(null);
+
+    //initalize socket io connection
+    const socket:  Socket = io("http://localhost:5173")
 
   const checkApiStatus = async () => {
     setStatus('checking');
@@ -18,7 +22,18 @@ const ApiStatusCard = ({ apiUrl = '/api/test' }: ApiStatusCardProps) => {
         timeout: 5000,
         validateStatus: (status) => status < 500,
       });
+    
+      // Fired when connected successfully
+      socket.on("connect", () => {
+        setStatus('online');
+        socket.disconnect(); // disconnect immediately after checking
+      });
+
+      // if connection fails or disconnects immediately
+      socket.on("connect_error", () => setStatus('offline'));
+      socket.on("connect_timeout", () => setStatus('offline'));
       
+
       const endTime = performance.now();
       const timeElapsed = Math.round(endTime - startTime);
       
@@ -42,7 +57,11 @@ const ApiStatusCard = ({ apiUrl = '/api/test' }: ApiStatusCardProps) => {
   useEffect(() => {
     checkApiStatus();
     const interval = setInterval(checkApiStatus, 30000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      clearInterval(interval); 
+      socket.disconnect();
+    };
   }, [apiUrl]);
 
   const openApiStatusPage = () => {
@@ -74,8 +93,6 @@ const ApiStatusCard = ({ apiUrl = '/api/test' }: ApiStatusCardProps) => {
         )}
 
         <div className="status-info">
-          <span className="status-label">Endpoint:</span>
-          <span className="status-value endpoint">{apiUrl}</span>
         </div>
       </div>
 
