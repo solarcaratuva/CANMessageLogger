@@ -1,14 +1,88 @@
 import "./Dashboard.css";
 
 import PrimaryInfoCard from "../PrimaryInfoCard/PrimaryInfoCard";
-import ImuCard from "../ImuCard/ImuCard";
 import BpsCard from "../BpsCard/BpsCard"
 import MotorCard from "../MotorCard/MotorCard"
 import DiagnosticsCard from "../DiagnosticsCard/DiagnosticsCard"
-import GpsCard from "../GpsCard/GpsCard";
 import BpsSocGraphCard from "../BpsSocGraphCard/BpsSocGraphCard";
+import ApiStatusCard from "../ApiStatusCard/ApiStatusCard";
 
-const Dashboard = () => {
+// Type definitions
+export type PrimaryInfo = {
+  speed: number;
+  soc: number;
+  power_in: number;
+  net_power: number;
+  batt_curr: number;
+  batt_volt: number;
+}
+
+export type BPS = {
+  packVoltage: number;
+  packCurrent: number;
+  soc: number;
+  dischargeRelayClosed: boolean;
+  chargeRelayClosed: boolean;
+  chargerSafety: boolean;
+  chargePowerSignal: boolean;
+  balancingActive: boolean;
+}
+
+export type Motor = {
+  batteryVoltage: number;
+  batteryCurrent: number;
+  motorCurrent: number;
+  motorRpm: number;
+  fetTemp: number;
+  pwmDuty: number;
+  acceleratorPosition: number;
+  regenPosition: number;
+  powerMode: string;
+  controlMode: string;
+  regenEnabled: boolean;
+}
+
+export type Heartbeat = {
+  wheel: boolean;
+  power: boolean;
+  telemetry: boolean;
+}
+
+export type ConnectionInfo = {
+  name: string;
+  lastMs: number;
+  bytesPerSec: number;
+  isPrimary: boolean;
+  isOnline: boolean;
+}
+
+export type Fault = {
+  id: number;
+  source: string;
+  code: string;
+  label: string;
+  severity: string;
+}
+
+export type DashboardProps = {
+  primaryInfo: PrimaryInfo;
+  bps: BPS;
+  motor: Motor;
+  heartbeat: Heartbeat;
+  xbee: ConnectionInfo;
+  lte: ConnectionInfo;
+  faults: Fault[];
+}
+
+const Dashboard = ({ 
+  primaryInfo, 
+  bps, 
+  motor, 
+  heartbeat, 
+  xbee, 
+  lte, 
+  faults 
+}: DashboardProps) => {
   return (
     <div className="app-container">
       <header className="header">
@@ -18,10 +92,10 @@ const Dashboard = () => {
       <div className="dashboard-columns">
         {/* Left column */}
         <div className="dashboard-left">
-          <PrimaryInfoCard />
+          <PrimaryInfoCard primaryInfo={primaryInfo}/>
           <div className="secondary-info">
-            <BpsCard />
-            <MotorCard />
+            <BpsCard bps={bps}/>
+            <MotorCard motor={motor}/>
           </div>
 
           <div className="secondary-info">
@@ -33,7 +107,14 @@ const Dashboard = () => {
 
         {/* Right column */}
         <div className="dashboard-right">
-          <DiagnosticsCard />
+          <ApiStatusCard apiUrl="/api/test" />
+          
+          <DiagnosticsCard
+            heartbeat={heartbeat}
+            xbee={xbee}
+            lte={lte}
+            faults={faults}
+          />
 
           <BpsSocGraphCard />
 
