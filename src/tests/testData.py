@@ -27,5 +27,5 @@ def create_json(obj, filename):
     with open(filename, "w") as file:
         json.dump(obj, file, indent=4)
 
-create_json(data, "telemetry_output.json")
+create_json(telemetry, "telemetry_output.json")
 
