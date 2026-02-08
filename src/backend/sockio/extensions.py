@@ -1,6 +1,6 @@
-#intializes socketIO instance to avoid ciruclar imports
-#btwn socket.py and streamRaceData.py
+# intializes socketIO instance to avoid circular imports
+# btwn socket.py and streamRaceData.py
 
 from flask_socketio import SocketIO
 
-socketio = SocketIO()
+socketio = SocketIO(cors_allowed_origins="*")

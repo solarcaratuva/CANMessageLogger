@@ -1,5 +1,5 @@
 import time
-from src.backend.sockio.extensions import socketio
+from backend.sockio.extensions import socketio
 
 def stream_motor_data():
     """Simulates a data stream matching the React 'Motor' type."""

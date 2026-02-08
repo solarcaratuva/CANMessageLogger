@@ -1,8 +1,8 @@
 # src/backend/sockio/socket.py
 from flask import Flask, render_template, redirect, jsonify
-from src.backend.sockio.extensions import socketio
-from src.tests.testData import create_json, telemetry
-from src.tests.motorData import stream_motor_data
+from backend.sockio.extensions import socketio
+from tests.testData import create_json, telemetry
+from tests.motorData import stream_motor_data
 SOCKETIO_PORT = 5500
 import logging
 
@@ -45,7 +45,3 @@ def handle_connect():
 @socketio.on('disconnect')
 def handle_disconnect():
     print("Client disconnected.")
-
-if __name__ == "__main__":
-    # ensures app listens on port 5000
-    socketio.run(app, host="127.0.0.1", port=SOCKETIO_PORT, debug=True)
