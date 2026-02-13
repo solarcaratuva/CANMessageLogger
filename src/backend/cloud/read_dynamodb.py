@@ -7,6 +7,7 @@ import boto3
 import json
 from boto3.dynamodb.types import TypeDeserializer
 from botocore.exceptions import ProfileNotFound, NoCredentialsError, ClientError
+from sockio.extensions import socketio
 
 REGION = "us-east-1"
 TABLE_NAME = "SolarTelemetry"
@@ -70,6 +71,24 @@ def pull_cloud_db(profile_name=None):
     except Exception as e:
         print(f"Unexpected error: {str(e)}")
         return None
+
+#helper method to be called by pull_cloud_db(), 
+#contionusly pulls deserialized items and emits pull_db (custom socketio event)
+def pull_cloud_db_live(profileName):
+    session = boto3.Session(profile_name=profileName, region_name=REGION)
+    ddb = session.client("dynamodb")
+
+    while True:
+        response = ddb.scan(TableName=TABLE_NAME)
+        items = response.get("Items", [])
+        
+        print(f"Found {len(items)} items")
+        
+        # Deserialize all items into a list
+        parsed_items = [deserialize(raw_item) for raw_item in items]
+
+        socketio.emit('pull_db', parsed_items)
+        socketio.sleep(0.1)
 
 if __name__ == "__main__":
     result = pull_cloud_db()

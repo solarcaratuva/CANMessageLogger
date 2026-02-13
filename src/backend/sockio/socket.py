@@ -3,6 +3,7 @@ from flask import Flask, render_template, redirect, jsonify
 from backend.sockio.extensions import socketio
 from tests.testData import create_json, telemetry
 from tests.motorData import stream_motor_data
+from cloud.read_dynamodb import pull_cloud_db
 SOCKETIO_PORT = 5500
 import logging
 
@@ -41,6 +42,7 @@ def test_json():
 def handle_connect():
     print("Client connected.")
     socketio.start_background_task(stream_motor_data)
+    socketio.start_background_task(pull_cloud_db)
 
 @socketio.on('disconnect')
 def handle_disconnect():
