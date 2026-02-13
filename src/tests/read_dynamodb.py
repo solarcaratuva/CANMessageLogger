@@ -1,7 +1,6 @@
-print(">>> SCRIPT STARTED <<<")
-
 import boto3
 from boto3.dynamodb.types import TypeDeserializer
+import json
 
 PROFILE = "muhammadhussain"
 REGION = "us-east-1"
@@ -19,11 +18,12 @@ def main():
     response = ddb.scan(TableName=TABLE_NAME)
     items = response.get("Items", [])
 
-    print(f"Found {len(items)} items")
+    print("Battery values found:\n")
 
     for raw_item in items:
         parsed = deserialize(raw_item)
         print(parsed)
+
 
 if __name__ == "__main__":
     main()
