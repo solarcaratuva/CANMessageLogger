@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:5500', // Flask default port
+        target: 'http://localhost:5500', // SocketIO port (custom)
         changeOrigin: true,
         secure: false,
       },
