@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import "./MotorCard.css";
-import { socket } from "../../socket"; // Import the actual socket instance
+import { socket } from "../../util/socket"; // Import the actual socket instance
 
 type Motor = {
     batteryVoltage: number;
