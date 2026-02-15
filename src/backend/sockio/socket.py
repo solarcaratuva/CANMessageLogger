@@ -3,7 +3,7 @@ from flask import Flask, render_template, redirect, jsonify
 from backend.sockio.extensions import socketio
 from tests.testData import create_json, telemetry
 from tests.motorData import stream_motor_data
-from cloud.read_dynamodb import pull_cloud_db
+from backend.cloud.read_dynamodb import pull_cloud_db
 SOCKETIO_PORT = 5500
 import logging
 

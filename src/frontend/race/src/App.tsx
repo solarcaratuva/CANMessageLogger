@@ -5,11 +5,12 @@ import './App.css'
 
 import Dashboard from "./components/DashboardCard/Dashboard.tsx"
 import DataGenerator from './components/DataGenerator/DataGenerator.tsx'
+import PullDB from './util/PullDB.tsx'
 
 function App() {
   return (
     <>
-      <DataGenerator />
+      <PullDB />
     </>
   )
 }

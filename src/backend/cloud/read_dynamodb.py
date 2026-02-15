@@ -7,7 +7,14 @@ import boto3
 import json
 from boto3.dynamodb.types import TypeDeserializer
 from botocore.exceptions import ProfileNotFound, NoCredentialsError, ClientError
-from sockio.extensions import socketio
+from backend.sockio.extensions import socketio
+import decimal
+
+# helper function to avoid JSON dumps error with decimal values
+def decimal_to_float(obj):
+    if isinstance(obj, decimal.Decimal):
+        return float(obj)
+    raise TypeError
 
 REGION = "us-east-1"
 TABLE_NAME = "SolarTelemetry"
@@ -18,6 +25,7 @@ def deserialize(item):
     return {k: deserializer.deserialize(v) for k, v in item.items()}
 
 def pull_cloud_db(profile_name=None):
+    print("STARTING PULL CLOUD DB FUNCTION")
     # Get username - allow passing it in or prompting
     if profile_name is None:
         PROFILE = input("Enter username: ").strip()
@@ -54,7 +62,8 @@ def pull_cloud_db(profile_name=None):
         parsed_items = [deserialize(raw_item) for raw_item in items]
         
         # Return direct JSON pulled from DynamoBD
-        return parsed_items
+        result = [parsed_items, PROFILE]
+        return result
             
     except ClientError as e:
         error_code = e.response['Error']['Code']
@@ -75,6 +84,7 @@ def pull_cloud_db(profile_name=None):
 #helper method to be called by pull_cloud_db(), 
 #contionusly pulls deserialized items and emits pull_db (custom socketio event)
 def pull_cloud_db_live(profileName):
+    print("STARTING PULL CLOUD DB LIVE")
     session = boto3.Session(profile_name=profileName, region_name=REGION)
     ddb = session.client("dynamodb")
 
@@ -90,18 +100,18 @@ def pull_cloud_db_live(profileName):
         socketio.emit('pull_db', parsed_items)
         socketio.sleep(0.1)
 
-if __name__ == "__main__":
-    result = pull_cloud_db()
+
+result = pull_cloud_db()
     
-    if result:
-        # Pretty print the JSON
+if result:
+    # Pretty print the JSON
         print("\n" + "="*50)
         print("PARSED DATA:")
         print("="*50)
-        print(json.dumps(result, indent=2))
-        
-        # Optional: Save to file
-        # with open('telemetry_data.json', 'w') as f:
-        #     json.dump(result, f, indent=2)
-    else:
+        print(json.dumps(result, indent=2, default=decimal_to_float))
+        userProfile = result[1]
+
+        #start live method
+        pull_cloud_db_live(userProfile)
+else:
         print("Failed to retrieve data")

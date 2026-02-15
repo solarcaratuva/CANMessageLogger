@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Dashboard from '../components/DashboardCard/Dashboard';
 import type { PrimaryInfo, BPS, Motor, Heartbeat, ConnectionInfo, Fault } from '../components/DashboardCard/Dashboard';
 
-const pullDB = () => {
+const PullDB = () => {
   // Initialize state with some defaults
   const [primaryInfo, setPrimaryInfo] = useState<PrimaryInfo>({
     speed: 0,
@@ -130,4 +130,4 @@ useEffect(() => {
   );
 };
 
-export default pullDB;
+export default PullDB;
