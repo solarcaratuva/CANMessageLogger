@@ -1,3 +1,7 @@
+
+
+
+
 #contains pull_cloud_db() method that returns evertyhing in the
 #SolarTelemetry table on dynamoDB
 
@@ -7,18 +11,25 @@ import boto3
 import json
 from boto3.dynamodb.types import TypeDeserializer
 from botocore.exceptions import ProfileNotFound, NoCredentialsError, ClientError
-<<<<<<< HEAD
-from backend.sockio.extensions import socketio
+
+
+
+from src.backend.sockio.extensions import socketio
 import decimal
 
-# helper function to avoid JSON dumps error with decimal values
+
 def decimal_to_float(obj):
-    if isinstance(obj, decimal.Decimal):
-        return float(obj)
-    raise TypeError
-=======
-# from sockio.extensions import socketio
->>>>>>> 519ddab (modified read dynamo file)
+	if isinstance(obj,decimal.Decimal):
+		return float(obj)
+	raise TypeError
+
+
+
+
+
+
+
+
 
 REGION = "us-east-1"
 TABLE_NAME = "SolarTelemetry"
