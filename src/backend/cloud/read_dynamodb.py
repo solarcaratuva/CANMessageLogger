@@ -7,6 +7,7 @@ import boto3
 import json
 from boto3.dynamodb.types import TypeDeserializer
 from botocore.exceptions import ProfileNotFound, NoCredentialsError, ClientError
+<<<<<<< HEAD
 from backend.sockio.extensions import socketio
 import decimal
 
@@ -15,6 +16,9 @@ def decimal_to_float(obj):
     if isinstance(obj, decimal.Decimal):
         return float(obj)
     raise TypeError
+=======
+# from sockio.extensions import socketio
+>>>>>>> 519ddab (modified read dynamo file)
 
 REGION = "us-east-1"
 TABLE_NAME = "SolarTelemetry"
