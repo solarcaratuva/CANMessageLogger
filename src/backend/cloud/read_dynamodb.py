@@ -12,9 +12,27 @@ import decimal
 
 # helper function to avoid JSON dumps error with decimal values
 def decimal_to_float(obj):
+	if isinstance(obj,decimal.Decimal):
+		return float(obj)
+	raise TypeError
+
+
+def make_json_safe(obj):
+    if isinstance(obj, list):
+        return [make_json_safe(item) for item in obj]
+    if isinstance(obj, dict):
+        return {key: make_json_safe(value) for key, value in obj.items()}
     if isinstance(obj, decimal.Decimal):
+        # choose int if it's a whole number, else float
+        if obj % 1 == 0:
+            return int(obj)
         return float(obj)
-    raise TypeError
+    return obj
+
+
+
+
+
 
 REGION = "us-east-1"
 TABLE_NAME = "SolarTelemetry"
@@ -63,7 +81,13 @@ def pull_cloud_db(profile_name=None):
         
         # Return direct JSON pulled from DynamoBD
         result = [parsed_items, PROFILE]
-        return result
+        
+        print("\n" + "="*50)
+        print("PARSED DATA:")
+        print("="*50)
+        print(make_json_safe(parsed_items))
+        
+        return make_json_safe(parsed_items)
             
     except ClientError as e:
         error_code = e.response['Error']['Code']
@@ -103,6 +127,7 @@ def pull_cloud_db_live(profileName):
         socketio.sleep(0.1)
 
 
+<<<<<<< HEAD
 result = pull_cloud_db()
     
 if result:
@@ -118,3 +143,11 @@ if result:
 else:
         print("Failed to retrieve data")
 """
+=======
+def dynamo_emit_loop(profile_name=None):
+    while True:
+        parsed_items = pull_cloud_db(profile_name)
+        if parsed_items is not None:
+            socketio.emit("pull_db", parsed_items)
+        socketio.sleep(1.0)
+>>>>>>> d4e9ea9598323ab9574cc13c2b5cc08c062b0a81
