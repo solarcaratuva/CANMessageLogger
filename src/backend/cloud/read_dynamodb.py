@@ -105,7 +105,7 @@ def pull_cloud_db(profile_name=None):
         print(f"Unexpected error: {str(e)}")
         return None
 
-"""
+
 #helper method to be called by pull_cloud_db(), 
 #contionusly pulls deserialized items and emits pull_db (custom socketio event)
 def pull_cloud_db_live(profileName):
@@ -127,27 +127,9 @@ def pull_cloud_db_live(profileName):
         socketio.sleep(0.1)
 
 
-<<<<<<< HEAD
-result = pull_cloud_db()
-    
-if result:
-    #print JSON
-        print("\n" + "="*50)
-        print("PARSED DATA:")
-        print("="*50)
-        print(json.dumps(result, indent=2, default=decimal_to_float))
-        userProfile = result[1]
-
-        #start live method
-        pull_cloud_db_live(userProfile)
-else:
-        print("Failed to retrieve data")
-"""
-=======
 def dynamo_emit_loop(profile_name=None):
     while True:
         parsed_items = pull_cloud_db(profile_name)
         if parsed_items is not None:
             socketio.emit("pull_db", parsed_items)
         socketio.sleep(1.0)
->>>>>>> d4e9ea9598323ab9574cc13c2b5cc08c062b0a81
