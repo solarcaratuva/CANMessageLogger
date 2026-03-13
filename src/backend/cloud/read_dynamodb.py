@@ -14,7 +14,7 @@ from botocore.exceptions import ProfileNotFound, NoCredentialsError, ClientError
 
 
 
-from src.backend.sockio.extensions import socketio
+from backend.sockio.extensions import socketio
 import decimal
 
 
@@ -78,6 +78,12 @@ def pull_cloud_db(profile_name=None):
         
         # Return direct JSON pulled from DynamoBD
         result = [parsed_items, PROFILE]
+        
+        print("\n" + "="*50)
+        print("PARSED DATA:")
+        print("="*50)
+        print(json.dumps(result, indent=2, default=decimal_to_float))
+        
         return result
             
     except ClientError as e:
@@ -114,19 +120,3 @@ def pull_cloud_db_live(profileName):
 
         socketio.emit('pull_db', parsed_items)
         socketio.sleep(0.1)
-
-
-result = pull_cloud_db()
-    
-if result:
-    # Pretty print the JSON
-        print("\n" + "="*50)
-        print("PARSED DATA:")
-        print("="*50)
-        print(json.dumps(result, indent=2, default=decimal_to_float))
-        userProfile = result[1]
-
-        #start live method
-        pull_cloud_db_live(userProfile)
-else:
-        print("Failed to retrieve data")
