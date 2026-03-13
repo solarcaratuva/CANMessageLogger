@@ -112,6 +112,7 @@ def pull_cloud_db_live(profileName):
     while True:
         response = ddb.scan(TableName=TABLE_NAME)
         items = response.get("Items", [])
+        #empty list is the default value if Items key does not exist
         
         print(f"Found {len(items)} items")
         
