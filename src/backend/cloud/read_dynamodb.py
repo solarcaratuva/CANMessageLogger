@@ -81,6 +81,7 @@ def pull_cloud_db(profile_name=None):
         print(f"Unexpected error: {str(e)}")
         return None
 
+"""
 #helper method to be called by pull_cloud_db(), 
 #contionusly pulls deserialized items and emits pull_db (custom socketio event)
 def pull_cloud_db_live(profileName):
@@ -105,7 +106,7 @@ def pull_cloud_db_live(profileName):
 result = pull_cloud_db()
     
 if result:
-    # Pretty print the JSON
+    #print JSON
         print("\n" + "="*50)
         print("PARSED DATA:")
         print("="*50)
@@ -116,3 +117,4 @@ if result:
         pull_cloud_db_live(userProfile)
 else:
         print("Failed to retrieve data")
+"""
