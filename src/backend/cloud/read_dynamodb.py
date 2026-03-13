@@ -24,7 +24,17 @@ def decimal_to_float(obj):
 	raise TypeError
 
 
-
+def make_json_safe(obj):
+    if isinstance(obj, list):
+        return [make_json_safe(item) for item in obj]
+    if isinstance(obj, dict):
+        return {key: make_json_safe(value) for key, value in obj.items()}
+    if isinstance(obj, decimal.Decimal):
+        # choose int if it's a whole number, else float
+        if obj % 1 == 0:
+            return int(obj)
+        return float(obj)
+    return obj
 
 
 
@@ -82,9 +92,9 @@ def pull_cloud_db(profile_name=None):
         print("\n" + "="*50)
         print("PARSED DATA:")
         print("="*50)
-        print(json.dumps(result, indent=2, default=decimal_to_float))
+        print(make_json_safe(parsed_items))
         
-        return result
+        return make_json_safe(parsed_items)
             
     except ClientError as e:
         error_code = e.response['Error']['Code']
@@ -121,3 +131,11 @@ def pull_cloud_db_live(profileName):
 
         socketio.emit('pull_db', parsed_items)
         socketio.sleep(0.1)
+
+
+def dynamo_emit_loop(profile_name=None):
+    while True:
+        parsed_items = pull_cloud_db(profile_name)
+        if parsed_items is not None:
+            socketio.emit("pull_db", parsed_items)
+        socketio.sleep(1.0)

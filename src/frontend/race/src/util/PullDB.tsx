@@ -65,51 +65,53 @@ const PullDB = () => {
 
 
 // Update all state every 0.1 second (set in socketIO pull_db event emission frequency in backend)
-useEffect(() => { 
-  socket.on('pull_db', (data: { payload: { M: any } }) => {
-    const raw = data.payload.M;
-    const structName = raw.struct_name?.S;
+useEffect(() => {
+  socket.on('pull_db', (data: any[]) => {
+    data.forEach((item) => {
+      const raw = item.payload;
+      const structName = raw?.struct_name;
 
-    if (structName === 'motor') {
-      const parsedMotor: Motor = {
-        batteryVoltage: parseFloat(raw.battery_voltage_mc?.N || '0'),
-        batteryCurrent: parseFloat(raw.battery_current_mc?.N || '0'),
-        motorCurrent: parseFloat(raw.motor_current?.N || '0'),
-        motorRpm: parseFloat(raw.motor_rpm?.N || '0'),
-        fetTemp: parseFloat(raw.fet_temp?.N || '0'),
-        pwmDuty: parseFloat(raw.pwm_duty?.N || '0'),
-        acceleratorPosition: parseFloat(raw.accel_position?.N || '0'),
-        regenPosition: parseFloat(raw.regen_position?.N || '0'),
-        powerMode: raw.power_mode?.S || 'STANDBY',
-        controlMode: raw.control_mode?.S || 'TORQUE',
-        regenEnabled: raw.regen?.BOOL || false,
-      };
-      setMotor(parsedMotor);
-    }
+      if (structName === 'motor') {
+        const parsedMotor: Motor = {
+          batteryVoltage: raw.battery_voltage_mc ?? 0,
+          batteryCurrent: raw.battery_current_mc ?? 0,
+          motorCurrent: raw.motor_current ?? 0,
+          motorRpm: raw.motor_rpm ?? 0,
+          fetTemp: raw.fet_temp ?? 0,
+          pwmDuty: raw.pwm_duty ?? 0,
+          acceleratorPosition: raw.accel_position ?? 0,
+          regenPosition: raw.regen_position ?? 0,
+          powerMode: raw.power_mode ?? 'STANDBY',
+          controlMode: raw.control_mode ?? 'TORQUE',
+          regenEnabled: raw.regen ?? false,
+        };
+        setMotor(parsedMotor);
+      }
 
-    if (structName === 'battery') {
-      const parsedBps: BPS = {
-        packVoltage: parseFloat(raw.pack_voltage?.N || '0'),
-        packCurrent: parseFloat(raw.pack_current?.N || '0'),
-        soc: parseFloat(raw.pack_soc?.N || '0'),
-        dischargeRelayClosed: raw.discharge_relay?.BOOL || false,
-        chargeRelayClosed: raw.charge_relay?.BOOL || false,
-        chargerSafety: raw.charger_safety?.BOOL || false,
-        chargePowerSignal: raw.charge_power_signal?.BOOL || false,
-        balancingActive: raw.balancing?.BOOL || false,
-      };
-      setBps(parsedBps);
+      if (structName === 'battery') {
+        const parsedBps: BPS = {
+          packVoltage: raw.pack_voltage ?? 0,
+          packCurrent: raw.pack_current ?? 0,
+          soc: raw.pack_soc ?? 0,
+          dischargeRelayClosed: raw.discharge_relay ?? false,
+          chargeRelayClosed: raw.charge_relay ?? false,
+          chargerSafety: raw.charger_safety ?? false,
+          chargePowerSignal: raw.charge_power_signal ?? false,
+          balancingActive: raw.balancing ?? false,
+        };
+        setBps(parsedBps);
 
-      const parsedPrimaryInfo: PrimaryInfo = {
-        speed: parseFloat(raw.speed?.N || '0'),
-        soc: parseFloat(raw.pack_soc?.N || '0'),
-        power_in: parseFloat(raw.solar_power_in?.N || '0'),
-        net_power: parseFloat(raw.net_pack_power?.N || '0'),
-        batt_curr: parseFloat(raw.batt_current?.N || '0'),
-        batt_volt: parseFloat(raw.batt_voltage?.N || '0'),
-      };
-      setPrimaryInfo(parsedPrimaryInfo);
-    }
+        const parsedPrimaryInfo: PrimaryInfo = {
+          speed: raw.speed ?? 0,
+          soc: raw.pack_soc ?? 0,
+          power_in: raw.solar_power_in ?? 0,
+          net_power: raw.net_pack_power ?? 0,
+          batt_curr: raw.batt_current ?? 0,
+          batt_volt: raw.batt_voltage ?? 0,
+        };
+        setPrimaryInfo(parsedPrimaryInfo);
+      }
+    });
   });
 
   return () => {
