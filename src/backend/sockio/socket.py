@@ -38,7 +38,7 @@ def test_json():
     create_json(telemetry, "telemetry.json")
     return jsonify(telemetry)
 
-profile_name = "ethancoon"
+profile_name = "muhammadhussain"
 
 @socketio.on('connect')
 def handle_connect():

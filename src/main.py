@@ -13,6 +13,8 @@ from functools import partial
 from backend.sockio import debug_dashboard, alert_manager  # noqa: F401 (ensure handlers are registered)
 from startup_server import launch_startup_options
 from backend.startup_validation import validate_startup_requirements
+import subprocess
+import threading
 
 from backend.sockio import debug_dashboard, alert_manager, graph_view 
 
@@ -114,7 +116,11 @@ def run_server(args):
     socketio.run(socketio_app, debug=True, allow_unsafe_werkzeug=True, host="0.0.0.0", port=SOCKETIO_PORT)
 
 def main():
-    # Continue supporting CLI args 
+    # 1. Start Frontend in a background thread
+    frontend_thread = threading.Thread(target=run_frontend, daemon=True)
+    frontend_thread.start()
+
+    # 2. Continue with existing backend logic
     if len(sys.argv) > 1:
         parser = build_parser()
         args = parser.parse_args()
@@ -123,5 +129,24 @@ def main():
         # Only launches setup if no CLI args are shown
         launch_startup_options(run_server, SOCKETIO_PORT)
 
+
+#To run both frontend and backend together:
+def run_frontend():
+    print("[STARTUP] Starting Frontend (npm run dev)...")
+    frontend_path = os.path.join(os.getcwd(), "src", "frontend", "race")
+    
+    try:
+        # shell=True is needed for 'npm' on Windows; 
+        # use list format for cleaner execution on Unix
+        subprocess.Popen(
+            ["npm", "run", "dev"], 
+            cwd=frontend_path,
+            shell=True if os.name == 'nt' else False
+        )
+    except Exception as e:
+        print(f"[ERROR] Failed to start frontend: {e}")
+
 if __name__ == "__main__":
     main()
+
+
