@@ -1,12 +1,11 @@
 #contains pull_cloud_db() method that returns evertyhing in the
 #SolarTelemetry table on dynamoDB
 
-print(">>> SCRIPT STARTED <<<")
-
 import boto3
 import json
 from boto3.dynamodb.types import TypeDeserializer
 from botocore.exceptions import ProfileNotFound, NoCredentialsError, ClientError
+from backend.sockio import extensions
 from backend.sockio.extensions import socketio
 import decimal
 
@@ -28,11 +27,6 @@ def make_json_safe(obj):
             return int(obj)
         return float(obj)
     return obj
-
-
-
-
-
 
 REGION = "us-east-1"
 TABLE_NAME = "SolarTelemetry"
@@ -105,31 +99,10 @@ def pull_cloud_db(profile_name=None):
         print(f"Unexpected error: {str(e)}")
         return None
 
-
-#helper method to be called by pull_cloud_db(), 
-#contionusly pulls deserialized items and emits pull_db (custom socketio event)
-def pull_cloud_db_live(profileName):
-    print("STARTING PULL CLOUD DB LIVE")
-    session = boto3.Session(profile_name=profileName, region_name=REGION)
-    ddb = session.client("dynamodb")
-
+def dynamo_emit_loop():
     while True:
-        response = ddb.scan(TableName=TABLE_NAME)
-        items = response.get("Items", [])
-        #empty list is the default value if Items key does not exist
-        
-        print(f"Found {len(items)} items")
-        
-        # Deserialize all items into a list
-        parsed_items = [deserialize(raw_item) for raw_item in items]
-
-        socketio.emit('pull_db', parsed_items)
-        socketio.sleep(0.1)
-
-
-def dynamo_emit_loop(profile_name=None):
-    while True:
-        parsed_items = pull_cloud_db(profile_name)
+        parsed_items = pull_cloud_db(extensions.aws_profile)
         if parsed_items is not None:
             socketio.emit("pull_db", parsed_items)
         socketio.sleep(1.0)
+

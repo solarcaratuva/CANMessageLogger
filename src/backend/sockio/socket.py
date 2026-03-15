@@ -38,13 +38,11 @@ def test_json():
     create_json(telemetry, "telemetry.json")
     return jsonify(telemetry)
 
-profile_name = "muhammadhussain"
-
 @socketio.on('connect')
 def handle_connect():
     print("Client connected.")
     socketio.start_background_task(stream_motor_data)
-    socketio.start_background_task(dynamo_emit_loop, profile_name)
+    socketio.start_background_task(dynamo_emit_loop)
 
 @socketio.on('disconnect')
 def handle_disconnect():
