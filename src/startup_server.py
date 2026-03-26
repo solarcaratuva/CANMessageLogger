@@ -15,8 +15,8 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
     
     BASE_DIR = Path(__file__).resolve().parent 
     FRONTEND_DIR = (BASE_DIR / "frontend").resolve()
-    HTML_DIR = (FRONTEND_DIR / "html").resolve()
-    STATIC_DIR = (FRONTEND_DIR / "static").resolve()
+    HTML_DIR = (FRONTEND_DIR / "logger" / "html").resolve()
+    STATIC_DIR = (FRONTEND_DIR / "logger" / "static").resolve()
     
     setup_app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="/static")
 
@@ -70,7 +70,7 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
         branches = get_submodule_branches()
         
         # Read the HTML file and inject branches
-        html_path = BASE_DIR / "frontend" / "html" / "startup_options.html"
+        html_path = HTML_DIR / "startup_options.html"
         with open(html_path, 'r', encoding='utf-8') as f:
             html_content = f.read()
         
