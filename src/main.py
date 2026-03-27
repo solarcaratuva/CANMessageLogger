@@ -13,9 +13,6 @@ from functools import partial
 from backend.sockio import debug_dashboard, alert_manager  # noqa: F401 (ensure handlers are registered)
 from startup_server import launch_startup_options
 from backend.startup_validation import validate_startup_requirements
-import subprocess
-import threading
-
 from backend.sockio import debug_dashboard, alert_manager, graph_view, extensions
 
 print("SCRIPT STARTED: MAIN.PY")
@@ -38,23 +35,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     return parser
 
-#To run both frontend and backend together:
-def run_frontend():
-    print("[STARTUP] Starting Frontend (npm run dev)...")
-    frontend_path = os.path.join(os.getcwd(), "src", "frontend", "race")
-
-    print("[DEBUG] frontend path found")
-    
-    try:
-        # shell=True is needed for 'npm' on Windows; 
-        # use list format for cleaner execution on Unix
-        subprocess.Popen(
-            ["npm", "run", "dev"], 
-            cwd=frontend_path,
-            shell=True if os.name == 'nt' else False
-        )
-    except Exception as e:
-        print(f"[ERROR] Failed to start frontend: {e}")
 
 def run_server(args):
     print("RUN_SERVER STARTED")
@@ -138,8 +118,6 @@ def run_server(args):
 
     elif args.logType == "cloud":
         print("CLOUD DATA TYPE SELECTED")
-        frontend_thread = threading.Thread(target=run_frontend, daemon=True)
-        frontend_thread.start()
         extensions.aws_profile = args.aws_profile[0] if args.aws_profile else "default"
  
     print(f"Starting socketio server on localhost:{SOCKETIO_PORT}")
