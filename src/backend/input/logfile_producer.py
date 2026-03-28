@@ -7,7 +7,7 @@ import re
 LOOP_TIME = 0.01
 
 # Logfile format:               Timestamp                 ID                              Data Bytes
-pattern = re.compile(r'(\d{2}):(\d{2}):(\d{2}) .+ ID (0x[0-9A-Fa-f]+) Length \d+ Data (0x[0-9A-Fa-f]+)')
+pattern = re.compile(r'(\d{2}):(\d{2}):(\d{2}) .+ ID ([0-9A-FXa-fx]+) Length \d+ Data (0x[0-9A-Fa-f]+)')
 
 # These global vars are required for the non-live log-file processing
 msIncrementer = 0
@@ -38,7 +38,10 @@ def parse_line(log_line: str) -> tuple[int, bytes, float]:
     seconds += msIncrementer / 1000
 
     # Convert the ID to an integer
-    id_int = int(id_hex, 16)
+    if id_hex.startswith('0x') or id_hex.startswith('0X'):  # if formatted as hex (legacy log files)
+        id_int = int(id_hex[2:], 16)
+    else:                                                   # if formatted as decimal
+        id_int = int(id_hex)
 
     # Convert the data to a byte object
     data_bytes = bytes.fromhex(data_hex[2:])
