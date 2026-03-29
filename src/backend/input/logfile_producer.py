@@ -14,40 +14,28 @@ msIncrementer = 0
 secondsPrevious = None
 
 
-def parse_line(log_line: str) -> tuple[int, bytes, float]:
-    global msIncrementer, secondsPrevious
+# New Pattern for: 687,0x400,8,01 00 00 00 00 00 00 00
+# Groups: (Timestamp), (Hex ID), (Length), (Hex Data)
+pattern = re.compile(r'(\d+),(0x[0-9A-Fa-f]+),(\d+),([0-9A-Fa-f\s]+)')
 
+def parse_line(log_line: str) -> tuple[int, bytes, float]:
     match = pattern.search(log_line)
-    if match is None:  # if the line from the file does not match the REGEX, return none
+    if match is None:
         return None
 
-    hours, minutes, seconds = map(int, match.groups()[:3])
-    id_hex = match.group(4)
-    data_hex = match.group(5)
+    raw_timestamp = match.group(1)
+    id_hex = match.group(2)
+    # Group 4 is the data bytes with spaces; we remove spaces for fromhex()
+    data_hex = match.group(4).replace(" ", "")
 
-    # Convert time to seconds
-    seconds = hours * 3600 + minutes * 60 + seconds
-
-    # Check if the seconds have changed (First message just ignore), if it has not changed then increment
-    if secondsPrevious is not None and seconds == secondsPrevious:
-        msIncrementer += 5 # assume the current message is 5ms after the previous one
-    else:  # resets if it changes (or if it is the first message)
-        msIncrementer = 0
-        secondsPrevious = seconds
-
-    seconds += msIncrementer / 1000
-
-    # Convert the ID to an integer
+    # Convert to standard units
     id_int = int(id_hex, 16)
+    data_bytes = bytes.fromhex(data_hex)
+    
+    # Convert ms timestamp to seconds
+    time_since_start = int(raw_timestamp) / 1000.0
 
-    # Convert the data to a byte object
-    data_bytes = bytes.fromhex(data_hex[2:])
-
-    time_since_start = seconds
-
-    cm_tuple = (id_int, data_bytes, time_since_start)
-    return cm_tuple
-
+    return (id_int, data_bytes, time_since_start)
 
 def process_logfile(path_to_log_file: str) -> None:
     """ Processes a log file and adds all CAN messages to the queue"""

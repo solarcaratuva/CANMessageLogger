@@ -13,12 +13,6 @@ from functools import partial
 from backend.sockio import debug_dashboard, alert_manager  # noqa: F401 (ensure handlers are registered)
 from startup_server import launch_startup_options
 from backend.startup_validation import validate_startup_requirements
-<<<<<<< HEAD
-=======
-# import subprocess
-# import threading
-
->>>>>>> 6dd7af63ba716ce50d5ffe8939c90d85831692f6
 from backend.sockio import debug_dashboard, alert_manager, graph_view, extensions
 
 print("SCRIPT STARTED: MAIN.PY")
@@ -41,26 +35,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     return parser
 
-<<<<<<< HEAD
-=======
-# #To run both frontend and backend together:
-# def run_frontend():
-#     print("[STARTUP] Starting Frontend (npm run dev)...")
-#     frontend_path = os.path.join(os.getcwd(), "src", "frontend", "race")
-
-#     print("[DEBUG] frontend path found")
-    
-#     try:
-#         # shell=True is needed for 'npm' on Windows; 
-#         # use list format for cleaner execution on Unix
-#         subprocess.Popen(
-#             ["npm", "run", "dev"], 
-#             cwd=frontend_path,
-#             shell=True if os.name == 'nt' else False
-#         )
-#     except Exception as e:
-#         print(f"[ERROR] Failed to start frontend: {e}")
->>>>>>> 6dd7af63ba716ce50d5ffe8939c90d85831692f6
 
 def run_server(args):
     print("RUN_SERVER STARTED")
@@ -142,17 +116,9 @@ def run_server(args):
         socketio.start_background_task(target=consumer.process_data_live)
         socketio.start_background_task(target=radio_producer.listen_to_radio)
 
-<<<<<<< HEAD
     elif args.logType == "cloud":
         print("CLOUD DATA TYPE SELECTED")
         extensions.aws_profile = args.aws_profile[0] if args.aws_profile else "default"
-=======
-    # elif args.logType == "cloud":
-    #     print("CLOUD DATA TYPE SELECTED")
-    #     frontend_thread = threading.Thread(target=run_frontend, daemon=True)
-    #     frontend_thread.start()
-    #     extensions.aws_profile = args.aws_profile[0] if args.aws_profile else "default"
->>>>>>> 6dd7af63ba716ce50d5ffe8939c90d85831692f6
  
     print(f"Starting socketio server on localhost:{SOCKETIO_PORT}")
     socketio.run(socketio_app, debug=False, allow_unsafe_werkzeug=True, host="0.0.0.0", port=SOCKETIO_PORT)
