@@ -101,8 +101,8 @@ def run_server(args):
     dbconn.setup_the_tables()
 
     if args.logType == "pastlog":
-        logfile_producer.process_logfile(datafile_path)
-        consumer.process_data()
+        socketio.start_background_task(target=consumer.process_data_live)
+        socketio.start_background_task(target=partial(logfile_producer.process_logfile, datafile_path))
 
     elif args.logType == "livelog":
         socketio.start_background_task(target=consumer.process_data_live)
