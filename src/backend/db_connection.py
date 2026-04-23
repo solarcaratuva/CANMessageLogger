@@ -11,9 +11,16 @@ class DbConnection:
 
     def __init__(self):
         # every thread (and socketIO event handler) must have its own DbConnection object
-        self.conn = sqlite3.connect(DbConnection.DB_path)
-        self.conn.row_factory = sqlite3.Row
-        self.cur = self.conn.cursor()
+        self.conn = None
+        self.cur = None
+
+
+    def __ensure_connection(self) -> None:
+        """Lazily initialize sqlite connection and cursor on first use."""
+        if self.conn is None:
+            self.conn = sqlite3.connect(DbConnection.DB_path)
+            self.conn.row_factory = sqlite3.Row
+            self.cur = self.conn.cursor()
 
 
     def __del__(self): # object destructor, called automatically when the object is deleted
@@ -31,6 +38,7 @@ class DbConnection:
         @param can_msg: A CanMessage object
         @return: None, adds signals from CanMessage object to database. Does not commit. Needs to call commit after.
         """
+        self.__ensure_connection()
         signal_dict = can_msg.sigDict
 
         # Generate the SQL query
@@ -80,6 +88,9 @@ class DbConnection:
         @param can_msg_list: The list of CanMessage objects to be added to database
         @return: None, adds all CanMessage objects to connection's database
         """
+        if len(can_msg_list) == 0:
+            return
+
         for can_msg in can_msg_list:
             self.__db_insert_message(can_msg)  # helper function defined above
 
@@ -93,6 +104,7 @@ class DbConnection:
         @param query: The query to execute as a String
         @return: list of dictionaries, each dictionary represents a single CANmessage and signals/values as key/values
         """
+        self.__ensure_connection()
         self.cur.execute(query)
         rows = self.cur.fetchall()
         return [dict(row) for row in rows]  # list[ 'can_msg_1' is dict{signal: val,signal: val,signal: val}, ...]
@@ -107,6 +119,7 @@ class DbConnection:
         @return: None, creates a table for each message type (i.e. there will be as many tables as there are
         message types, as defined in DBCs)
         """
+        self.__ensure_connection()
         
         sql_alerts = '''
             CREATE TABLE IF NOT EXISTS Alerts (
@@ -151,6 +164,7 @@ class DbConnection:
 
 
     def get_table_names(self) -> list[str]:
+        self.__ensure_connection()
         self.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tables = self.cur.fetchall()
 
@@ -169,6 +183,7 @@ class DbConnection:
     
 
     def add_triggered_alert(self, alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause):
+        self.__ensure_connection()
         self.cur.execute('''
             INSERT INTO TriggeredAlerts (alert_id, category, timestamp, can_message_id, can_message_data, can_message_timestamp, signal, fail_cause)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -192,6 +207,7 @@ class DbConnection:
         }
         """
 
+        self.__ensure_connection()
         name = alert_data.get('name')
         field = alert_data.get('field')
         type_ = alert_data.get('type')
@@ -222,18 +238,26 @@ class DbConnection:
 
         self.conn.commit()
         new_id = self.cur.lastrowid
+
+        import backend.alert_checker as alert_checker
+        alert_checker.invalidate_alerts_cache()
+
         return new_id
 
     
     def delete_alert(self, alert_id: int) -> None:
+        self.__ensure_connection()
         self.cur.execute('''
             DELETE FROM Alerts WHERE id = ?
         ''', (alert_id,))
 
         self.conn.commit()
+        import backend.alert_checker as alert_checker
+        alert_checker.invalidate_alerts_cache()
 
 
     def get_alert_name(self, alert_id: int) -> str:
+        self.__ensure_connection()
         self.cur.execute('''
             SELECT name FROM Alerts WHERE id = ?
         ''', (alert_id,))

@@ -4,17 +4,39 @@ from backend.sockio.socket import socketio
 from backend.dbcs import get_fault_signals
 from datetime import datetime
 import json
+import threading
 
+
+alerts = None
+alerts_lock = threading.Lock()
+
+
+def invalidate_alerts_cache() -> None:
+    """Invalidate in-memory alert cache in a thread-safe way."""
+    global alerts
+    with alerts_lock:
+        alerts = None
 
 def fetchActiveAlerts():
     """
     Fetches all active alerts from the database
     """
+    global alerts
+
+    with alerts_lock:
+        cached_alerts = alerts
+
+    if cached_alerts is not None:
+        return cached_alerts
 
     logger_db = DbConnection()
     query = "SELECT * FROM Alerts"
-    alerts = logger_db.query(query)
-    return alerts
+    fresh_alerts = logger_db.query(query)
+
+    with alerts_lock:
+        if alerts is None:
+            alerts = fresh_alerts
+        return alerts
 
 
 def checkAlertsAgainstCanMsg(can_message: CanMessage, raw_data: bytes): 
