@@ -1,12 +1,15 @@
 import argparse
 import sys
+from pathlib import Path
 from backend.submodule_automation import initialize_submodule, get_submodule_branches, set_submodule_branch, is_connected
 import time
 import os
 import git
+import subprocess
 import webbrowser
 import backend.dbcs as dbcs
 from backend.sockio.socket import socketio, app as socketio_app
+import backend.sockio.socket as socket_module
 from backend.db_connection import DbConnection
 from backend.input import consumer, logfile_producer, live_log_producer, radio_producer
 from functools import partial
@@ -34,6 +37,29 @@ def build_parser() -> argparse.ArgumentParser:
     "with access to Telemetry Database")
 
     return parser
+
+
+def start_react_dev_server() -> subprocess.Popen | None:
+    react_dir = Path(__file__).resolve().parent / "frontend" / "race"
+    if not react_dir.is_dir():
+        print(f"[STARTUP] React frontend directory not found: {react_dir}")
+        return None
+
+    try:
+        print(f"[STARTUP] Starting React dev server in {react_dir}")
+        return subprocess.Popen(
+            ["npm", "run", "dev"],
+            cwd=str(react_dir),
+            stdout=None,
+            stderr=None,
+            start_new_session=True,
+        )
+    except FileNotFoundError:
+        print("[STARTUP] npm command not found. Install Node.js/npm or start the React frontend manually.")
+        return None
+    except Exception as exc:
+        print(f"[STARTUP] Failed to launch React dev server: {exc}")
+        return None
 
 
 def run_server(args):
@@ -119,7 +145,9 @@ def run_server(args):
     elif args.logType == "cloud":
         print("CLOUD DATA TYPE SELECTED")
         extensions.aws_profile = args.aws_profile[0] if args.aws_profile else "default"
- 
+        start_react_dev_server()
+
+    socket_module.set_selected_data_type(args.logType)
     print(f"Starting socketio server on localhost:{SOCKETIO_PORT}")
     socketio.run(socketio_app, debug=False, allow_unsafe_werkzeug=True, host="0.0.0.0", port=SOCKETIO_PORT)
 

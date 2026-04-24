@@ -26,7 +26,11 @@ secondsPrevious = None
 # Groups: (Timestamp), (Hex ID), (Length), (Hex Data)
 coonPattern = re.compile(r'(\d+),(0x[0-9A-Fa-f]+),(\d+),([0-9A-Fa-f\s]+)')
 
-def parse_line(log_line: str) -> tuple[int, bytes, float]:
+# Generic radio-style format: any line containing ID, Length, and Data.
+# This format does not carry a timestamp inside the line.
+radioPattern = re.compile(r'.+ ID (0x[0-9A-Fa-f]+) Length \d+ Data (0x[0-9A-Fa-f]+)')
+
+def parse_line(log_line: str):
     global msIncrementer, secondsPrevious
 
     if '/' in log_line:
@@ -51,13 +55,10 @@ def parse_line(log_line: str) -> tuple[int, bytes, float]:
             secondsPrevious = total_seconds
 
         time_since_start = total_seconds + msIncrementer * 0.001
-
         return (id_int, data_bytes, time_since_start)
-    else:
-        match = coonPattern.search(log_line)
-        if match is None:
-            return None
 
+    match = coonPattern.search(log_line)
+    if match is not None:
         raw_timestamp = match.group(1)
         id_hex = match.group(2)
         data_hex = match.group(4).replace(" ", "")
@@ -66,8 +67,19 @@ def parse_line(log_line: str) -> tuple[int, bytes, float]:
         data_bytes = bytes.fromhex(data_hex)
 
         time_since_start = int(raw_timestamp) / 1000.0
-
         return (id_int, data_bytes, time_since_start)
+
+    match = radioPattern.search(log_line)
+    if match is not None:
+        id_hex = match.group(1)
+        data_hex = match.group(2)
+
+        id_int = int(id_hex, 16)
+        data_bytes = bytes.fromhex(data_hex[2:])
+
+        return (id_int, data_bytes, None)
+
+    return None
 
 def process_logfile(path_to_log_file: str) -> None:
     """ Processes a log file and adds all CAN messages to the queue"""
@@ -76,7 +88,10 @@ def process_logfile(path_to_log_file: str) -> None:
         for line in file:
             cm_tup = parse_line(line)
             if cm_tup is not None:  # if the line from log file followed the format, add to queue
-                consumer.add_to_queue(*cm_tup)
+                id, data, timestamp = cm_tup
+                if timestamp is None:
+                    timestamp = time.perf_counter() - consumer.start_consume_time
+                consumer.add_to_queue(id, data, timestamp)
 
 
 # Emphasize: For this function TimeStamp is NOT taken from logfile, it is system time
@@ -86,10 +101,12 @@ def process_logfile_live(path_to_log_file: str) -> None:
     with open(path_to_log_file, 'r') as file:
         for line in file:
             cm_tup = parse_line(line)
-            if cm_tup is None: # line did not match the format
+            if cm_tup is None:  # line did not match the format
                 continue
-            id, data, timestamp = cm_tup # timestamp is derived from the log statement itself and therefore not used
+            id, data, timestamp = cm_tup
+            if timestamp is None:
+                timestamp = time.perf_counter() - consumer.start_consume_time
 
-            consumer.add_to_queue(id, data, time.perf_counter() - consumer.start_consume_time)
+            consumer.add_to_queue(id, data, timestamp)
             time.sleep(LOOP_TIME)
 

@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react';
 import "./Dashboard.css";
 
 import PrimaryInfoCard from "../PrimaryInfoCard/PrimaryInfoCard";
@@ -72,6 +73,7 @@ export type DashboardProps = {
   xbee: ConnectionInfo;
   lte: ConnectionInfo;
   faults: Fault[];
+  streamPanel?: ReactNode;
 }
 
 const Dashboard = ({ 
@@ -81,7 +83,8 @@ const Dashboard = ({
   heartbeat, 
   xbee, 
   lte, 
-  faults 
+  faults,
+  streamPanel,
 }: DashboardProps) => {
   return (
     <div className="app-container">
@@ -97,6 +100,12 @@ const Dashboard = ({
             <BpsCard bps={bps}/>
             <MotorCard motor={motor}/>
           </div>
+
+          {streamPanel ? (
+            <div className="secondary-info">
+              {streamPanel}
+            </div>
+          ) : null}
 
           <div className="secondary-info">
             {/* <ImuCard />

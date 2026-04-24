@@ -4,8 +4,17 @@ from backend.sockio.extensions import socketio
 from tests.testData import create_json, telemetry
 from tests.motorData import stream_motor_data
 from backend.cloud.read_dynamodb import dynamo_emit_loop
+from backend.sockio.stream_xbee import xbee_emit_loop
 SOCKETIO_PORT = 5500
 import logging
+
+# Tracks which backend source should be started for Socket.IO connections.
+# This is set from main.py before the server starts.
+selected_data_type = None
+
+def set_selected_data_type(data_type: str) -> None:
+    global selected_data_type
+    selected_data_type = data_type
 
 # disable excessive logging
 log = logging.getLogger('werkzeug')
@@ -42,7 +51,13 @@ def test_json():
 def handle_connect():
     print("Client connected.")
     socketio.start_background_task(stream_motor_data)
-    socketio.start_background_task(dynamo_emit_loop)
+
+    # Start one backend data stream task based on the selected source.
+    # Cloud uses DynamoDB polling, non-cloud uses the XBee/radio emitter.
+    if selected_data_type == "cloud":
+        socketio.start_background_task(dynamo_emit_loop)
+    else:
+        socketio.start_background_task(xbee_emit_loop)
 
 @socketio.on('disconnect')
 def handle_disconnect():

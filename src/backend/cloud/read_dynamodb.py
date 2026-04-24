@@ -7,6 +7,7 @@ from boto3.dynamodb.types import TypeDeserializer
 from botocore.exceptions import ProfileNotFound, NoCredentialsError, ClientError
 from backend.sockio import extensions
 from backend.sockio.extensions import socketio
+from backend.sockio.stream_xbee import BACKEND_DATA_STREAM
 import decimal
 
 # helper function to avoid JSON dumps error with decimal values
@@ -100,9 +101,10 @@ def pull_cloud_db(profile_name=None):
         return None
 
 def dynamo_emit_loop():
+    """Continuously poll DynamoDB and emit backend stream data."""
     while True:
         parsed_items = pull_cloud_db(extensions.aws_profile)
         if parsed_items is not None:
-            socketio.emit("pull_db", parsed_items)
+            socketio.emit(BACKEND_DATA_STREAM, parsed_items)
         socketio.sleep(1.0)
 
