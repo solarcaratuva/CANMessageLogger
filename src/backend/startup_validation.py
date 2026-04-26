@@ -31,7 +31,7 @@ def get_radio_port() -> Optional[str]:
     """
     ports = serial.tools.list_ports.comports()
     for port in ports:
-        if "usb serial port" in port.description.lower():
+        if "FT232R".lower() in port.description.lower():
             return port.device
     return None
 
