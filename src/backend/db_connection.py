@@ -1,6 +1,6 @@
 import sqlite3
-import backend.dbcs as dbcs
-from backend.can_message import CanMessage  # our own CanMessage Object
+from . import dbcs
+from .can_message import CanMessage  # our own CanMessage Object
 import json
 
 # Before initializing any DbConnection objects, must run setup_the_db_path(path : str)
@@ -176,6 +176,8 @@ class DbConnection:
 
         self.conn.commit()
         new_id = self.cur.lastrowid
+        if new_id is None:
+            raise RuntimeError('SQLite did not provide a row ID')
         return new_id
     
     
@@ -222,10 +224,12 @@ class DbConnection:
 
         self.conn.commit()
         new_id = self.cur.lastrowid
+        if new_id is None:
+            raise RuntimeError
         return new_id
 
     
-    def delete_alert(self, alert_id: int) -> None:
+    def delete_alert(self, alert_id: int) -> str | None:
         self.cur.execute('''
             DELETE FROM Alerts WHERE id = ?
         ''', (alert_id,))
@@ -233,7 +237,7 @@ class DbConnection:
         self.conn.commit()
 
 
-    def get_alert_name(self, alert_id: int) -> str:
+    def get_alert_name(self, alert_id: int) -> str | None:
         self.cur.execute('''
             SELECT name FROM Alerts WHERE id = ?
         ''', (alert_id,))

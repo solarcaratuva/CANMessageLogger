@@ -2,14 +2,14 @@ from serial import Serial
 import serial.tools.list_ports
 # import re
 import time
-from backend.input.logfile_producer import parse_line
-from backend.sockio.stream_xbee import enqueue_xbee_message
-import backend.input.consumer as consumer
+from .logfile_producer import parse_line
+from ..sockio.stream_xbee import enqueue_xbee_message
+from . import consumer
 
 # Radio message pattern
 # pattern = r'.+ ID (0x[0-9A-Fa-f]+) Length \d+ Data (0x[0-9A-Fa-f]+)'
 
-def parse_radio_line(line: str) -> tuple[int, bytes]:
+def parse_radio_line(line: str) -> tuple[int, bytes] | None:
     """ Parses a line from the radio's serial output and returns the ID and data.
 
     This preserves the existing helper while delegating actual parsing
@@ -24,7 +24,7 @@ def parse_radio_line(line: str) -> tuple[int, bytes]:
     return (id_int, data_bytes)
 
 
-def get_correct_port() -> str:
+def get_correct_port() -> str | None:
     """ Finds the radio's port"""
 
     ports = serial.tools.list_ports.comports()

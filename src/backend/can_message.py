@@ -1,5 +1,4 @@
-import backend.dbcs as dbcs
-
+from . import dbcs
 
 class CanMessage:
     def __init__(self, name: str, id: int, signals: dict, timestamp: float):
@@ -13,7 +12,7 @@ class CanMessage:
 
 
 @staticmethod
-def decode_message(id: int, data: bytes, timestamp: float) -> CanMessage:
+def decode_message(id: int, data: bytes, timestamp: float) -> CanMessage | None:
     """
     Decodes the message using previously generated DBCs object
 
@@ -41,6 +40,8 @@ def decode_message(id: int, data: bytes, timestamp: float) -> CanMessage:
 
     # if decoded message was not associated with a definition from DBCs, return None
     if decoded_message is None:
+        return None
+    if name is None:
         return None
 
     return CanMessage(name, id, decoded_message, timestamp)
