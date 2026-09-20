@@ -24,7 +24,8 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
     @setup_app.route("/validate-hardware", methods=["POST"])
     def validate_hardware():
         """AJAX endpoint for real-time hardware validation"""
-        log_type = request.json.get("logType")
+        request_data = request.get_json(silent=True) or {}
+        log_type = request_data.get("logType")
         
         if log_type == "livelog":
             from backend.startup_validation import get_st_link_port
@@ -46,8 +47,10 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
     @setup_app.route("/validate-file", methods=["POST"])
     def validate_file():
         """AJAX endpoint for validating selected file name (pre-upload)."""
-        file_name = request.json.get("fileName", "")
-        log_type = request.json.get("logType")
+        request_file = request.get_json(silent=True) or {}
+        file_name = request_file.get("fileName", "")
+        request_log_type = request.get_json(silent=True) or {}
+        log_type = request_log_type.get("logType")
         file_name = file_name.strip().lower()
 
         if not file_name:
@@ -114,9 +117,15 @@ def launch_startup_options(run_server_callback, socketio_port=5500):
     
     @setup_app.route("/start", methods=["POST"])
     def start():
-        class Opts: pass
+        class Opts:
+            logType: str
+            aws_profile: list
+            inputFile: list | None
+            outputDB: list | None
+            set_dbc_branch: str
+
         opts = Opts()
-        opts.logType = request.form.get("logType")
+        opts.logType = request.form.get("logType") or ""
 
         # 3. CAPTURE AWS PROFILE
         # We wrap it in a list to match the argparse -p flag format

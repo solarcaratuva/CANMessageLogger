@@ -1,10 +1,10 @@
 # src/backend/sockio/socket.py
 from flask import Flask, render_template, redirect, jsonify
-from src.backend.sockio.extensions import socketio
-from src.tests.testData import create_json, telemetry
-from src.tests.motorData import stream_motor_data
-from src.backend.cloud.read_dynamodb import dynamo_emit_loop
-from src.backend.sockio.stream_xbee import xbee_emit_loop
+from backend.sockio.extensions import socketio
+from tests.testData import create_json, telemetry
+from tests.motorData import stream_motor_data
+from backend.cloud.read_dynamodb import dynamo_emit_loop
+from backend.sockio.stream_xbee import xbee_emit_loop
 SOCKETIO_PORT = 5500
 import logging
 
