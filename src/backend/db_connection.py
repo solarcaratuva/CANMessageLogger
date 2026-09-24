@@ -141,6 +141,8 @@ class DbConnection:
 
         # create table for each can_message_name
         for can_msg_type, signal_types_dict in can_msg_signals.items():
+            if not signal_types_dict:
+               continue
             columns = ', '.join([f'{signal_name} INTEGER' for signal_name in signal_types_dict.keys()])
 
             sql = f'CREATE TABLE IF NOT EXISTS {can_msg_type} (count INTEGER PRIMARY KEY AUTOINCREMENT, {columns}, timeStamp INTEGER)'  # add timestamp column
