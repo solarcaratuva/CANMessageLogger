@@ -78,11 +78,11 @@ The legacy logger includes three views:
 ```text
 src/main.py
     -> source producer/parser
-    -> consumer queue
-    -> CAN message decoding and alert checks
-    -> SQLite database
-    -> Flask/Socket.IO API
-    -> React dashboard client
+        -> consumer queue
+            -> CAN message decoding and alert checks
+            -> SQLite database
+            -> Flask/Socket.IO API
+                -> React dashboard client
 ```
 
 `main.py` selects the source and starts the matching producer:
