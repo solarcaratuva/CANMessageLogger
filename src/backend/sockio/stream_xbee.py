@@ -6,12 +6,12 @@ from backend.can_message import decode_message
 # Event name used for all backend data stream emissions.
 BACKEND_DATA_STREAM = "backend_data_stream"
 
-# Keep a separate queue for XBee/radio events so the SQLite consumer queue is not disturbed.
+# Keep a separate queue for XBee/radio/frontend events so the SQLite consumer queue is not disturbed.
 xbee_queue: Queue = Queue()
 
 
 def enqueue_xbee_message(id: int, data: bytes, timestamp: float) -> None:
-    """Queue a parsed XBee/radio message for websocket emission."""
+    """Queue a parsed CAN message for websocket emission without disturbing the SQLite consumer queue."""
     xbee_queue.put((id, data, timestamp))
 
 
@@ -34,7 +34,7 @@ def format_message_payload(id: int, data: bytes, timestamp: float) -> dict:
 
 
 def xbee_emit_loop():
-    """Emit queued XBee/radio messages to connected Socket.IO clients."""
+    """Emit queued CAN messages to connected Socket.IO clients."""
     while True:
         batch = []
         while True:
@@ -46,4 +46,4 @@ def xbee_emit_loop():
 
         if batch:
             socketio.emit(BACKEND_DATA_STREAM, batch)
-        socketio.sleep(0.2)
+        socketio.sleep(0.2)  # type: ignore[arg-type]

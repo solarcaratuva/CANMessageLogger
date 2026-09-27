@@ -141,9 +141,17 @@ class DbConnection:
 
         # create table for each can_message_name
         for can_msg_type, signal_types_dict in can_msg_signals.items():
-            columns = ', '.join([f'{signal_name} INTEGER' for signal_name in signal_types_dict.keys()])
+            columns = ', '.join(
+                f'{signal_name} "{signal_type}"'
+                for signal_name, signal_type in signal_types_dict.items()
+            )
 
-            sql = f'CREATE TABLE IF NOT EXISTS {can_msg_type} (count INTEGER PRIMARY KEY AUTOINCREMENT, {columns}, timeStamp INTEGER)'  # add timestamp column
+            sql = (
+                f'CREATE TABLE IF NOT EXISTS {can_msg_type} ('
+                'count "INTEGER" PRIMARY KEY AUTOINCREMENT'
+                f'{f", {columns}" if columns else ""}, '
+                'timeStamp "INTEGER")'
+            )
 
             self.cur.execute(sql)
 

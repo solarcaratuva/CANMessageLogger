@@ -1,4 +1,5 @@
 import backend.input.consumer as consumer
+from backend.sockio.stream_xbee import enqueue_xbee_message
 import time
 import re
 
@@ -91,6 +92,7 @@ def process_logfile(path_to_log_file: str) -> None:
                 id, data, timestamp = cm_tup
                 if timestamp is None:
                     timestamp = time.perf_counter() - consumer.start_consume_time
+                enqueue_xbee_message(id, data, timestamp)
                 consumer.add_to_queue(id, data, timestamp)
 
 
@@ -107,6 +109,7 @@ def process_logfile_live(path_to_log_file: str) -> None:
             if timestamp is None:
                 timestamp = time.perf_counter() - consumer.start_consume_time
 
+            enqueue_xbee_message(id, data, timestamp)
             consumer.add_to_queue(id, data, timestamp)
             time.sleep(LOOP_TIME)
 

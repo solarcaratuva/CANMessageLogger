@@ -53,10 +53,11 @@ def handle_connect():
     socketio.start_background_task(stream_motor_data)
 
     # Start one backend data stream task based on the selected source.
-    # Cloud uses DynamoDB polling, non-cloud uses the XBee/radio emitter.
+    # Cloud uses DynamoDB polling; start-up options that include an uploaded file 
+    # transmit decoded CAN to frontend using stream_xbee.py
     if selected_data_type == "cloud":
         socketio.start_background_task(dynamo_emit_loop)
-    else:
+    elif selected_data_type == "pastlog" or selected_data_type == "mock_livelog":
         socketio.start_background_task(xbee_emit_loop)
 
 @socketio.on('disconnect')

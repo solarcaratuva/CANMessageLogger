@@ -1,4 +1,6 @@
 from . import dbcs
+from typing import Any
+from cantools.database.can import database
 
 class CanMessage:
     def __init__(self, name: str, id: int, signals: dict, timestamp: float):
@@ -30,10 +32,13 @@ def decode_message(id: int, data: bytes, timestamp: float) -> CanMessage | None:
     decoded_message = None  # dictionary of signals to return
 
     for db in dbcs.DBCs:
-        for msg in db.messages:
+        # Pylance type checking workaround 
+        db_obj: Any = db
+
+        for msg in db_obj.messages:
             if msg.frame_id == id:
                 name = msg.name
-                decoded_message = db.decode_message(id, data)
+                decoded_message = db_obj.decode_message(id, data)
                 break
         if decoded_message is not None:
             break
