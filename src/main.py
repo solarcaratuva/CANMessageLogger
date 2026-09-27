@@ -95,6 +95,8 @@ def run_server(args):
     dbconn.setup_the_tables()
 
     if args.logType == "pastlog":
+        if datafile_path is None:
+            raise ValueError("An input file is required for pastlog mode")
         logfile_producer.process_logfile(datafile_path)
         consumer.process_data()
 
@@ -104,6 +106,8 @@ def run_server(args):
 
     elif args.logType == "mock_livelog":
         socketio.start_background_task(target=consumer.process_data_live)
+        if datafile_path is None:
+            raise ValueError("AN input file is required for mock_livelog mode")
         socketio.start_background_task(target=partial(logfile_producer.process_logfile_live, datafile_path))
 
     elif args.logType == "radio":
