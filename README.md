@@ -15,10 +15,10 @@ This program is for logging, filtering, and analyzing recorded or live CAN messa
 
 Run the following commands in a command prompt in the directory of this project: 
 
-1. Activate the virtual environment by running the command `.\.venv\Scripts\activate` (on Mac instead run `source ./venv/bin/activate`). 
+1. Activate the virtual environment by running the command `./venv/Scripts/activate` (on Mac instead run `source ./venv/bin/activate`). 
 2. When launching the program, settings for the server can either be input directly via command line flags, or through a startup UI.
-    * To start the program with the startup UI run the command `py .\src\main.py`. See "Navigating the user interface" for next steps.
-    * To start the server directly with command line flags run the command `py .\src\main.py [data source] [flags...]`; if `py` isn't recognized, try `python` or `python3`. Specifying the data source is a required positional argument, while flags are largely optional and can be in any order. 
+    * To start the program with the startup UI run the command `py ./src/main.py`. See "Navigating the user interface" for next steps.
+    * To start the server directly with command line flags run the command `py ./src/main.py [data source] [flags...]`; if `py` isn't recognized, try `python` or `python3`. Specifying the data source is a required positional argument, while flags are largely optional and can be in any order. 
 
 **Data Source**
 
@@ -39,7 +39,7 @@ User must include the data source type that will be used to set up the database.
 
 ### Startup UI
 
-1. The user interface will be launched by default upon startup by running `py .\src\main.py` with no flags. If flags are included, the startup options UI will not be launched. 
+1. The user interface will be launched by default upon startup by running `py ./src/main.py` with no flags. If flags are included, the startup options UI will not be launched. 
 2. The startup options UI contains options to modify the same settings as set by the flags, including: 
     * Log Type (pastlog, livelog, mock_livelog, db, radio)
     * Input File
@@ -61,13 +61,13 @@ There are 3 views, selected by clicking on them on the taskbar on the top of the
 
 The program supports two startup modes:
 
-1. **UI Mode (default)**: Running `py .\src\main.py` with no arguments launches a setup server (`startup_server.py`) on port 5499. This opens a browser to a configuration UI where users select options. Upon clicking "Launch App", the setup server validates inputs, starts the main server in a new thread, and redirects the browser to the main application on port 5500.
+1. **UI Mode (default)**: Running `py ./src/main.py` with no arguments launches a setup server (`startup_server.py`) on port 5499. This opens a browser to a configuration UI where users select options. Upon clicking "Launch App", the setup server validates inputs, starts the main server in a new thread, and redirects the browser to the main application on port 5500.
 
-2. **CLI Mode**: Running with command-line arguments (e.g., `py .\src\main.py pastlog -i logfile.txt`) bypasses the UI and directly starts the main server with the provided configuration.
+2. **CLI Mode**: Running with command-line arguments (e.g., `py ./src/main.py pastlog -i logfile.txt`) bypasses the UI and directly starts the main server with the provided configuration.
 
 ### Data Processing
 
-The backend uses a Producer-Consumer software pattern to produce CAN message entries from a given data source, and consume them into a central database SQLite file (CDB). The *consumer* module and various *producer* modules are kept in the `\src\backend\input` directory.
+The backend uses a Producer-Consumer software pattern to produce CAN message entries from a given data source, and consume them into a central database SQLite file (CDB). The *consumer* module and various *producer* modules are kept in the `/src/backend/input` directory.
 
 The backend also uses 2 custom objects to streamline this process: 
 
@@ -76,6 +76,6 @@ The backend also uses 2 custom objects to streamline this process:
 
 The backend flow of data is as follows: 
 
-1. The user includes a data source (`pastlog`, `mock_livelog`, etc.) when running the program. Based on the data source's type, the corresponding function from a producer module in `\src\backend\input` is called in `main.py` and provided with the data source path / location.
+1. The user includes a data source (`pastlog`, `mock_livelog`, etc.) when running the program. Based on the data source's type, the corresponding function from a producer module in `/src/backend/input` is called in `main.py` and provided with the data source path / location.
 2. The producer function will then process the CAN messages from the data source and push them as a `tuple` into `queue`, which is a static queue that is shared between the `consumer` module and the various producer modules. 
-3. Then a function from the `consumer` module will pop `tuples` from `queue`, then process the `tuple` and insert it into the CDB. 
+3. Then a function from the `consumer` module will pop `tuples` from `queue`, then process the `tuple` and insert it into the CDB.
